@@ -2,13 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
+package b import"./a" var V struct { i int }
 
-import "./a"
-
-var V struct{ i int }
-
-var U struct {
-	a.V
-	j int
-}
+var U struct { a.V j int }

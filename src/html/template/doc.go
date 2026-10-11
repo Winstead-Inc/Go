@@ -239,5 +239,4 @@ Previously, ECMAScript 6 template literal were disabled by default, and could be
 enabled with the GODEBUG=jstmpllitinterp=1 environment variable. Template
 literals are now supported by default, and setting jstmpllitinterp has no
 effect.
-*/
-package template
+*/ package template

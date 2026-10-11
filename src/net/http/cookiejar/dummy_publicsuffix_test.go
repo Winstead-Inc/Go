@@ -2,20 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cookiejar_test
+package cookiejar_test import"net/http/cookiejar" type dummypsl struct { List cookiejar.PublicSuffixList }
 
-import "net/http/cookiejar"
+func(dummypsl) PublicSuffix(domain string) string { return domain }
 
-type dummypsl struct {
-	List cookiejar.PublicSuffixList
-}
+func(dummypsl) String() string { return "dummy" }
 
-func (dummypsl) PublicSuffix(domain string) string {
-	return domain
-}
-
-func (dummypsl) String() string {
-	return "dummy"
-}
-
-var publicsuffix = dummypsl{}
+var publicsuffix = dummypsl {}

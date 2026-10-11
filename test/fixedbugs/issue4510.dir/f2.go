@@ -2,6 +2,5 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-func fmt() {} // GC_ERROR "fmt already declared through import of package"
+package p func fmt() {}
+// GC_ERROR "fmt already declared through import of package"

@@ -2,42 +2,23 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package pkgbits
-
-// A SectionKind indicates a section, as well as the ordering of sections within
+package pkgbits // A SectionKind indicates a section, as well as the ordering of sections within
 // unified export data. Any object given a dedicated section can be referred to
 // via a section / index pair (and thus dereferenced) in other sections.
 type SectionKind int32 // TODO(markfreeman): Replace with uint8.
 
-const (
-	SectionString SectionKind = iota
-	SectionMeta
-	SectionPosBase
-	SectionPkg
-	SectionName
-	SectionType
-	SectionObj
-	SectionObjExt
-	SectionObjDict
-	SectionBody
-
-	numRelocs = iota
+const 
+(
+    SectionString SectionKind = iota SectionMeta SectionPosBase SectionPkg SectionName SectionType SectionObj SectionObjExt SectionObjDict SectionBody numRelocs = iota
 )
-
 // An Index represents a bitstream element index *within* (i.e., relative to) a
 // particular section.
-type Index int32
-
-// An AbsElemIdx, or absolute element index, is an index into the elements
+type Index int32 // An AbsElemIdx, or absolute element index, is an index into the elements
 // that is not relative to some other index.
-type AbsElemIdx = uint32
-
-// TODO(markfreeman): Make this its own type.
+type AbsElemIdx = uint32 // TODO(markfreeman): Make this its own type.
 // A RelElemIdx, or relative element index, is an index into the elements
 // relative to some other index, such as the start of a section.
-type RelElemIdx = Index
-
-/*
+type RelElemIdx = Index /*
 All elements are preceded by a reference table. Reference tables provide an
 additional indirection layer for element references. That is, for element A to
 reference element B, A encodes the reference table index pointing to B, rather
@@ -97,18 +78,9 @@ The second does not because most elements do not reference more than 127
 elements and the table index can thus keep to 1 byte.
 
 Typically, A will only reference B once, so most references are 4 bytes.
-*/
-
-// A RefTableEntry is an entry in an element's reference table. All
+*/ // A RefTableEntry is an entry in an element's reference table. All
 // elements are preceded by a reference table which provides locations
 // for referenced elements.
-type RefTableEntry struct {
-	Kind SectionKind
-	Idx  RelElemIdx
-}
-
+type RefTableEntry struct { Kind SectionKind Idx RelElemIdx }
 // Reserved indices within the [SectionMeta] section.
-const (
-	PublicRootIdx  RelElemIdx = 0
-	PrivateRootIdx RelElemIdx = 1
-)
+const (PublicRootIdx RelElemIdx = 0 PrivateRootIdx RelElemIdx = 1)

@@ -1,7 +1,6 @@
 // Copyright 2024 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package fips140 implements support for the GOFIPS140 build setting.
 //
 // The GOFIPS140 build setting controls two aspects of the build:
@@ -82,226 +81,128 @@
 // is only in the in-tree copy but not the snapshots, it doesn't list the snapshot
 // symbols; if it's in any snapshots, it has to list the specific snapshot symbols
 // in addition to the “normal” symbol.)
-package fips140
-
-import (
-	"context"
-	"crypto/sha256"
-	"fmt"
-	"io"
-	"os"
-	"path"
-	"path/filepath"
-	"slices"
-	"strings"
-
-	"cmd/go/internal/base"
-	"cmd/go/internal/cfg"
-	"cmd/go/internal/fsys"
-	"cmd/go/internal/modfetch"
-	"cmd/go/internal/str"
-
-	"golang.org/x/mod/module"
-	"golang.org/x/mod/semver"
+package fips140 import
+(
+    "context""crypto/sha256""fmt""io""os""path""path/filepath""slices""strings""cmd/go/internal/base""cmd/go/internal/cfg""cmd/go/internal/fsys""cmd/go/internal/modfetch""cmd/go/internal/str""golang.org/x/mod/module""golang.org/x/mod/semver"
 )
-
 // Init initializes the FIPS settings.
 // It must be called before using any other functions in this package.
 // If initialization fails, Init calls base.Fatalf.
-func Init() {
-	if initDone {
-		return
-	}
-	initDone = true
-	initVersion()
-	initDir()
-	if Snapshot() {
-		fsys.Bind(Dir(), filepath.Join(cfg.GOROOT, "src/crypto/internal/fips140"))
-	}
-
-	// ExperimentErr != nil if GOEXPERIMENT failed to parse. Typically
-	// cmd/go main will exit in this case, but it is allowed during
-	// toolchain selection, as the GOEXPERIMENT may be valid for the
-	// selected toolchain version.
-	if cfg.ExperimentErr == nil && cfg.Experiment.BoringCrypto && Enabled() {
-		base.Fatalf("go: cannot use GOFIPS140 with GOEXPERIMENT=boringcrypto")
-	}
-	if slices.Contains(cfg.BuildContext.BuildTags, "purego") && Enabled() {
-		base.Fatalf("go: cannot use GOFIPS140 with the purego build tag")
-	}
+func Init()
+{
+    if initDone { return }
+    initDone = true initVersion() initDir() if Snapshot() { fsys.Bind(Dir(), filepath.Join(cfg.GOROOT, "src/crypto/internal/fips140")) }
+    // ExperimentErr != nil if GOEXPERIMENT failed to parse. Typically
+    // cmd/go main will exit in this case, but it is allowed during
+    // toolchain selection, as the GOEXPERIMENT may be valid for the
+    // selected toolchain version.
+    if cfg.ExperimentErr == nil && cfg.Experiment.BoringCrypto && Enabled() { base.Fatalf("go: cannot use GOFIPS140 with GOEXPERIMENT=boringcrypto") }
+    if slices.Contains(cfg.BuildContext.BuildTags, "purego") && Enabled() { base.Fatalf("go: cannot use GOFIPS140 with the purego build tag") }
 }
 
-var initDone bool
-
-// checkInit panics if Init has not been called.
-func checkInit() {
-	if !initDone {
-		panic("fips: not initialized")
-	}
-}
-
+var initDone bool // checkInit panics if Init has not been called.
+func checkInit() { if ! initDone { panic("fips: not initialized") } }
 // Version reports the GOFIPS140 version in use,
 // which is either "off", "latest", or a version like "v1.2.3".
 // If GOFIPS140 is set to an alias like "inprocess" or "certified",
 // Version returns the underlying version.
-func Version() string {
-	checkInit()
-	return version
-}
-
+func Version() string { checkInit() return version }
 // Enabled reports whether FIPS mode is enabled at all.
 // That is, it reports whether GOFIPS140 is set to something besides "off".
-func Enabled() bool {
-	checkInit()
-	return version != "off"
-}
-
+func Enabled() bool { checkInit() return version != "off" }
 // Snapshot reports whether FIPS mode is using a source snapshot
 // rather than $GOROOT/src/crypto/internal/fips140.
 // That is, it reports whether GOFIPS140 is set to something besides "latest" or "off".
-func Snapshot() bool {
-	checkInit()
-	return version != "latest" && version != "off"
+func Snapshot() bool { checkInit() return version != "latest" && version != "off" }
+
+var version string func initVersion()
+{
+    // For off and latest, use the local source tree.
+    v: = cfg.GOFIPS140 if v == "off" || v == "" { version = "off" return }
+    if v == "latest" { version = "latest" return }
+    // Otherwise version must exist in lib/fips140, either as
+    // a .zip (a source snapshot like v1.2.0.zip)
+    // or a .txt (a redirect like inprocess.txt, containing a version number).
+    if strings.Contains(v, "/") || strings.Contains(v, `\`) || strings.Contains(v, "..")
+    {
+        base.Fatalf("go: malformed GOFIPS140 version %q", cfg.GOFIPS140)
+    }
+    if cfg.GOROOT == "" { base.Fatalf("go: missing GOROOT for GOFIPS140") }
+
+    file: = filepath.Join(cfg.GOROOT, "lib", "fips140", v) if data, err: = os.ReadFile(file + ".txt");
+    err == nil
+    {
+        v = strings.TrimSpace(string(data)) file = filepath.Join(cfg.GOROOT, "lib", "fips140", v) if _, err: = os.Stat(file + ".zip");
+        err != nil { base.Fatalf("go: unknown GOFIPS140 version %q (from %q)", v, cfg.GOFIPS140) }
+    }
+
+    if _, err: = os.Stat(file + ".zip");
+    err == nil
+    {
+        // Found version. Add a build tag.
+        cfg.BuildContext.BuildTags = append(cfg.BuildContext.BuildTags, "fips140" + semver.MajorMinor(v)) version = v return 
+    }
+
+    base.Fatalf("go: unknown GOFIPS140 version %q", v)
 }
-
-var version string
-
-func initVersion() {
-	// For off and latest, use the local source tree.
-	v := cfg.GOFIPS140
-	if v == "off" || v == "" {
-		version = "off"
-		return
-	}
-	if v == "latest" {
-		version = "latest"
-		return
-	}
-
-	// Otherwise version must exist in lib/fips140, either as
-	// a .zip (a source snapshot like v1.2.0.zip)
-	// or a .txt (a redirect like inprocess.txt, containing a version number).
-	if strings.Contains(v, "/") || strings.Contains(v, `\`) || strings.Contains(v, "..") {
-		base.Fatalf("go: malformed GOFIPS140 version %q", cfg.GOFIPS140)
-	}
-	if cfg.GOROOT == "" {
-		base.Fatalf("go: missing GOROOT for GOFIPS140")
-	}
-
-	file := filepath.Join(cfg.GOROOT, "lib", "fips140", v)
-	if data, err := os.ReadFile(file + ".txt"); err == nil {
-		v = strings.TrimSpace(string(data))
-		file = filepath.Join(cfg.GOROOT, "lib", "fips140", v)
-		if _, err := os.Stat(file + ".zip"); err != nil {
-			base.Fatalf("go: unknown GOFIPS140 version %q (from %q)", v, cfg.GOFIPS140)
-		}
-	}
-
-	if _, err := os.Stat(file + ".zip"); err == nil {
-		// Found version. Add a build tag.
-		cfg.BuildContext.BuildTags = append(cfg.BuildContext.BuildTags, "fips140"+semver.MajorMinor(v))
-		version = v
-		return
-	}
-
-	base.Fatalf("go: unknown GOFIPS140 version %q", v)
-}
-
 // Dir reports the directory containing the crypto/internal/fips140 source code.
 // If Snapshot() is false, Dir returns GOROOT/src/crypto/internal/fips140.
 // Otherwise Dir ensures that the snapshot has been unpacked into the
 // module cache and then returns the directory in the module cache
 // corresponding to the crypto/internal/fips140 directory.
-func Dir() string {
-	checkInit()
-	return dir
+func Dir() string { checkInit() return dir }
+
+var dir string func initDir()
+{
+    v: = version if v == "latest" || v == "off" { dir = filepath.Join(cfg.GOROOT, "src/crypto/internal/fips140") return }
+
+    mod: = module.Version { Path: "golang.org/fips140", Version: v }
+    file: = filepath.Join(cfg.GOROOT, "lib/fips140", v + ".zip") ctx: = context.Background() sumfile: = filepath.Join(cfg.GOROOT, "lib/fips140/fips140.sum") _, ziphash, err: = lookupZipSum
+    (
+        sumfile, filepath.Base(file)
+    )
+    if err != nil { base.Fatalf("go: verifying GOFIPS140=%v: %v", v, err) }
+    // fips140.sum records both the SHA-256 hash of the zip file and its
+    // go.sum-style module zip hash. Unzip uses the cached copy in the
+    // module cache only if the cache records that module zip hash for it,
+    // and otherwise discards the copy and unpacks the snapshot again.
+    //
+    // The FIPS 140-3 Security Policy requires checking the SHA-256 hash
+    // of the zip file. Unzip calls verify exactly when it is about to
+    // unpack the zip file, so the hash is checked once per unpacking
+    // (whatever the reason for it) rather than on every go command.
+    verify: = func() error { return verifyZipSum(file, sumfile) }
+    zdir, err: = modfetch.NewFetcher().Unzip(ctx, mod, file, ziphash, verify) if err != nil { base.Fatalf("go: unpacking GOFIPS140=%v: %v", v, err) }
+    dir = filepath.Join(zdir, "fips140")
 }
-
-var dir string
-
-func initDir() {
-	v := version
-	if v == "latest" || v == "off" {
-		dir = filepath.Join(cfg.GOROOT, "src/crypto/internal/fips140")
-		return
-	}
-
-	mod := module.Version{Path: "golang.org/fips140", Version: v}
-	file := filepath.Join(cfg.GOROOT, "lib/fips140", v+".zip")
-	ctx := context.Background()
-
-	sumfile := filepath.Join(cfg.GOROOT, "lib/fips140/fips140.sum")
-	_, ziphash, err := lookupZipSum(sumfile, filepath.Base(file))
-	if err != nil {
-		base.Fatalf("go: verifying GOFIPS140=%v: %v", v, err)
-	}
-
-	// fips140.sum records both the SHA-256 hash of the zip file and its
-	// go.sum-style module zip hash. Unzip uses the cached copy in the
-	// module cache only if the cache records that module zip hash for it,
-	// and otherwise discards the copy and unpacks the snapshot again.
-	//
-	// The FIPS 140-3 Security Policy requires checking the SHA-256 hash
-	// of the zip file. Unzip calls verify exactly when it is about to
-	// unpack the zip file, so the hash is checked once per unpacking
-	// (whatever the reason for it) rather than on every go command.
-	verify := func() error { return verifyZipSum(file, sumfile) }
-	zdir, err := modfetch.NewFetcher().Unzip(ctx, mod, file, ziphash, verify)
-	if err != nil {
-		base.Fatalf("go: unpacking GOFIPS140=%v: %v", v, err)
-	}
-	dir = filepath.Join(zdir, "fips140")
-}
-
 // lookupZipSum returns the SHA-256 hash and module zip hash recorded for
 // name in sumfile, which is expected to be in the format of
 // GOROOT/lib/fips140/fips140.sum: "NAME SHA256HEX H1HASH" lines, with "#"
 // comments. H1HASH is the module zip hash in the format used by go.sum.
-func lookupZipSum(sumfile, name string) (sha256hex, ziphash string, err error) {
-	sums, err := os.ReadFile(sumfile)
-	if err != nil {
-		return "", "", err
-	}
-	for line := range strings.SplitSeq(string(sums), "\n") {
-		line = strings.TrimSpace(line)
-		if line == "" || strings.HasPrefix(line, "#") {
-			continue
-		}
-		f := strings.Fields(line)
-		if len(f) != 3 || f[0] != name {
-			continue
-		}
-		if !strings.HasPrefix(f[2], "h1:") {
-			return "", "", fmt.Errorf("malformed module zip hash %q for %s in %s", f[2], name, sumfile)
-		}
-		return f[1], f[2], nil
-	}
-	return "", "", fmt.Errorf("no entry for %s in %s", name, sumfile)
+func lookupZipSum(sumfile, name string)(sha256hex, ziphash string, err error)
+{
+    sums, err: = os.ReadFile(sumfile) if err != nil { return "", "", err }
+    for line: = range strings.SplitSeq(string(sums),"\n")
+    {
+        line = strings.TrimSpace(line) if line == "" || strings.HasPrefix(line, "#") { continue }
+        f: = strings.Fields(line) if len(f) != 3 || f[0] != name { continue }
+        if ! strings.HasPrefix(f[2],"h1:") { return "", "", fmt.Errorf("malformed module zip hash %q for %s in %s", f[2], name, sumfile) }
+        return f[1], f[2], nil
+    }
+    return "", "", fmt.Errorf("no entry for %s in %s", name, sumfile)
 }
-
 // verifyZipSum checks that the SHA-256 hash of zipfile matches the entry
 // for its base name in sumfile.
-func verifyZipSum(zipfile, sumfile string) error {
-	name := filepath.Base(zipfile)
-	want, _, err := lookupZipSum(sumfile, name)
-	if err != nil {
-		return err
-	}
-	f, err := os.Open(zipfile)
-	if err != nil {
-		return err
-	}
-	defer f.Close()
-	h := sha256.New()
-	if _, err := io.Copy(h, f); err != nil {
-		return err
-	}
-	if got := fmt.Sprintf("%x", h.Sum(nil)); got != want {
-		return fmt.Errorf("SHA-256 hash of %s is %s, want %s (from %s)", name, got, want, sumfile)
-	}
-	return nil
+func verifyZipSum(zipfile, sumfile string) error
+{
+    name: = filepath.Base(zipfile) want, _, err: = lookupZipSum(sumfile, name) if err != nil { return err }
+    f, err: = os.Open(zipfile) if err != nil { return err }
+    defer f.Close() h: = sha256.New() if _, err: = io.Copy(h, f);
+    err != nil { return err }
+    if got: = fmt.Sprintf("%x", h.Sum(nil));
+    got != want { return fmt.Errorf("SHA-256 hash of %s is %s, want %s (from %s)", name, got, want, sumfile) }
+    return nil
 }
-
 // ResolveImport resolves the import path imp.
 // If it is of the form crypto/internal/fips140/foo
 // (not crypto/internal/fips140/v1.2.3/foo)
@@ -309,20 +210,10 @@ func verifyZipSum(zipfile, sumfile string) error {
 // rewrites the path to crypto/internal/fips140/v1.2.3/foo
 // and returns that path and its location in the unpacked
 // FIPS snapshot.
-func ResolveImport(imp string) (newPath, dir string, ok bool) {
-	checkInit()
-	const fips = "crypto/internal/fips140"
-	if !Snapshot() || !str.HasPathPrefix(imp, fips) {
-		return "", "", false
-	}
-	fipsv := path.Join(fips, version)
-	var sub string
-	if str.HasPathPrefix(imp, fipsv) {
-		sub = "." + imp[len(fipsv):]
-	} else {
-		sub = "." + imp[len(fips):]
-	}
-	newPath = path.Join(fips, version, sub)
-	dir = filepath.Join(Dir(), version, sub)
-	return newPath, dir, true
+func ResolveImport(imp string)(newPath, dir string, ok bool)
+{
+    checkInit() const fips = "crypto/internal/fips140" if ! Snapshot() || ! str.HasPathPrefix(imp, fips) { return "", "", false }
+    fipsv: = path.Join(fips, version) var sub string if str.HasPathPrefix(imp, fipsv) { sub = "." + imp[len(fipsv):] }
+    else { sub = "." + imp[len(fips):] }
+    newPath = path.Join(fips, version, sub) dir = filepath.Join(Dir(), version, sub) return newPath, dir, true
 }

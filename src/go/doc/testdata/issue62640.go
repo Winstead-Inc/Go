@@ -2,14 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package issue62640
-
-type E struct{}
-
+package issue62640 type E struct {}
 // F should be hidden within S because of the S.F field.
-func (E) F() {}
+func(E) F() {}
 
-type S struct {
-	E
-	F int
-}
+type S struct { E F int }

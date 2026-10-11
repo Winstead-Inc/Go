@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// Test passing C struct to exported Go function.
+package main // Test passing C struct to exported Go function.
 
 /*
 #include <stdint.h>
@@ -27,12 +25,7 @@ void CF(int x) {
 	t->y = x;
 	F(*t);
 }
-*/
-import "C"
-
-//export F
+*/ import"C" //export F
 func F(t C.T) { println(t.b, t.x, t.y) }
 
-func main() {
-	C.CF(C.int(0))
-}
+func main() { C.CF(C.int (0)) }

@@ -28,10 +28,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package arm
-
-// Writing object files.
-
+package arm // Writing object files.
 // Inferno utils/5l/l.h
 // https://bitbucket.org/inferno-os/inferno-os/src/master/utils/5l/l.h
 //
@@ -62,14 +59,11 @@ package arm
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-const (
-	maxAlign  = 8 // max data alignment
-	minAlign  = 1 // min data alignment
-	funcAlign = 4 // single-instruction alignment
+const 
+(
+    maxAlign = 8 // max data alignment
+    minAlign = 1 // min data alignment
+    funcAlign = 4 // single-instruction alignment
 )
 
-/* Used by ../internal/ld/dwarf.go */
-const (
-	dwarfRegSP = 13
-	dwarfRegLR = 14
-)
+/* Used by ../internal/ld/dwarf.go */ const (dwarfRegSP = 13 dwarfRegLR = 14)

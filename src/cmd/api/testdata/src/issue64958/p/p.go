@@ -1,3 +1,1 @@
-package p
-
-type BasicAlias = uint8
+package p type BasicAlias = uint8

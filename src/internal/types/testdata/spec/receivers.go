@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package receivers
+package receivers // TODO(gri) add more tests checking the various restrictions on receivers
 
-// TODO(gri) add more tests checking the various restrictions on receivers
-
-type G[P any] struct{}
-type A[P any] = G[P]
-
-func (a A /* ERROR "cannot define new methods on generic alias type A[P any]" */ [P]) m() {}
+type G[P any] struct {}
+type A[P any] = G[P] func(a A/* ERROR "cannot define new methods on generic alias type A[P any]" */[P]) m() {}

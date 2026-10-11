@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package exec
-
-// LookPath searches for an executable named file in the current path,
+package exec // LookPath searches for an executable named file in the current path,
 // following the conventions of the host operating system.
 // If file contains a slash, it is tried directly and the default path is not consulted.
 // Otherwise, on success the result is an absolute path.
@@ -25,6 +23,4 @@ package exec
 //     If file begins with "/", "#", "./", or "../", it is tried
 //     directly and the path is not consulted.
 //   - On Wasm, LookPath always returns an error.
-func LookPath(file string) (string, error) {
-	return lookPath(file)
-}
+func LookPath(file string)(string, error) { return lookPath(file) }

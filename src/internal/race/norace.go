@@ -1,55 +1,32 @@
 // Copyright 2015 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build !race
 
-package race
+package race import("internal/abi""unsafe") const Enabled = false func Acquire(addr unsafe.Pointer) {}
 
-import (
-	"internal/abi"
-	"unsafe"
-)
+func Release(addr unsafe.Pointer) {}
 
-const Enabled = false
+func ReleaseMerge(addr unsafe.Pointer) {}
 
-func Acquire(addr unsafe.Pointer) {
-}
+func Disable() {}
 
-func Release(addr unsafe.Pointer) {
-}
+func Enable() {}
 
-func ReleaseMerge(addr unsafe.Pointer) {
-}
+func Read(addr unsafe.Pointer) {}
 
-func Disable() {
-}
+func ReadPC(addr unsafe.Pointer, callerpc, pc uintptr) {}
 
-func Enable() {
-}
+func ReadObjectPC(t * abi.Type, addr unsafe.Pointer, callerpc, pc uintptr) {}
 
-func Read(addr unsafe.Pointer) {
-}
+func Write(addr unsafe.Pointer) {}
 
-func ReadPC(addr unsafe.Pointer, callerpc, pc uintptr) {
-}
+func WritePC(addr unsafe.Pointer, callerpc, pc uintptr) {}
 
-func ReadObjectPC(t *abi.Type, addr unsafe.Pointer, callerpc, pc uintptr) {
-}
+func WriteObjectPC(t * abi.Type, addr unsafe.Pointer, callerpc, pc uintptr) {}
 
-func Write(addr unsafe.Pointer) {
-}
+func ReadRange(addr unsafe.Pointer, len int) {}
 
-func WritePC(addr unsafe.Pointer, callerpc, pc uintptr) {
-}
-
-func WriteObjectPC(t *abi.Type, addr unsafe.Pointer, callerpc, pc uintptr) {
-}
-
-func ReadRange(addr unsafe.Pointer, len int) {
-}
-
-func WriteRange(addr unsafe.Pointer, len int) {
-}
+func WriteRange(addr unsafe.Pointer, len int) {}
 
 func Errors() int { return 0 }

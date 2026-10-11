@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cfile
-
-import "internal/runtime/exithook"
-
-// InitHook is invoked from the main package "init" routine in
+package cfile import"internal/runtime/exithook" // InitHook is invoked from the main package "init" routine in
 // programs built with "-cover". This function is intended to be
 // called only by the compiler (via runtime/coverage.initHook).
 //
@@ -25,14 +21,14 @@ import "internal/runtime/exithook"
 // test binary is being used as a replacement binary for the tool
 // being tested, hence we do want to run exit hooks when the program
 // terminates.
-func InitHook(istest bool) {
-	// Note: hooks are run in reverse registration order, so
-	// register the counter data hook before the meta-data hook
-	// (in the case where two hooks are needed).
-	exithook.Add(exithook.Hook{F: emitCounterData, RunOnFailure: true})
-	if istest {
-		exithook.Add(exithook.Hook{F: emitMetaData, RunOnFailure: true})
-	} else {
-		emitMetaData()
-	}
+func InitHook(istest bool)
+{
+    // Note: hooks are run in reverse registration order, so
+    // register the counter data hook before the meta-data hook
+    // (in the case where two hooks are needed).
+    exithook.Add(exithook.Hook { F: emitCounterData, RunOnFailure: true }) if istest
+    {
+        exithook.Add(exithook.Hook { F: emitMetaData, RunOnFailure: true })
+    }
+    else { emitMetaData() }
 }

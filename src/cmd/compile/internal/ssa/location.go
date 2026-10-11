@@ -2,18 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ssa
-
-import (
-	"fmt"
-
-	"cmd/compile/internal/ir"
-	"cmd/compile/internal/types"
-)
-
-type LocPair [2]Location
-
-// A LocalSlot is a location in the stack frame, which identifies and stores
+package ssa import("fmt""cmd/compile/internal/ir""cmd/compile/internal/types") type LocPair[2] Location // A LocalSlot is a location in the stack frame, which identifies and stores
 // part or all of a PPARAM, PPARAMOUT, or PAUTO ONAME node.
 // It can represent a whole variable, part of a larger stack slot, or part of a
 // variable that has been decomposed into multiple stack slots.
@@ -32,54 +21,34 @@ type LocPair [2]Location
 //	[ ptr *uint8 ] [ len int] { N: ptr, Type: *uint8, Off: 0, SplitOf: parent, SplitOffset: 0},
 //	                          { N: len, Type: int, Off: 0, SplitOf: parent, SplitOffset: 8}
 //	                          parent = &{N: s, Type: string}
-type LocalSlot struct {
-	N    *ir.Name    // an ONAME *ir.Name representing a stack location.
-	Type *types.Type // type of slot
-	Off  int64       // offset of slot in N
+type LocalSlot struct 
+{
+    N * ir.Name // an ONAME *ir.Name representing a stack location.
+    Type * types.Type // type of slot
+    Off int64 // offset of slot in N
 
-	SplitOf     *LocalSlot // slot is a decomposition of SplitOf
-	SplitOffset int64      // .. at this offset.
+    SplitOf * LocalSlot // slot is a decomposition of SplitOf
+    SplitOffset int64 // .. at this offset.
 }
-
 // A place that an ssa variable can reside.
-type Location interface {
-	String() string // name to use in assembly templates: AX, 16(SP), ...
+type Location interface
+{
+    String() string // name to use in assembly templates: AX, 16(SP), ...
 }
 
-type Spill struct {
-	Type   *types.Type
-	Offset int64
-	Reg    int16
+type Spill struct { Type * types.Type Offset int64 Reg int16 }
+
+type LocResults[] Location func(s LocalSlot) String() string
+{
+    if s.Off == 0 { return fmt.Sprintf("%v[%v]", s.N, s.Type) }
+    return fmt.Sprintf("%v+%d[%v]", s.N, s.Off, s.Type)
 }
 
-type LocResults []Location
-
-func (s LocalSlot) String() string {
-	if s.Off == 0 {
-		return fmt.Sprintf("%v[%v]", s.N, s.Type)
-	}
-	return fmt.Sprintf("%v+%d[%v]", s.N, s.Off, s.Type)
+func(t LocPair) String() string
+{
+    n0, n1: = "nil", "nil" if t[0] != nil { n0 = t[0].String() }
+    if t[1] != nil { n1 = t[1].String() }
+    return fmt.Sprintf("<%s,%s>", n0, n1)
 }
 
-func (t LocPair) String() string {
-	n0, n1 := "nil", "nil"
-	if t[0] != nil {
-		n0 = t[0].String()
-	}
-	if t[1] != nil {
-		n1 = t[1].String()
-	}
-	return fmt.Sprintf("<%s,%s>", n0, n1)
-}
-
-func (t LocResults) String() string {
-	s := ""
-	a := "<"
-	for _, r := range t {
-		a += s
-		s = ","
-		a += r.String()
-	}
-	a += ">"
-	return a
-}
+func(t LocResults) String() string { s: = "" a: = "<" for _, r: = range t { a += s s = "," a += r.String() } a += ">" return a }

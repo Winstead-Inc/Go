@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p func f[P * Q, Q any](P, Q) { _ = f[P] }
 
-func f[P *Q, Q any](P, Q) {
-	_ = f[P]
-}
-
-func f2[P /* ERROR "instantiation cycle" */ *Q, Q any](P, Q) {
-	_ = f2[*P]
-}
+func f2[P/* ERROR "instantiation cycle" */ * Q, Q any](P, Q) { _ = f2[ * P] }

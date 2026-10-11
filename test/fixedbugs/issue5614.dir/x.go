@@ -1,7 +1,1 @@
-package x
-
-import "./rethinkgo"
-
-var S *rethinkgo.Session
-
-
+package x import"./rethinkgo" var S * rethinkgo.Session

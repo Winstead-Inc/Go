@@ -90,9 +90,7 @@ format and interpretation is distinguished by a code preceding the value.
                   .
 
        BigBytes = StringRef . // bytes of a big value
-*/
-
-// Package pkgbits implements low-level coding abstractions for Unified IR's
+*/ // Package pkgbits implements low-level coding abstractions for Unified IR's
 // (UIR) binary export data format.
 //
 // At a low-level, the exported objects of a package are encoded as a byte

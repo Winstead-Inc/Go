@@ -2,12 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main func main() {}
 
-func main() {}
-
-type T int
-
-func (T) M() { println("M") }
+type T int func(T) M() { println("M") }
 
 var X T

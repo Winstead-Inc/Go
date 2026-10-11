@@ -2,20 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type I interface {}
 
-type I interface{}
+type F func() type s struct { f F }
 
-type F func()
+func NewWithF(f F) * s { return & s { f: f } }
 
-type s struct {
-	f F
-}
-
-func NewWithF(f F) *s {
-	return &s{f: f}
-}
-
-func NewWithFuncI(func() I) *s {
-	return &s{}
-}
+func NewWithFuncI(func() I) * s { return & s {} }

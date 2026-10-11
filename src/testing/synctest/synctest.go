@@ -1,7 +1,6 @@
 // Copyright 2024 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package synctest provides support for testing concurrent code.
 //
 // The [Test] function runs a function in an isolated "bubble".
@@ -261,15 +260,10 @@
 //			// The synctest.Test call will wait for all of them to exit before returning.
 //		})
 //	}
-package synctest
-
-import (
-	"internal/synctest"
-	"testing"
-	"time"
-	_ "unsafe" // for linkname
+package synctest import
+(
+    "internal/synctest""testing""time" _"unsafe" // for linkname
 )
-
 // Test executes f in a new bubble.
 //
 // Test waits for all goroutines in the bubble to exit before returning.
@@ -284,31 +278,23 @@ import (
 //   - T.Context returns a [context.Context] with a Done channel
 //     associated with the bubble.
 //   - T.Run, T.Parallel, and T.Deadline must not be called.
-func Test(t *testing.T, f func(*testing.T)) {
-	var ok bool
-	synctest.Run(func() {
-		ok = testingSynctestTest(t, f)
-	})
-	if !ok {
-		// Fail the test outside the bubble,
-		// so test durations get set using real time.
-		t.FailNow()
-	}
+func Test(t * testing.T, f func( * testing.T))
+{
+    var ok bool synctest.Run(func() { ok = testingSynctestTest(t, f) }) if ! ok
+    {
+        // Fail the test outside the bubble,
+        // so test durations get set using real time.
+        t.FailNow()
+    }
 }
-
 //go:linkname testingSynctestTest testing/synctest.testingSynctestTest
-func testingSynctestTest(t *testing.T, f func(*testing.T)) bool
-
-// Wait blocks until every goroutine within the current bubble,
+func testingSynctestTest(t * testing.T, f func( * testing.T)) bool // Wait blocks until every goroutine within the current bubble,
 // other than the current goroutine, is durably blocked.
 //
 // Wait must not be called from outside a bubble.
 // Wait must not be called concurrently by multiple goroutines
 // in the same bubble.
-func Wait() {
-	synctest.Wait()
-}
-
+func Wait() { synctest.Wait() }
 // Sleep blocks until the current bubble's clock has advanced
 // by the duration of d and every goroutine within the current bubble,
 // other than the current goroutine, is durably blocked.
@@ -324,18 +310,8 @@ func Wait() {
 // of the two goroutines will run first. The test itself usually wants
 // to wait for the system under test to "settle" after sleeping.
 // This is what Sleep accomplishes.
-func Sleep(d time.Duration) {
-	time.Sleep(d)
-	Wait()
-}
-
+func Sleep(d time.Duration) { time.Sleep(d) Wait() }
 // Subtest is a convenience function that runs f in a subtest of t called name.
 //
 // It is exactly equivalent to calling t.Run with a function that calls [Test].
-func Subtest(t *testing.T, name string, f func(*testing.T)) {
-	t.Helper()
-	t.Run(name, func(t *testing.T) {
-		t.Helper()
-		Test(t, f)
-	})
-}
+func Subtest(t * testing.T, name string, f func( * testing.T)) { t.Helper() t.Run(name, func(t * testing.T) { t.Helper() Test(t, f) }) }

@@ -1,16 +1,5 @@
-package main
+package main import"fmt" func F[T any](n T) { fmt.Printf("called\n") }
 
-import "fmt"
+func G[T any](n T) { F(n) fmt.Printf("after\n") }
 
-func F[T any](n T) {
-	fmt.Printf("called\n")
-}
-
-func G[T any](n T) {
-	F(n)
-	fmt.Printf("after\n")
-}
-
-func main() {
-	G(3)
-}
+func main() { G(3) }

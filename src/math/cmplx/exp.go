@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cmplx
-
-import "math"
-
-// The original C code, the long comment, and the constants
+package cmplx import"math" // The original C code, the long comment, and the constants
 // below are from http://netlib.sandia.gov/cephes/c9x-complex/clog.c.
 // The go code is a simplified version of the original C.
 //
@@ -27,7 +23,6 @@ import "math"
 //
 //   Stephen L. Moshier
 //   moshier@na-net.ornl.gov
-
 // Complex exponential function
 //
 // DESCRIPTION:
@@ -46,27 +41,17 @@ import "math"
 // arithmetic   domain     # trials      peak         rms
 //    DEC       -10,+10      8700       3.7e-17     1.1e-17
 //    IEEE      -10,+10     30000       3.0e-16     8.7e-17
-
 // Exp returns e**x, the base-e exponential of x.
-func Exp(x complex128) complex128 {
-	switch re, im := real(x), imag(x); {
-	case math.IsInf(re, 0):
-		switch {
-		case re > 0 && im == 0:
-			return x
-		case math.IsInf(im, 0) || math.IsNaN(im):
-			if re < 0 {
-				return complex(0, math.Copysign(0, im))
-			} else {
-				return complex(math.Inf(1.0), math.NaN())
-			}
-		}
-	case math.IsNaN(re):
-		if im == 0 {
-			return complex(math.NaN(), im)
-		}
-	}
-	r := math.Exp(real(x))
-	s, c := math.Sincos(imag(x))
-	return complex(r*c, r*s)
+func Exp(x complex128) complex128
+{
+    switch re, im: = real(x), imag(x);
+    {
+        case math.IsInf(re, 0): switch 
+        {
+            case re > 0 && im == 0: return x case math.IsInf(im, 0) || math.IsNaN(im): if re < 0 { return complex(0, math.Copysign(0, im)) }
+            else { return complex(math.Inf(1.0), math.NaN()) }
+        }
+        case math.IsNaN(re): if im == 0 { return complex(math.NaN(), im) }
+    }
+    r: = math.Exp(real(x)) s, c: = math.Sincos(imag(x)) return complex(r * c, r * s)
 }

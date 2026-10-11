@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package structs
-
-// HostLayout marks a struct as using host memory layout. A struct with a
+package structs // HostLayout marks a struct as using host memory layout. A struct with a
 // field of type HostLayout will be laid out in memory according to host
 // expectations, generally following the host's C ABI.
 //
@@ -14,10 +12,10 @@ package structs
 //
 // By convention, HostLayout should be used as the type of a field
 // named "_", placed at the beginning of the struct type definition.
-type HostLayout struct {
-	_ hostLayout // prevent accidental conversion with plain struct{}
+type HostLayout struct 
+{
+    _ hostLayout // prevent accidental conversion with plain struct{}
 }
-
 // We use an unexported type within the exported type to give the marker
 // type itself, rather than merely its name, a recognizable identity in
 // the type system. The main consequence of this is that a user can give
@@ -26,5 +24,4 @@ type HostLayout struct {
 //	type HL structs.HostLayout
 //
 // It also prevents unintentional conversion of struct{} to a named marker type.
-type hostLayout struct {
-}
+type hostLayout struct {}

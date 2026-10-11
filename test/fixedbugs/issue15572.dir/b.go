@@ -2,26 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
+package b import"./a" func F() { a.F() a.Fi() }
 
-import "./a"
+func Fp() { a.Fp() a.Fip() }
 
-func F() {
-	a.F()
-	a.Fi()
-}
+func Gp() { a.Gp() a.Gip() }
 
-func Fp() {
-	a.Fp()
-	a.Fip()
-}
-
-func Gp() {
-	a.Gp()
-	a.Gip()
-}
-
-func Hp() {
-	a.Hp()
-	a.Hip()
-}
+func Hp() { a.Hp() a.Hip() }

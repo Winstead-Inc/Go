@@ -1,13 +1,10 @@
 // Copyright 2016 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build !plan9 && !windows
 // +build !plan9,!windows
 
-package main
-
-// Run a slow C function saving a CPU profile.
+package main // Run a slow C function saving a CPU profile.
 
 /*
 #include <stdint.h>
@@ -66,63 +63,32 @@ static void* cpuHogDriver(void* arg __attribute__ ((unused))) {
 void runCPUHogThread(void) {
 	pthread_create(&tid, 0, cpuHogDriver, 0);
 }
-*/
-import "C"
-
-import (
-	"context"
-	"fmt"
-	"os"
-	"runtime"
-	"runtime/pprof"
-	"time"
-	"unsafe"
+*/ import"C" import
+(
+    "context""fmt""os""runtime""runtime/pprof""time""unsafe"
 )
+func init() { register("CgoPprofThread", CgoPprofThread) register("CgoPprofThreadNoTraceback", CgoPprofThreadNoTraceback) }
 
-func init() {
-	register("CgoPprofThread", CgoPprofThread)
-	register("CgoPprofThreadNoTraceback", CgoPprofThreadNoTraceback)
-}
+func CgoPprofThread() { runtime.SetCgoTraceback(0, unsafe.Pointer(C.pprofCgoThreadTraceback), nil, nil) pprofThread() }
 
-func CgoPprofThread() {
-	runtime.SetCgoTraceback(0, unsafe.Pointer(C.pprofCgoThreadTraceback), nil, nil)
-	pprofThread()
-}
+func CgoPprofThreadNoTraceback() { pprofThread() }
 
-func CgoPprofThreadNoTraceback() {
-	pprofThread()
-}
+func pprofThread()
+{
+    f, err: = os.CreateTemp("", "prof") if err != nil { fmt.Fprintln(os.Stderr, err) os.Exit(2) }
 
-func pprofThread() {
-	f, err := os.CreateTemp("", "prof")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
+    if err: = pprof.StartCPUProfile(f);
+    err != nil { fmt.Fprintln(os.Stderr, err) os.Exit(2) }
+    // This goroutine may receive a profiling signal while creating the C-owned
+    // thread. If it does, the SetCgoTraceback handler will make the leaf end of
+    // the stack look almost (but not exactly) like the stacks the test case is
+    // trying to find. Attach a profiler label so the test can filter out those
+    // confusing samples.
+    pprof.Do(context.Background(), pprof.Labels("ignore", "ignore"), func(ctx context.Context) { C.runCPUHogThread() }) time.Sleep(1 * time.Second) pprof.StopCPUProfile
+    (
+    )
+    name: = f.Name() if err: = f.Close();
+    err != nil { fmt.Fprintln(os.Stderr, err) os.Exit(2) }
 
-	if err := pprof.StartCPUProfile(f); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
-
-	// This goroutine may receive a profiling signal while creating the C-owned
-	// thread. If it does, the SetCgoTraceback handler will make the leaf end of
-	// the stack look almost (but not exactly) like the stacks the test case is
-	// trying to find. Attach a profiler label so the test can filter out those
-	// confusing samples.
-	pprof.Do(context.Background(), pprof.Labels("ignore", "ignore"), func(ctx context.Context) {
-		C.runCPUHogThread()
-	})
-
-	time.Sleep(1 * time.Second)
-
-	pprof.StopCPUProfile()
-
-	name := f.Name()
-	if err := f.Close(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
-
-	fmt.Println(name)
+    fmt.Println(name)
 }

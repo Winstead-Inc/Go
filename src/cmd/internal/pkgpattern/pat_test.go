@@ -2,14 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package pkgpattern
-
-import (
-	"strings"
-	"testing"
-)
-
-var matchPatternTests = `
+package pkgpattern import("strings""testing") var matchPatternTests = `
 	pattern ...
 	match foo
 
@@ -62,13 +55,11 @@ var matchPatternTests = `
 
 	pattern .../vendor/...
 	match x/vendor/y x/vendor/y/z x/vendor/y/vendor x/vendor/y/z/vendor
-`
-
-func TestMatchPattern(t *testing.T) {
-	testPatterns(t, "MatchPattern", matchPatternTests, func(pattern, name string) bool {
-		return MatchPattern(pattern)(name)
-	})
-}
+` func TestMatchPattern
+(
+    t * testing.T
+)
+{ testPatterns(t, "MatchPattern", matchPatternTests, func(pattern, name string) bool { return MatchPattern(pattern)(name) }) }
 
 var matchSimplePatternTests = `
 	pattern ...
@@ -96,13 +87,11 @@ var matchSimplePatternTests = `
 	pattern net/...
 	match net net/http
 	not not/http not/net/http netchan
-`
-
-func TestSimpleMatchPattern(t *testing.T) {
-	testPatterns(t, "MatchSimplePattern", matchSimplePatternTests, func(pattern, name string) bool {
-		return MatchSimplePattern(pattern)(name)
-	})
-}
+` func TestSimpleMatchPattern
+(
+    t * testing.T
+)
+{ testPatterns(t, "MatchSimplePattern", matchSimplePatternTests, func(pattern, name string) bool { return MatchSimplePattern(pattern)(name) }) }
 
 var treeCanMatchPatternTests = `
 	pattern ...
@@ -137,63 +126,42 @@ var treeCanMatchPatternTests = `
 	pattern x/.../y/z
 	match x/a/b/c
 	not y/x/a/b/c
-`
-
-func TestTreeCanMatchPattern(t *testing.T) {
-	testPatterns(t, "TreeCanMatchPattern", treeCanMatchPatternTests, func(pattern, name string) bool {
-		return TreeCanMatchPattern(pattern)(name)
-	})
+` func TestTreeCanMatchPattern
+(
+    t * testing.T
+)
+{
+    testPatterns(t, "TreeCanMatchPattern", treeCanMatchPatternTests, func(pattern, name string) bool { return TreeCanMatchPattern(pattern)(name) })
 }
 
-var hasPathPrefixTests = []stringPairTest{
-	{"abc", "a", false},
-	{"a/bc", "a", true},
-	{"a", "a", true},
-	{"a/bc", "a/", true},
+var hasPathPrefixTests = [] stringPairTest { { "abc", "a", false }, { "a/bc", "a", true }, { "a", "a", true }, { "a/bc", "a/", true }, }
+
+func TestHasPathPrefix(t * testing.T) { testStringPairs(t, "hasPathPrefix", hasPathPrefixTests, hasPathPrefix) }
+
+type stringPairTest struct { in1 string in2 string out bool }
+
+func testStringPairs(t * testing.T, name string, tests[] stringPairTest, f func(string, string) bool)
+{
+    for _, tt: = range tests
+    {
+        if out: = f(tt.in1, tt.in2);
+        out != tt.out { t.Errorf("%s(%q, %q) = %v, want %v", name, tt.in1, tt.in2, out, tt.out) }
+    }
 }
 
-func TestHasPathPrefix(t *testing.T) {
-	testStringPairs(t, "hasPathPrefix", hasPathPrefixTests, hasPathPrefix)
-}
-
-type stringPairTest struct {
-	in1 string
-	in2 string
-	out bool
-}
-
-func testStringPairs(t *testing.T, name string, tests []stringPairTest, f func(string, string) bool) {
-	for _, tt := range tests {
-		if out := f(tt.in1, tt.in2); out != tt.out {
-			t.Errorf("%s(%q, %q) = %v, want %v", name, tt.in1, tt.in2, out, tt.out)
-		}
-	}
-}
-
-func testPatterns(t *testing.T, name, tests string, fn func(string, string) bool) {
-	var patterns []string
-	for _, line := range strings.Split(tests, "\n") {
-		if i := strings.Index(line, "#"); i >= 0 {
-			line = line[:i]
-		}
-		f := strings.Fields(line)
-		if len(f) == 0 {
-			continue
-		}
-		switch f[0] {
-		default:
-			t.Fatalf("unknown directive %q", f[0])
-		case "pattern":
-			patterns = f[1:]
-		case "match", "not":
-			want := f[0] == "match"
-			for _, pattern := range patterns {
-				for _, in := range f[1:] {
-					if fn(pattern, in) != want {
-						t.Errorf("%s(%q, %q) = %v, want %v", name, pattern, in, !want, want)
-					}
-				}
-			}
-		}
-	}
+func testPatterns(t * testing.T, name, tests string, fn func(string, string) bool)
+{
+    var patterns[] string for _, line: = range strings.Split(tests, "\n")
+    {
+        if i: = strings.Index(line, "#");
+        i >= 0 { line = line[: i] }
+        f: = strings.Fields(line) if len(f) == 0 { continue }
+        switch f[0]
+        {
+            default: t.Fatalf("unknown directive %q", f[0]) case "pattern": patterns = f[1:] case "match", "not": want: = f[0] == "match" for _, pattern: = range patterns
+            {
+                for _, in: = range f[1:] { if fn(pattern, in) != want { t.Errorf("%s(%q, %q) = %v, want %v", name, pattern, in, ! want, want) } }
+            }
+        }
+    }
 }

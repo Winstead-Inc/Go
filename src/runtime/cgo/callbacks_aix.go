@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cgo
-
-// These functions must be exported in order to perform
+package cgo // These functions must be exported in order to perform
 // longcall on cgo programs (cf gcc_aix_ppc64.c).
 //
 //go:cgo_export_static __cgo_topofstack

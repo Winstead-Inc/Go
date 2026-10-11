@@ -1,3 +1,1 @@
-package android
-
-import _ "c"
+package android import _"c"

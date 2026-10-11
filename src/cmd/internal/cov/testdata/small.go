@@ -1,7 +1,1 @@
-package main
-
-import "os"
-
-func main() {
-	println(len(os.Args))
-}
+package main import"os" func main() { println(len(os.Args)) }

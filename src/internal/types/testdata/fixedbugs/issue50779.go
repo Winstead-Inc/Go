@@ -2,22 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type AC interface { C }
 
-type AC interface {
-	C
-}
+type ST[] int type R[S any, P any] struct {}
 
-type ST []int
+type SR = R[SS, ST] type SS interface { NSR(any) * SR }
 
-type R[S any, P any] struct{}
-
-type SR = R[SS, ST]
-
-type SS interface {
-	NSR(any) *SR
-}
-
-type C interface {
-	NSR(any) *SR
-}
+type C interface { NSR(any) * SR }

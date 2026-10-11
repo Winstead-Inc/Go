@@ -1,7 +1,6 @@
 // Copyright 2024 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package entropy provides the passive entropy source for the FIPS 140-3
 // module. It is only used in FIPS mode by [crypto/internal/fips140/drbg.Read]
 // from the FIPS 140-3 Go Cryptographic Module v1.0.0.
@@ -19,14 +18,6 @@
 // this package with their own implementation.
 //
 // [earlier version]: https://csrc.nist.gov/CSRC/media/Projects/cryptographic-module-validation-program/documents/IG%209.3.A%20Resolution%202b%5BMarch%2026%202024%5D.pdf
-package entropy
-
-import "crypto/internal/sysrand"
-
-// Depleted notifies the entropy source that the entropy in the module is
+package entropy import"crypto/internal/sysrand" // Depleted notifies the entropy source that the entropy in the module is
 // "depleted" and provides the callback for the LOAD command.
-func Depleted(LOAD func(*[48]byte)) {
-	var entropy [48]byte
-	sysrand.Read(entropy[:])
-	LOAD(&entropy)
-}
+func Depleted(LOAD func( * [48] byte)) { var entropy[48] byte sysrand.Read(entropy[:]) LOAD( & entropy) }

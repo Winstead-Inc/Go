@@ -1,9 +1,7 @@
 // Copyright 2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.jsonv2
-
 // Package json implements semantic processing of JSON as specified in RFC 8259.
 // JSON is a simple data interchange format that can represent
 // primitive data types such as booleans, strings, and numbers,
@@ -245,10 +243,7 @@
 //
 // [Working with JSON]: https://go.dev/doc/tutorial/json
 // [For example, suppose we have two micro-services.]: https://www.youtube.com/watch?v=avilmOcHKHE&t=1057s
-package json
-
-// requireKeyedLiterals can be embedded in a struct to require keyed literals.
-type requireKeyedLiterals struct{}
-
+package json // requireKeyedLiterals can be embedded in a struct to require keyed literals.
+type requireKeyedLiterals struct {}
 // nonComparable can be embedded in a struct to prevent comparability.
-type nonComparable [0]func()
+type nonComparable[0] func()

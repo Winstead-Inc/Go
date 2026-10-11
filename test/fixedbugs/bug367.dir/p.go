@@ -2,18 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file
 
-package p
+package p type T struct { x int }
+type S struct {}
 
-type T struct{ x int }
-type S struct{}
+func(p * S) get() {}
 
-func (p *S) get() {
-}
+type I interface { get () }
 
-type I interface {
-	get()
-}
-
-func F(i I) {
-	i.get()
-}
+func F(i I) { i.get () }

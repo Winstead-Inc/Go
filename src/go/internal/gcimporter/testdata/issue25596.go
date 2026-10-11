@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package issue25596
+package issue25596 type E interface { M() T }
 
-type E interface {
-	M() T
-}
-
-type T interface {
-	E
-}
+type T interface { E }

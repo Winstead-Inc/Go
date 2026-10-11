@@ -2,20 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type A interface { a() }
 
-type A interface {
-	a()
-}
+type AB interface { A b() }
 
-type AB interface {
-	A
-	b()
-}
-
-type AAB struct {
-	A
-	AB
-}
+type AAB struct { A AB }
 
 var _ AB = AAB /* ERROR "ambiguous selector AAB.a" */ {}

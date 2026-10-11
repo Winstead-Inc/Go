@@ -2,179 +2,98 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package net
-
-import (
-	"errors"
-	"internal/bytealg"
-	"io/fs"
-	"net/netip"
-	"os"
-	"sync"
-	"time"
-)
-
-const cacheMaxAge = 5 * time.Second
-
-func parseLiteralIP(addr string) string {
-	ip, err := netip.ParseAddr(addr)
-	if err != nil {
-		return ""
-	}
-	return ip.String()
+package net import("errors""internal/bytealg""io/fs""net/netip""os""sync""time") const cacheMaxAge = 5 * time.Second func parseLiteralIP(addr string) string
+{
+    ip, err: = netip.ParseAddr(addr) if err != nil { return "" }
+    return ip.String()
 }
 
-type byName struct {
-	addrs         []string
-	canonicalName string
-}
-
+type byName struct { addrs[] string canonicalName string }
 // hosts contains known host entries.
-var hosts struct {
-	sync.Mutex
-
-	// Key for the list of literal IP addresses must be a host
-	// name. It would be part of DNS labels, a FQDN or an absolute
-	// FQDN.
-	// For now the key is converted to lower case for convenience.
-	byName map[string]byName
-
-	// Key for the list of host names must be a literal IP address
-	// including IPv6 address with zone identifier.
-	// We don't support old-classful IP address notation.
-	byAddr map[string][]string
-
-	expire time.Time
-	path   string
-	fi     fs.FileInfo
+var hosts struct 
+{
+    sync.Mutex // Key for the list of literal IP addresses must be a host
+    // name. It would be part of DNS labels, a FQDN or an absolute
+    // FQDN.
+    // For now the key is converted to lower case for convenience.
+    byName map[string] byName // Key for the list of host names must be a literal IP address
+    // including IPv6 address with zone identifier.
+    // We don't support old-classful IP address notation.
+    byAddr map[string][] string expire time.Time path string fi fs.FileInfo
 }
-
 // unchangedHostsFile reports whether fi refers to the same file as the one
 // cached in hosts, still with the same modification time and size. Replacing
 // the hosts file with a rename leaves the modification time and the size of
 // the replacement untouched, so the file identity has to be checked too.
-func unchangedHostsFile(fi fs.FileInfo) bool {
-	return hosts.fi != nil && os.SameFile(hosts.fi, fi) &&
-		hosts.fi.ModTime().Equal(fi.ModTime()) && hosts.fi.Size() == fi.Size()
+func unchangedHostsFile(fi fs.FileInfo) bool
+{
+    return hosts.fi != nil && os.SameFile(hosts.fi, fi) && hosts.fi.ModTime().Equal(fi.ModTime()) && hosts.fi.Size() == fi.Size()
 }
 
-func readHosts() {
-	now := time.Now()
-	hp := hostsFilePath
+func readHosts()
+{
+    now: = time.Now() hp: = hostsFilePath if now.Before(hosts.expire) && hosts.path == hp && len(hosts.byName) > 0 { return }
+    if sfi, err: = stat(hp);
+    err == nil && hosts.path == hp && unchangedHostsFile(sfi) { hosts.expire = now.Add(cacheMaxAge) return }
 
-	if now.Before(hosts.expire) && hosts.path == hp && len(hosts.byName) > 0 {
-		return
-	}
-	if sfi, err := stat(hp); err == nil && hosts.path == hp && unchangedHostsFile(sfi) {
-		hosts.expire = now.Add(cacheMaxAge)
-		return
-	}
+    file, err: = open(hp) if err != nil { if ! errors.Is(err, fs.ErrNotExist) && ! errors.Is(err, fs.ErrPermission) { return } }
 
-	file, err := open(hp)
-	if err != nil {
-		if !errors.Is(err, fs.ErrNotExist) && !errors.Is(err, fs.ErrPermission) {
-			return
-		}
-	}
+    var fi fs.FileInfo hs: = make(map[string] byName) is: = make(map[string][] string) if file != nil
+    {
+        defer file.close() // Use the FileInfo of the open file, not the result of stat above.
+        // The file may have been replaced since that call. Also, on Windows
+        // os.SameFile gets the identity of an os.Stat result by reopening
+        // its path, which would then refer to the replacement file.
+        if fi, err = file.stat();
+        err != nil { fi = nil }
+        for line, ok: = file.readLine();
+        ok;
+        line, ok = file.readLine()
+        {
+            if i: = bytealg.IndexByteString(line, '#');
+            i >= 0
+            {
+                // Discard comments.
+                line = line[0: i]
+            }
+            f: = getFields(line) if len(f) < 2 { continue }
+            addr: = parseLiteralIP(f[0]) if addr == "" { continue }
 
-	var fi fs.FileInfo
-	hs := make(map[string]byName)
-	is := make(map[string][]string)
+            var canonical string for i: = 1;
+            i < len(f);
+            i++
+            {
+                name: = absDomainName(f[i]) h: = [] byte(f[i]) lowerASCIIBytes(h) key: = absDomainName(string(h)) if i == 1 { canonical = key }
 
-	if file != nil {
-		defer file.close()
-		// Use the FileInfo of the open file, not the result of stat above.
-		// The file may have been replaced since that call. Also, on Windows
-		// os.SameFile gets the identity of an os.Stat result by reopening
-		// its path, which would then refer to the replacement file.
-		if fi, err = file.stat(); err != nil {
-			fi = nil
-		}
-		for line, ok := file.readLine(); ok; line, ok = file.readLine() {
-			if i := bytealg.IndexByteString(line, '#'); i >= 0 {
-				// Discard comments.
-				line = line[0:i]
-			}
-			f := getFields(line)
-			if len(f) < 2 {
-				continue
-			}
-			addr := parseLiteralIP(f[0])
-			if addr == "" {
-				continue
-			}
+                is[addr] = append(is[addr], name) if v, ok: = hs[key];
+                ok { hs[key] = byName { addrs: append(v.addrs, addr), canonicalName: v.canonicalName, } continue }
 
-			var canonical string
-			for i := 1; i < len(f); i++ {
-				name := absDomainName(f[i])
-				h := []byte(f[i])
-				lowerASCIIBytes(h)
-				key := absDomainName(string(h))
-
-				if i == 1 {
-					canonical = key
-				}
-
-				is[addr] = append(is[addr], name)
-
-				if v, ok := hs[key]; ok {
-					hs[key] = byName{
-						addrs:         append(v.addrs, addr),
-						canonicalName: v.canonicalName,
-					}
-					continue
-				}
-
-				hs[key] = byName{
-					addrs:         []string{addr},
-					canonicalName: canonical,
-				}
-			}
-		}
-	}
-	// Update the data cache.
-	hosts.expire = now.Add(cacheMaxAge)
-	hosts.path = hp
-	hosts.byName = hs
-	hosts.byAddr = is
-	hosts.fi = fi
+                hs[key] = byName { addrs: [] string { addr }, canonicalName: canonical, }
+            }
+        }
+    }
+    // Update the data cache.
+    hosts.expire = now.Add(cacheMaxAge) hosts.path = hp hosts.byName = hs hosts.byAddr = is hosts.fi = fi
 }
-
 // lookupStaticHost looks up the addresses and the canonical name for the given host from /etc/hosts.
-func lookupStaticHost(host string) ([]string, string) {
-	hosts.Lock()
-	defer hosts.Unlock()
-	readHosts()
-	if len(hosts.byName) != 0 {
-		if hasUpperCase(host) {
-			lowerHost := []byte(host)
-			lowerASCIIBytes(lowerHost)
-			host = string(lowerHost)
-		}
-		if byName, ok := hosts.byName[absDomainName(host)]; ok {
-			ipsCp := make([]string, len(byName.addrs))
-			copy(ipsCp, byName.addrs)
-			return ipsCp, byName.canonicalName
-		}
-	}
-	return nil, ""
+func lookupStaticHost(host string)([] string, string)
+{
+    hosts.Lock() defer hosts.Unlock() readHosts() if len(hosts.byName) != 0
+    {
+        if hasUpperCase(host) { lowerHost: = [] byte(host) lowerASCIIBytes(lowerHost) host = string(lowerHost) }
+        if byName, ok: = hosts.byName[absDomainName(host)];
+        ok { ipsCp: = make([] string, len(byName.addrs)) copy(ipsCp, byName.addrs) return ipsCp, byName.canonicalName }
+    }
+    return nil, ""
 }
-
 // lookupStaticAddr looks up the hosts for the given address from /etc/hosts.
-func lookupStaticAddr(addr string) []string {
-	hosts.Lock()
-	defer hosts.Unlock()
-	readHosts()
-	addr = parseLiteralIP(addr)
-	if addr == "" {
-		return nil
-	}
-	if len(hosts.byAddr) != 0 {
-		if hosts, ok := hosts.byAddr[addr]; ok {
-			hostsCp := make([]string, len(hosts))
-			copy(hostsCp, hosts)
-			return hostsCp
-		}
-	}
-	return nil
+func lookupStaticAddr(addr string)[] string
+{
+    hosts.Lock() defer hosts.Unlock() readHosts() addr = parseLiteralIP(addr) if addr == "" { return nil }
+    if len(hosts.byAddr) != 0
+    {
+        if hosts, ok: = hosts.byAddr[addr];
+        ok { hostsCp: = make([] string, len(hosts)) copy(hostsCp, hosts) return hostsCp }
+    }
+    return nil
 }

@@ -2,14 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type m struct { link * m }
 
-type m struct {
-	link *m
-}
-
-var head *m
-
-func F(m *int) bool {
-	return head != nil
-}
+var head * m func F(m * int) bool { return head != nil }

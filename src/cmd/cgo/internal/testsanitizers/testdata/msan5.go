@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// Using reflect to set a value was not seen by msan.
+package main // Using reflect to set a value was not seen by msan.
 
 /*
 #include <stdlib.h>
@@ -32,26 +30,13 @@ void C2() {
 		abort();
 	}
 }
-*/
-import "C"
-
-import (
-	"reflect"
-	"unsafe"
+*/ import"C" import
+(
+    "reflect""unsafe"
 )
-
 //export Go1
-func Go1(p *C.int) {
-	reflect.ValueOf(p).Elem().Set(reflect.ValueOf(C.int(42)))
-}
-
+func Go1(p * C.int) { reflect.ValueOf(p).Elem().Set(reflect.ValueOf(C.int (42))) }
 //export Go2
-func Go2(p *C.char) {
-	a := (*[2]byte)(unsafe.Pointer(p))
-	reflect.Copy(reflect.ValueOf(a[:1]), reflect.ValueOf(a[1:]))
-}
+func Go2(p * C.char) { a: = ( * [2] byte)(unsafe.Pointer(p)) reflect.Copy(reflect.ValueOf(a[: 1]), reflect.ValueOf(a[1:])) }
 
-func main() {
-	C.C1()
-	C.C2()
-}
+func main() { C.C1() C.C2() }

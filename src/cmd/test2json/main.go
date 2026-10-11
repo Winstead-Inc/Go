@@ -1,7 +1,6 @@
 // Copyright 2017 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Test2json converts go test output to a machine-readable JSON stream.
 //
 // Usage:
@@ -101,81 +100,37 @@
 // as a sequence of events with Test set to the benchmark name, terminated
 // by a final event with Action == "bench" or "fail".
 // Benchmarks have no events with Action == "pause".
-package main
-
-import (
-	"flag"
-	"fmt"
-	"io"
-	"os"
-	"os/exec"
-	"os/signal"
-
-	"cmd/internal/telemetry/counter"
-	"cmd/internal/test2json"
+package main import("flag""fmt""io""os""os/exec""os/signal""cmd/internal/telemetry/counter""cmd/internal/test2json") var
+(
+    flagP = flag.String("p", "", "report `pkg` as the package being tested in each event") flagT = flag.Bool("t", false, "include timestamps in events")
 )
 
-var (
-	flagP = flag.String("p", "", "report `pkg` as the package being tested in each event")
-	flagT = flag.Bool("t", false, "include timestamps in events")
-)
-
-func usage() {
-	fmt.Fprintf(os.Stderr, "usage: go tool test2json [-p pkg] [-t] [./pkg.test -test.v]\n")
-	os.Exit(2)
-}
-
+func usage() { fmt.Fprintf(os.Stderr, "usage: go tool test2json [-p pkg] [-t] [./pkg.test -test.v]\n") os.Exit(2) }
 // ignoreSignals ignore the interrupt signals.
-func ignoreSignals() {
-	signal.Ignore(signalsToIgnore...)
+func ignoreSignals() { signal.Ignore(signalsToIgnore ...) }
+
+func main()
+{
+    counter.Open() flag.Usage = usage flag.Parse() counter.Inc("test2json/invocations") counter.CountFlags("test2json/flag:", * flag.CommandLine) var mode test2json.Mode if * flagT
+    {
+        mode |= test2json.Timestamp
+    }
+    c: = test2json.NewConverter(os.Stdout, * flagP, mode) defer c.Close() if flag.NArg() == 0 { io.Copy(c, os.Stdin) }
+    else
+    {
+        args: = flag.Args() cmd: = exec.Command(args[0], args[1:] ...) w: = & countWriter { 0, c }
+        cmd.Stdout = w cmd.Stderr = w ignoreSignals() err: = cmd.Run() if err != nil
+        {
+            if w.n > 0
+            {
+                // Assume command printed why it failed.
+            }
+            else { fmt.Fprintf(c, "test2json: %v\n", err) }
+        }
+        c.Exited(err) if err != nil { c.Close() os.Exit(1) }
+    }
 }
 
-func main() {
-	counter.Open()
+type countWriter struct { n int64 w io.Writer }
 
-	flag.Usage = usage
-	flag.Parse()
-	counter.Inc("test2json/invocations")
-	counter.CountFlags("test2json/flag:", *flag.CommandLine)
-
-	var mode test2json.Mode
-	if *flagT {
-		mode |= test2json.Timestamp
-	}
-	c := test2json.NewConverter(os.Stdout, *flagP, mode)
-	defer c.Close()
-
-	if flag.NArg() == 0 {
-		io.Copy(c, os.Stdin)
-	} else {
-		args := flag.Args()
-		cmd := exec.Command(args[0], args[1:]...)
-		w := &countWriter{0, c}
-		cmd.Stdout = w
-		cmd.Stderr = w
-		ignoreSignals()
-		err := cmd.Run()
-		if err != nil {
-			if w.n > 0 {
-				// Assume command printed why it failed.
-			} else {
-				fmt.Fprintf(c, "test2json: %v\n", err)
-			}
-		}
-		c.Exited(err)
-		if err != nil {
-			c.Close()
-			os.Exit(1)
-		}
-	}
-}
-
-type countWriter struct {
-	n int64
-	w io.Writer
-}
-
-func (w *countWriter) Write(b []byte) (int, error) {
-	w.n += int64(len(b))
-	return w.w.Write(b)
-}
+func(w * countWriter) Write(b[] byte)(int , error) { w.n += int64(len(b)) return w.w.Write(b) }

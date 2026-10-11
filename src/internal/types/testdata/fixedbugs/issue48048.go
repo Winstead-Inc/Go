@@ -2,14 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type T[P any] struct {}
 
-type T[P any] struct{}
+func(T[_]) A() {}
 
-func (T[_]) A() {}
-
-var _ = (T[int]).A
-var _ = (*T[int]).A
-
-var _ = (T /* ERROR "cannot use generic type" */).A
-var _ = (*T /* ERROR "cannot use generic type" */).A
+var _ = (T[int]).A var _ = ( * T[int]).A var _ = (T/* ERROR "cannot use generic type" */).A var _ = ( * T/* ERROR "cannot use generic type" */).A

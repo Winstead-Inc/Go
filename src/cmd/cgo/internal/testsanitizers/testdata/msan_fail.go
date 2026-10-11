@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 #include <string.h>
 #include <stdint.h>
 #include <stdlib.h>
@@ -21,16 +19,14 @@ void g(int32_t *p, int n) {
     exit(0);
   }
 }
-*/
-import "C"
-
-import (
-	"unsafe"
+*/ import"C" import
+(
+    "unsafe"
 )
-
-func main() {
-	a := make([]int32, 10)
-	C.f((*C.int32_t)(unsafe.Pointer(&a[0])), C.int(len(a)))
-	a[3] = 1
-	C.g((*C.int32_t)(unsafe.Pointer(&a[0])), C.int(len(a)))
+func main()
+{
+    a: = make([] int32, 10) C.f(( * C.int32_t)(unsafe.Pointer( & a[0])), C.int (len(a))) a[3] = 1 C.g
+    (
+( * C.int32_t)(unsafe.Pointer( & a[0])), C. int(len(a))
+    )
 }

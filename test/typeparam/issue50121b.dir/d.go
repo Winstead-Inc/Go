@@ -2,12 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package d
-
-import (
-	"./c"
-)
-
-func BuildInt() int {
-	return c.BuildInt()
-}
+package d import("./c") func BuildInt() int { return c.BuildInt() }

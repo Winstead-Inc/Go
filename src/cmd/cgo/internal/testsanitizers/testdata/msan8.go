@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 #include <pthread.h>
 #include <signal.h>
 #include <stdint.h>
@@ -85,35 +83,14 @@ int msanGoReady() {
 void msanGoSendSignal() {
 	pthread_kill(msanGoSignalThread, SIGWINCH);
 }
-*/
-import "C"
-
-import (
-	"runtime"
-	"time"
+*/ import"C" import
+(
+    "runtime""time"
 )
+func main()
+{
+    runtime.SetCgoTraceback(0, C.msanGoTraceback, nil, nil) c: = make(chan bool) go func() { defer func() { c <- true }() C.msanGoLoop() }
+() for C.msanGoReady() == 0 { time.Sleep(time.Microsecond) }
 
-func main() {
-	runtime.SetCgoTraceback(0, C.msanGoTraceback, nil, nil)
-
-	c := make(chan bool)
-	go func() {
-		defer func() { c <- true }()
-		C.msanGoLoop()
-	}()
-
-	for C.msanGoReady() == 0 {
-		time.Sleep(time.Microsecond)
-	}
-
-loop:
-	for {
-		select {
-		case <-c:
-			break loop
-		default:
-			C.msanGoSendSignal()
-			time.Sleep(time.Microsecond)
-		}
-	}
+    loop: for { select { case <- c: break loop default: C.msanGoSendSignal() time.Sleep(time.Microsecond) } }
 }

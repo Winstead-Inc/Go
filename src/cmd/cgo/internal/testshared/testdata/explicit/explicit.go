@@ -1,9 +1,1 @@
-package explicit
-
-import (
-	"testshared/implicit"
-)
-
-func E() int {
-	return implicit.I()
-}
+package explicit import("testshared/implicit") func E() int { return implicit.I() }

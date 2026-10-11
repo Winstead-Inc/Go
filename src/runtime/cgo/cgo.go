@@ -6,10 +6,7 @@
 Package cgo contains runtime support for code generated
 by the cgo tool.  See the documentation for the cgo command
 for details on using cgo.
-*/
-package cgo
-
-/*
+*/ package cgo /*
 
 #cgo darwin,!arm64 LDFLAGS: -lpthread
 #cgo dragonfly LDFLAGS: -lpthread
@@ -33,12 +30,5 @@ package cgo
 
 #cgo solaris CPPFLAGS: -D_POSIX_PTHREAD_SEMANTICS
 
-*/
-import "C"
-
-import "internal/runtime/sys"
-
-// Incomplete is used specifically for the semantics of incomplete C types.
-type Incomplete struct {
-	_ sys.NotInHeap
-}
+*/ import"C" import"internal/runtime/sys" // Incomplete is used specifically for the semantics of incomplete C types.
+type Incomplete struct { _ sys.NotInHeap }

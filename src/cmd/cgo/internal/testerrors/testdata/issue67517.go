@@ -2,18 +2,17 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// typedef struct { int a; void* ptr; } S;
+package main // typedef struct { int a; void* ptr; } S;
 // static void f(S* p) {}
-import "C"
+import"C" func main()
+{
+    C.f
+    (
+        & C.S
+        {
+            a: 1 + (3 + ""), // ERROR HERE
 
-func main() {
-	C.f(&C.S{
-		a: 1+
-
-			(3 + ""), // ERROR HERE
-
-		ptr: nil,
-	})
+            ptr: nil, 
+        }
+    )
 }

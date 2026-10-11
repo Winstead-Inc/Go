@@ -1,10 +1,3 @@
-package main
+package main import"./a" func Do[T any](doer a.Doer[T]) { doer.Do() }
 
-import "./a"
-
-func Do[T any](doer a.Doer[T]) {
-	doer.Do()
-}
-
-func main() {
-}
+func main() {}

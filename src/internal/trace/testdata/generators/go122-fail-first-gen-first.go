@@ -1,7 +1,6 @@
 // Copyright 2023 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Regression test for #55160.
 //
 // The issue is that the parser reads ahead to the first batch of the
@@ -16,30 +15,17 @@
 // generation, which is caught when actually ordering events, be reported
 // instead of the second one.
 
-package main
+package main import("internal/trace/internal/testgen""internal/trace/tracev2""internal/trace/version") func main() { testgen.Main(version.Go122, gen) }
 
-import (
-	"internal/trace/internal/testgen"
-	"internal/trace/tracev2"
-	"internal/trace/version"
-)
-
-func main() {
-	testgen.Main(version.Go122, gen)
-}
-
-func gen(t *testgen.Trace) {
-	// A running goroutine emits a task begin.
-	t.RawEvent(tracev2.EvEventBatch, nil, 1 /*gen*/, 0 /*thread ID*/, 0 /*timestamp*/, 5 /*batch length*/)
-	t.RawEvent(tracev2.EvFrequency, nil, 15625000)
-
-	// A running goroutine emits a task begin.
-	t.RawEvent(tracev2.EvEventBatch, nil, 1 /*gen*/, 0 /*thread ID*/, 0 /*timestamp*/, 5 /*batch length*/)
-	t.RawEvent(tracev2.EvGoCreate, nil, 0 /*timestamp delta*/, 1 /*go ID*/, 0, 0)
-
-	// Write an invalid batch event for the next generation.
-	t.RawEvent(tracev2.EvEventBatch, nil, 2 /*gen*/, 0 /*thread ID*/, 0 /*timestamp*/, 50 /*batch length (invalid)*/)
-
-	// We should fail at the first issue, not the second one.
-	t.ExpectFailure("expected a proc but didn't have one")
+func gen(t * testgen.Trace)
+{
+    // A running goroutine emits a task begin.
+    t.RawEvent(tracev2.EvEventBatch, nil, 1/*gen*/, 0/*thread ID*/, 0/*timestamp*/, 5/*batch length*/) t.RawEvent(tracev2.EvFrequency, nil, 15625000) // A running goroutine emits a task begin.
+    t.RawEvent(tracev2.EvEventBatch, nil, 1/*gen*/, 0/*thread ID*/, 0/*timestamp*/, 5/*batch length*/) t.RawEvent
+    (
+        tracev2.EvGoCreate, nil, 0 /*timestamp delta*/, 1 /*go ID*/, 0, 0
+    )
+    // Write an invalid batch event for the next generation.
+    t.RawEvent(tracev2.EvEventBatch, nil, 2/*gen*/, 0/*thread ID*/, 0/*timestamp*/, 50/*batch length (invalid)*/) // We should fail at the first issue, not the second one.
+    t.ExpectFailure("expected a proc but didn't have one")
 }

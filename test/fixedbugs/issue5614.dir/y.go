@@ -1,5 +1,1 @@
-package y
-
-import "./x"
-
-var T = x.S
+package y import"./x" var T = x.S

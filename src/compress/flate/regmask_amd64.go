@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package flate
-
-// shiftMask is a no-op shift mask for x86-64.
+package flate // shiftMask is a no-op shift mask for x86-64.
 // Using it lets the compiler omit the check for shift size >= 64.
 const reg8SizeMask64 = 63

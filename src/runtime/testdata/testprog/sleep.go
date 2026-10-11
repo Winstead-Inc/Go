@@ -2,21 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import("os""time") // for golang.org/issue/27250
 
-import (
-	"os"
-	"time"
-)
+func init() { register("After1", After1) }
 
-// for golang.org/issue/27250
-
-func init() {
-	register("After1", After1)
-}
-
-func After1() {
-	os.Stdout.WriteString("ready\n")
-	os.Stdout.Close()
-	<-time.After(1 * time.Second)
-}
+func After1() { os.Stdout.WriteString("ready\n") os.Stdout.Close() <- time.After(1 * time.Second) }

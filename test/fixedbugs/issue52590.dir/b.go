@@ -2,17 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
-
-import "./a"
-
-func f() {
-	a.Append()
-	a.Delete()
-	a.Print()
-	a.Println()
-	a.Complex()
-	a.Copy()
-	a.UnsafeAdd()
-	a.UnsafeSlice()
-}
+package b import"./a" func f() { a.Append() a.Delete() a.Print() a.Println() a.Complex() a.Copy() a.UnsafeAdd() a.UnsafeSlice() }

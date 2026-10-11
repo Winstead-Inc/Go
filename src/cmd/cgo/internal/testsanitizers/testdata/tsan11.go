@@ -2,21 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// This program hung when run under the C/C++ ThreadSanitizer. TSAN defers
+package main // This program hung when run under the C/C++ ThreadSanitizer. TSAN defers
 // asynchronous signals until the signaled thread calls into libc. The runtime's
 // sysmon goroutine idles itself using direct usleep syscalls, so it could
 // run for an arbitrarily long time without triggering the libc interceptors.
 // See https://golang.org/issue/18717.
 
-import (
-	"os"
-	"os/signal"
-	"syscall"
-)
-
-/*
+import("os""os/signal""syscall") /*
 #cgo CFLAGS: -g -fsanitize=thread
 #cgo LDFLAGS: -g -fsanitize=thread
 
@@ -41,15 +33,13 @@ static void register_handler(int signo) {
 		exit(EXIT_FAILURE);
 	}
 }
-*/
-import "C"
-
-func main() {
-	ch := make(chan os.Signal, 1)
-	signal.Notify(ch, syscall.SIGUSR2)
-
-	C.register_handler(C.int(syscall.SIGUSR1))
-	syscall.Kill(syscall.Getpid(), syscall.SIGUSR1)
-
-	<-ch
+*/ import"C" func main
+(
+)
+{
+    ch: = make(chan os.Signal, 1) signal.Notify(ch, syscall.SIGUSR2) C.register_handler(C.int (syscall.SIGUSR1)) syscall.Kill
+    (
+        syscall.Getpid(), syscall.SIGUSR1
+    )
+    <- ch
 }

@@ -1,8 +1,4 @@
-package main
-
-import "C"
-
-//export GoFunc
+package main import"C" //export GoFunc
 func GoFunc() {}
 
 func main() {}

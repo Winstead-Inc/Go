@@ -1,7 +1,6 @@
 // Copyright 2018 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Indexed package export.
 //
 // The indexed export data format is an evolution of the previous
@@ -233,9 +232,5 @@
 // they're expected to change much more rapidly, so they're omitted
 // here. See exportWriter's varExt/funcExt/etc methods for details.
 
-package typecheck
-
-const blankMarker = "$"
-
-// The name used for dictionary parameters or local variables.
+package typecheck const blankMarker = "$" // The name used for dictionary parameters or local variables.
 const LocalDictName = ".dict"

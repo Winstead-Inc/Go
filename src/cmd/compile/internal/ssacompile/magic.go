@@ -2,17 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ssacompile
-
-// So you want to compute x / c for some constant c?
+package ssacompile // So you want to compute x / c for some constant c?
 // Machine division instructions are slow, so we try to
 // compute this division with a multiplication + a few
 // other cheap instructions instead.
 // (We assume here that c != 0, +/- 1, or +/- 2^i.  Those
 // cases are easy to handle in different ways).
-
 // Technique from https://gmplib.org/~tege/divcnst-pldi94.pdf
-
 // First consider unsigned division.
 // Our strategy is to precompute 1/c then do
 //   ⎣x / c⎦ = ⎣x * (1/c)⎦.
@@ -80,13 +76,11 @@ package ssacompile
 //                  (Not just a regular add & shift because the intermediate result
 //                   a+b has n+1 bits in it.  Nevertheless, can be done
 //                   in 2 instructions on x86.)
-
 // umagicOK reports whether we should strength reduce a n-bit divide by c.
-func umagicOK(n uint, c int64) bool {
-	// Convert from ConstX auxint values to the real uint64 constant they represent.
-	d := uint64(c) << (64 - n) >> (64 - n)
-
-	// Doesn't work for 0.
-	// Don't use for powers of 2.
-	return d&(d-1) != 0
+func umagicOK(n uint, c int64) bool
+{
+    // Convert from ConstX auxint values to the real uint64 constant they represent.
+    d: = uint64(c) << (64 - n) >> (64 - n) // Doesn't work for 0.
+    // Don't use for powers of 2.
+    return d & (d - 1) != 0
 }

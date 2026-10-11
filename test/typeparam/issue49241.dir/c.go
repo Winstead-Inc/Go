@@ -2,16 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package c
-
-import "./a"
-
+package c import"./a" //go:noinline
+func F() interface {}
+{ return a.T[int] {} }
 //go:noinline
-func F() interface{} {
-	return a.T[int]{}
-}
-
-//go:noinline
-func G() interface{} {
-	return struct{ X, Y a.U }{}
-}
+func G() interface {}
+{ return struct { X, Y a.U } {} }

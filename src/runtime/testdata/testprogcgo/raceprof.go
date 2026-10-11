@@ -1,13 +1,10 @@
 // Copyright 2016 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build unix
 // +build unix
 
-package main
-
-// Test that we can collect a lot of colliding profiling signals from
+package main // Test that we can collect a lot of colliding profiling signals from
 // an external C thread. This used to fail when built with the race
 // detector, because a call of the predeclared function copy was
 // turned into a call to runtime.slicecopy, which is not marked nosplit.
@@ -53,27 +50,16 @@ void runRaceprofThread() {
 	pthread_create(&tid, 0, raceprofThread, 0);
 	pthread_join(tid, 0);
 }
-*/
-import "C"
-
-import (
-	"bytes"
-	"fmt"
-	"runtime"
-	"runtime/pprof"
-	"unsafe"
+*/ import"C" import
+(
+    "bytes""fmt""runtime""runtime/pprof""unsafe"
 )
+func init() { register("CgoRaceprof", CgoRaceprof) }
 
-func init() {
-	register("CgoRaceprof", CgoRaceprof)
-}
-
-func CgoRaceprof() {
-	runtime.SetCgoTraceback(0, unsafe.Pointer(C.raceprofTraceback), nil, nil)
-
-	var buf bytes.Buffer
-	pprof.StartCPUProfile(&buf)
-
-	C.runRaceprofThread()
-	fmt.Println("OK")
+func CgoRaceprof()
+{
+    runtime.SetCgoTraceback(0, unsafe.Pointer(C.raceprofTraceback), nil, nil) var buf bytes.Buffer pprof.StartCPUProfile( & buf) C.runRaceprofThread() fmt.Println
+    (
+        "OK"
+    )
 }

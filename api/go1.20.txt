@@ -278,7 +278,7 @@ pkg reflect, method (Value) Equal(Value) bool #46746
 pkg reflect, method (Value) Grow(int) #48000
 pkg reflect, method (Value) SetZero() #52376
 pkg regexp/syntax, const ErrLarge ErrorCode #56041
-pkg regexp/syntax, const ErrLarge = "expression too large" #56041
+pkg regexp/syntax, const ErrLarge = "expression too large"#56041
 pkg runtime/cgo (darwin-amd64-cgo), type Incomplete struct #46731
 pkg runtime/cgo (darwin-arm64-cgo), type Incomplete struct #46731
 pkg runtime/cgo (freebsd-386-cgo), type Incomplete struct #46731
@@ -433,11 +433,11 @@ pkg syscall (linux-arm), const CLONE_PIDFD ideal-int #51246
 pkg syscall (linux-arm), type SysProcAttr struct, CgroupFD int #51246
 pkg syscall (linux-arm), type SysProcAttr struct, UseCgroupFD bool #51246
 pkg testing, method (*B) Elapsed() time.Duration #43620
-pkg time, const DateOnly = "2006-01-02" #52746
+pkg time, const DateOnly = "2006-01-02"#52746
 pkg time, const DateOnly ideal-string #52746
-pkg time, const DateTime = "2006-01-02 15:04:05" #52746
+pkg time, const DateTime = "2006-01-02 15:04:05"#52746
 pkg time, const DateTime ideal-string #52746
-pkg time, const TimeOnly = "15:04:05" #52746
+pkg time, const TimeOnly = "15:04:05"#52746
 pkg time, const TimeOnly ideal-string #52746
 pkg time, method (Time) Compare(Time) int #50770
 pkg unicode/utf16, func AppendRune([]uint16, int32) []uint16 #51896
@@ -592,7 +592,7 @@ pkg math (freebsd-riscv64-cgo), const MaxUint = 18446744073709551615 #53466
 pkg math (freebsd-riscv64-cgo), const MinInt = -9223372036854775808 #53466
 pkg math/bits (freebsd-riscv64), const UintSize = 64 #53466
 pkg math/bits (freebsd-riscv64-cgo), const UintSize = 64 #53466
-pkg os (freebsd-riscv64), const DevNull = "/dev/null" #53466
+pkg os (freebsd-riscv64), const DevNull = "/dev/null"#53466
 pkg os (freebsd-riscv64), const O_APPEND = 8 #53466
 pkg os (freebsd-riscv64), const O_CREATE = 512 #53466
 pkg os (freebsd-riscv64), const O_EXCL = 2048 #53466
@@ -600,7 +600,7 @@ pkg os (freebsd-riscv64), const O_SYNC = 128 #53466
 pkg os (freebsd-riscv64), const O_TRUNC = 1024 #53466
 pkg os (freebsd-riscv64), const PathListSeparator = 58 #53466
 pkg os (freebsd-riscv64), const PathSeparator = 47 #53466
-pkg os (freebsd-riscv64-cgo), const DevNull = "/dev/null" #53466
+pkg os (freebsd-riscv64-cgo), const DevNull = "/dev/null"#53466
 pkg os (freebsd-riscv64-cgo), const O_APPEND = 8 #53466
 pkg os (freebsd-riscv64-cgo), const O_CREATE = 512 #53466
 pkg os (freebsd-riscv64-cgo), const O_EXCL = 2048 #53466
@@ -612,10 +612,10 @@ pkg path/filepath (freebsd-riscv64), const ListSeparator = 58 #53466
 pkg path/filepath (freebsd-riscv64), const Separator = 47 #53466
 pkg path/filepath (freebsd-riscv64-cgo), const ListSeparator = 58 #53466
 pkg path/filepath (freebsd-riscv64-cgo), const Separator = 47 #53466
-pkg runtime (freebsd-riscv64), const GOARCH = "riscv64" #53466
-pkg runtime (freebsd-riscv64), const GOOS = "freebsd" #53466
-pkg runtime (freebsd-riscv64-cgo), const GOARCH = "riscv64" #53466
-pkg runtime (freebsd-riscv64-cgo), const GOOS = "freebsd" #53466
+pkg runtime (freebsd-riscv64), const GOARCH = "riscv64"#53466
+pkg runtime (freebsd-riscv64), const GOOS = "freebsd"#53466
+pkg runtime (freebsd-riscv64-cgo), const GOARCH = "riscv64"#53466
+pkg runtime (freebsd-riscv64-cgo), const GOOS = "freebsd"#53466
 pkg runtime/cgo (freebsd-riscv64-cgo), func NewHandle(interface{}) Handle #53466
 pkg runtime/cgo (freebsd-riscv64-cgo), method (Handle) Delete() #53466
 pkg runtime/cgo (freebsd-riscv64-cgo), method (Handle) Value() interface{} #53466

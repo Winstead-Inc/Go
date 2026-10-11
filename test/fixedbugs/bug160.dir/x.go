@@ -2,7 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package x
-
-const Zero = 0.0
-const Ten = 10.0
+package x const Zero = 0.0 const Ten = 10.0

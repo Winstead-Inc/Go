@@ -2,14 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type T[_ any] struct {}
 
-type T[_ any] struct {}
-
-func (T /* ERROR "instantiation" */ ) m()
-
-func _() {
-	var x interface { m() }
-	x = T[int]{}
-	_ = x
-}
+func(T/* ERROR "instantiation" */) m() func _() { var x interface { m() } x = T[int] {} _ = x }

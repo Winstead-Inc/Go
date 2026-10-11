@@ -2,12 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
-
-import "./a"
-
-func f() {
-	for k := range (a.M{}) {
-		k.F()
-	}
-}
+package b import"./a" func f() { for k: = range(a.M {}) { k.F() } }

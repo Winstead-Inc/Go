@@ -28,65 +28,26 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package s390x
+package s390x import("cmd/internal/objabi""cmd/internal/sys""cmd/link/internal/ld") func Init()( * sys.Arch, ld.Arch)
+{
+    arch: = sys.ArchS390X theArch: = ld.Arch
+    {
+        Funcalign: funcAlign, Maxalign: maxAlign, Minalign: minAlign, Dwarfregsp: dwarfRegSP, Dwarfreglr: dwarfRegLR, Adddynrel: adddynrel, Archinit: archinit, Archreloc: archreloc, Archrelocvariant: archrelocvariant, Gentext: gentext, Machoreloc1: machoreloc1, TLSIEtoLE: tlsIEtoLE, ELF: ld.ELFArch
+        {
+            Linuxdynld: "/lib/ld64.so.1", LinuxdynldMusl: "/lib/ld-musl-s390x.so.1", // not relevant for s390x
+            Freebsddynld: "XXX", Openbsddynld: "XXX", Netbsddynld: "XXX", Dragonflydynld: "XXX", Solarisdynld: "XXX", Reloc1: elfreloc1, RelocSize: 24, SetupPLT: elfsetupplt, 
+        },
+    }
 
-import (
-	"cmd/internal/objabi"
-	"cmd/internal/sys"
-	"cmd/link/internal/ld"
-)
-
-func Init() (*sys.Arch, ld.Arch) {
-	arch := sys.ArchS390X
-
-	theArch := ld.Arch{
-		Funcalign:  funcAlign,
-		Maxalign:   maxAlign,
-		Minalign:   minAlign,
-		Dwarfregsp: dwarfRegSP,
-		Dwarfreglr: dwarfRegLR,
-
-		Adddynrel:        adddynrel,
-		Archinit:         archinit,
-		Archreloc:        archreloc,
-		Archrelocvariant: archrelocvariant,
-		Gentext:          gentext,
-		Machoreloc1:      machoreloc1,
-		TLSIEtoLE:        tlsIEtoLE,
-
-		ELF: ld.ELFArch{
-			Linuxdynld:     "/lib/ld64.so.1",
-			LinuxdynldMusl: "/lib/ld-musl-s390x.so.1",
-
-			// not relevant for s390x
-			Freebsddynld:   "XXX",
-			Openbsddynld:   "XXX",
-			Netbsddynld:    "XXX",
-			Dragonflydynld: "XXX",
-			Solarisdynld:   "XXX",
-
-			Reloc1:    elfreloc1,
-			RelocSize: 24,
-			SetupPLT:  elfsetupplt,
-		},
-	}
-
-	return arch, theArch
+    return arch, theArch
 }
 
-func archinit(ctxt *ld.Link) {
-	switch ctxt.HeadType {
-	default:
-		ld.Exitf("unknown -H option: %v", ctxt.HeadType)
-
-	case objabi.Hlinux: // s390x ELF
-		ld.Elfinit(ctxt)
-		ld.HEADR = ld.ELFRESERVE
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 0x10000
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(0x10000, *ld.FlagRound) + int64(ld.HEADR)
-		}
-	}
+func archinit(ctxt * ld.Link)
+{
+    switch ctxt.HeadType
+    {
+        default: ld.Exitf("unknown -H option: %v", ctxt.HeadType) case objabi.Hlinux: // s390x ELF
+        ld.Elfinit(ctxt) ld.HEADR = ld.ELFRESERVE if * ld.FlagRound == - 1 { * ld.FlagRound = 0x10000 }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(0x10000, * ld.FlagRound) + int64(ld.HEADR) }
+    }
 }

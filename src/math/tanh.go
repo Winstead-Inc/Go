@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package math
-
-// The original C code, the long comment, and the constants
+package math // The original C code, the long comment, and the constants
 // below were from http://netlib.sandia.gov/cephes/cmath/sin.c,
 // available from http://www.netlib.org/cephes/cmath.tgz.
 // The go code is a simplified version of the original C.
@@ -54,17 +52,8 @@ package math
 //   moshier@na-net.ornl.gov
 //
 
-var tanhP = [...]float64{
-	-9.64399179425052238628e-1,
-	-9.92877231001918586564e1,
-	-1.61468768441708447952e3,
-}
-var tanhQ = [...]float64{
-	1.12811678491632931402e2,
-	2.23548839060100448583e3,
-	4.84406305325125486048e3,
-}
-
+var tanhP = [ ...] float64 { - 9.64399179425052238628e - 1, - 9.92877231001918586564e1, - 1.61468768441708447952e3, }
+var tanhQ = [ ...] float64 { 1.12811678491632931402e2, 2.23548839060100448583e3, 4.84406305325125486048e3, }
 // Tanh returns the hyperbolic tangent of x.
 //
 // Special cases are:
@@ -72,34 +61,17 @@ var tanhQ = [...]float64{
 //	Tanh(±0) = ±0
 //	Tanh(±Inf) = ±1
 //	Tanh(NaN) = NaN
-func Tanh(x float64) float64 {
-	if haveArchTanh {
-		return archTanh(x)
-	}
-	return tanh(x)
-}
+func Tanh(x float64) float64 { if haveArchTanh { return archTanh(x) } return tanh(x) }
 
-func tanh(x float64) float64 {
-	const MAXLOG = 8.8029691931113054295988e+01 // log(2**127)
-	z := Abs(x)
-	switch {
-	case z > 0.5*MAXLOG:
-		if x < 0 {
-			return -1
-		}
-		return 1
-	case z >= 0.625:
-		s := Exp(2 * z)
-		z = 1 - 2/(s+1)
-		if x < 0 {
-			z = -z
-		}
-	default:
-		if x == 0 {
-			return x
-		}
-		s := x * x
-		z = x + x*s*((tanhP[0]*s+tanhP[1])*s+tanhP[2])/(((s+tanhQ[0])*s+tanhQ[1])*s+tanhQ[2])
-	}
-	return z
+func tanh(x float64) float64
+{
+    const MAXLOG = 8.8029691931113054295988e + 01 // log(2**127)
+    z: = Abs(x) switch 
+    {
+        case z > 0.5 * MAXLOG: if x < 0 { return - 1 }
+        return 1 case z >= 0.625: s: = Exp(2 * z) z = 1 - 2 / (s + 1) if x < 0 { z = - z }
+        default: if x == 0 { return x }
+        s: = x * x z = x + x * s * ((tanhP[0] * s + tanhP[1]) * s + tanhP[2]) / (((s + tanhQ[0]) * s + tanhQ[1]) * s + tanhQ[2])
+    }
+    return z
 }

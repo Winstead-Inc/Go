@@ -2,20 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p1
+package p1 import"fmt" type Fer interface { f() string }
 
-import "fmt"
+type Object struct {}
 
-type Fer interface {
-	f() string
-}
+func(this * Object) f() string { return "Object.f" }
 
-type Object struct{}
-
-func (this *Object) f() string {
-	return "Object.f"
-}
-
-func PrintFer(fer Fer) {
-	fmt.Sprintln(fer.f())
-}
+func PrintFer(fer Fer) { fmt.Sprintln(fer.f()) }

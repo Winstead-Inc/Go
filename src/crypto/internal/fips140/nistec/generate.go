@@ -1,134 +1,79 @@
 // Copyright 2022 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build ignore
 
-package main
-
-// Running this generator requires addchain v0.4.0, which can be installed with
+package main // Running this generator requires addchain v0.4.0, which can be installed with
 //
 //   go install github.com/mmcloughlin/addchain/cmd/addchain@v0.4.0
 //
 
-import (
-	"bytes"
-	"crypto/elliptic"
-	"fmt"
-	"go/format"
-	"io"
-	"log"
-	"math/big"
-	"os"
-	"os/exec"
-	"strings"
-	"text/template"
-)
-
-var curves = []struct {
-	P       string
-	Element string
-	Params  *elliptic.CurveParams
-}{
-	{
-		P:       "P224",
-		Element: "fiat.P224Element",
-		Params:  elliptic.P224().Params(),
-	},
-	{
-		P:       "P384",
-		Element: "fiat.P384Element",
-		Params:  elliptic.P384().Params(),
-	},
-	{
-		P:       "P521",
-		Element: "fiat.P521Element",
-		Params:  elliptic.P521().Params(),
-	},
+import("bytes""crypto/elliptic""fmt""go/format""io""log""math/big""os""os/exec""strings""text/template") var curves = [] struct 
+{
+    P string Element string Params * elliptic.CurveParams
+}
+{
+{ P: "P224", Element: "fiat.P224Element", Params: elliptic.P224().Params(), },
+{ P: "P384", Element: "fiat.P384Element", Params: elliptic.P384().Params(), },
+{ P: "P521", Element: "fiat.P521Element", Params: elliptic.P521().Params(), },
 }
 
-func main() {
-	t := template.Must(template.New("tmplNISTEC").Parse(tmplNISTEC))
+func main()
+{
+    t: = template.Must(template.New("tmplNISTEC").Parse(tmplNISTEC)) tmplAddchainFile, err: = os.CreateTemp("", "addchain-template") if err != nil
+    {
+        log.Fatal(err)
+    }
+    defer os.Remove(tmplAddchainFile.Name()) if _, err: = io.WriteString(tmplAddchainFile, tmplAddchain);
+    err != nil { log.Fatal(err) }
+    if err: = tmplAddchainFile.Close();
+    err != nil { log.Fatal(err) }
 
-	tmplAddchainFile, err := os.CreateTemp("", "addchain-template")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.Remove(tmplAddchainFile.Name())
-	if _, err := io.WriteString(tmplAddchainFile, tmplAddchain); err != nil {
-		log.Fatal(err)
-	}
-	if err := tmplAddchainFile.Close(); err != nil {
-		log.Fatal(err)
-	}
+    for _, c: = range curves
+    {
+        p: = strings.ToLower(c.P) elementLen: = (c.Params.BitSize + 7) / 8 B: = fmt.Sprintf("%#v", c.Params.B.FillBytes(make([] byte, elementLen))) Gx: = fmt.Sprintf
+        (
+            "%#v", c.Params.Gx.FillBytes(make([] byte, elementLen))
+        )
+        Gy: = fmt.Sprintf("%#v", c.Params.Gy.FillBytes(make([] byte, elementLen))) log.Printf("Generating %s.go...", p) f, err: = os.Create(p + ".go") if err != nil
+        {
+            log.Fatal(err)
+        }
+        defer f.Close() buf: = & bytes.Buffer {}
+        if err: = t.Execute
+        (
+            buf, map[string] interface {}
+{ "P": c.P, "p": p, "B": B, "Gx": Gx, "Gy": Gy, "Element": c.Element, "ElementLen": elementLen, }
+        );
+        err != nil { log.Fatal(err) }
+        out, err: = format.Source(buf.Bytes()) if err != nil { log.Fatal(err) }
+        if _, err: = f.Write(out);
+        err != nil { log.Fatal(err) }
+        // If p = 3 mod 4, implement modular square root by exponentiation.
+        mod4: = new (big.Int).Mod(c.Params.P, big.NewInt(4)) if mod4.Cmp(big.NewInt(3)) != 0 { continue }
 
-	for _, c := range curves {
-		p := strings.ToLower(c.P)
-		elementLen := (c.Params.BitSize + 7) / 8
-		B := fmt.Sprintf("%#v", c.Params.B.FillBytes(make([]byte, elementLen)))
-		Gx := fmt.Sprintf("%#v", c.Params.Gx.FillBytes(make([]byte, elementLen)))
-		Gy := fmt.Sprintf("%#v", c.Params.Gy.FillBytes(make([]byte, elementLen)))
-
-		log.Printf("Generating %s.go...", p)
-		f, err := os.Create(p + ".go")
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer f.Close()
-		buf := &bytes.Buffer{}
-		if err := t.Execute(buf, map[string]interface{}{
-			"P": c.P, "p": p, "B": B, "Gx": Gx, "Gy": Gy,
-			"Element": c.Element, "ElementLen": elementLen,
-		}); err != nil {
-			log.Fatal(err)
-		}
-		out, err := format.Source(buf.Bytes())
-		if err != nil {
-			log.Fatal(err)
-		}
-		if _, err := f.Write(out); err != nil {
-			log.Fatal(err)
-		}
-
-		// If p = 3 mod 4, implement modular square root by exponentiation.
-		mod4 := new(big.Int).Mod(c.Params.P, big.NewInt(4))
-		if mod4.Cmp(big.NewInt(3)) != 0 {
-			continue
-		}
-
-		exp := new(big.Int).Add(c.Params.P, big.NewInt(1))
-		exp.Div(exp, big.NewInt(4))
-
-		tmp, err := os.CreateTemp("", "addchain-"+p)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defer os.Remove(tmp.Name())
-		cmd := exec.Command("addchain", "search", fmt.Sprintf("%d", exp))
-		cmd.Stderr = os.Stderr
-		cmd.Stdout = tmp
-		if err := cmd.Run(); err != nil {
-			log.Fatal(err)
-		}
-		if err := tmp.Close(); err != nil {
-			log.Fatal(err)
-		}
-		cmd = exec.Command("addchain", "gen", "-tmpl", tmplAddchainFile.Name(), tmp.Name())
-		cmd.Stderr = os.Stderr
-		out, err = cmd.Output()
-		if err != nil {
-			log.Fatal(err)
-		}
-		out = bytes.Replace(out, []byte("Element"), []byte(c.Element), -1)
-		out = bytes.Replace(out, []byte("sqrtCandidate"), []byte(p+"SqrtCandidate"), -1)
-		out, err = format.Source(out)
-		if err != nil {
-			log.Fatal(err)
-		}
-		if _, err := f.Write(out); err != nil {
-			log.Fatal(err)
-		}
-	}
+        exp: = new (big.Int).Add(c.Params.P, big.NewInt(1)) exp.Div(exp, big.NewInt(4)) tmp, err: = os.CreateTemp("", "addchain-" + p) if err != nil
+        {
+            log.Fatal(err)
+        }
+        defer os.Remove(tmp.Name()) cmd: = exec.Command("addchain", "search", fmt.Sprintf("%d", exp)) cmd.Stderr = os.Stderr cmd.Stdout = tmp if err: = cmd.Run
+        (
+        );
+        err != nil { log.Fatal(err) }
+        if err: = tmp.Close();
+        err != nil { log.Fatal(err) }
+        cmd = exec.Command("addchain", "gen", "-tmpl", tmplAddchainFile.Name(), tmp.Name()) cmd.Stderr = os.Stderr out, err = cmd.Output() if err != nil
+        {
+            log.Fatal(err)
+        }
+        out = bytes.Replace(out, [] byte("Element"),[] byte(c.Element), - 1) out = bytes.Replace
+        (
+            out, [] byte("sqrtCandidate"),[] byte(p + "SqrtCandidate"), - 1
+        )
+        out, err = format.Source(out) if err != nil { log.Fatal(err) }
+        if _, err: = f.Write(out);
+        err != nil { log.Fatal(err) }
+    }
 }
 
 const tmplNISTEC = `// Copyright 2022 The Go Authors. All rights reserved.
@@ -585,9 +530,7 @@ func {{.p}}Sqrt(e, x *{{ .Element }}) (isSquare bool) {
 	e.Set(candidate)
 	return true
 }
-`
-
-const tmplAddchain = `
+` const tmplAddchain = `
 // sqrtCandidate sets z to a square root candidate for x. z and x must not overlap.
 func sqrtCandidate(z, x *Element) {
 	// Since p = 3 mod 4, exponentiation by (p + 1) / 4 yields a square root candidate.

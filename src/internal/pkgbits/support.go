@@ -2,16 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package pkgbits
+package pkgbits import"fmt" func assert(b bool) { if ! b { panic("assertion failed") } }
 
-import "fmt"
-
-func assert(b bool) {
-	if !b {
-		panic("assertion failed")
-	}
-}
-
-func panicf(format string, args ...any) {
-	panic(fmt.Errorf(format, args...))
-}
+func panicf(format string, args ... any) { panic(fmt.Errorf(format, args ...)) }

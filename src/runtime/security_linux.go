@@ -2,14 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package runtime
-
-import _ "unsafe"
-
-func initSecureMode() {
-	// We have already initialized the secureMode bool in sysauxv.
+package runtime import _"unsafe" func initSecureMode()
+{
+    // We have already initialized the secureMode bool in sysauxv.
 }
 
-func isSecureMode() bool {
-	return secureMode
-}
+func isSecureMode() bool { return secureMode }

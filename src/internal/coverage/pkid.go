@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package coverage
-
-// Building the runtime package with coverage instrumentation enabled
+package coverage // Building the runtime package with coverage instrumentation enabled
 // is tricky.  For all other packages, you can be guaranteed that
 // the package init function is run before any functions are executed,
 // but this invariant is not maintained for packages such as "runtime",
@@ -44,52 +42,21 @@ package coverage
 // this were to be the case, we would need a table of some sort below
 // as opposed to a fixed list.
 
-var rtPkgs = [...]string{
-	"internal/asan",
-	"internal/byteorder",
-	"internal/coverage/rtcov",
-	"internal/cpu",
-	"internal/bytealg",
-	"internal/goarch",
-	"internal/abi",
-	"internal/chacha8rand",
-	"internal/godebugs",
-	"internal/goexperiment",
-	"internal/goos",
-	"internal/msan",
-	"internal/profilerecord",
-	"internal/race",
-	"internal/runtime/atomic",
-	"internal/runtime/exithook",
-	"internal/runtime/gc",
-	"internal/runtime/math",
-	"internal/runtime/sys",
-	"internal/runtime/maps",
-	"internal/runtime/syscall/linux",
-	"internal/runtime/syscall/windows",
-	"internal/runtime/cgroup",
-	"internal/strconv",
-	"internal/stringslite",
-	"runtime",
+var rtPkgs = [ ...] string
+{
+    "internal/asan", "internal/byteorder", "internal/coverage/rtcov", "internal/cpu", "internal/bytealg", "internal/goarch", "internal/abi", "internal/chacha8rand", "internal/godebugs", "internal/goexperiment", "internal/goos", "internal/msan", "internal/profilerecord", "internal/race", "internal/runtime/atomic", "internal/runtime/exithook", "internal/runtime/gc", "internal/runtime/math", "internal/runtime/sys", "internal/runtime/maps", "internal/runtime/syscall/linux", "internal/runtime/syscall/windows", "internal/runtime/cgroup", "internal/strconv", "internal/stringslite", "runtime", 
 }
-
 // Scoping note: the constants and apis in this file are internal
 // only, not expected to ever be exposed outside of the runtime (unlike
 // other coverage file formats and APIs, which will likely be shared
 // at some point).
-
 // NotHardCoded is a package pseudo-ID indicating that a given package
 // is not part of the runtime and doesn't require a hard-coded ID.
-const NotHardCoded = -1
-
-// HardCodedPkgID returns the hard-coded ID for the specified package
+const NotHardCoded = - 1 // HardCodedPkgID returns the hard-coded ID for the specified package
 // path, or -1 if we don't use a hard-coded ID. Hard-coded IDs start
 // at -2 and decrease as we go down the list.
-func HardCodedPkgID(pkgpath string) int {
-	for k, p := range rtPkgs {
-		if p == pkgpath {
-			return (0 - k) - 2
-		}
-	}
-	return NotHardCoded
+func HardCodedPkgID(pkgpath string) int
+{
+    for k, p: = range rtPkgs { if p == pkgpath { return (0 - k) - 2 } }
+    return NotHardCoded
 }

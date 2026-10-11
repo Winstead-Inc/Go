@@ -2,14 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package help
-
-import "cmd/go/internal/base"
-
-var HelpC = &base.Command{
-	UsageLine: "c",
-	Short:     "calling between Go and C",
-	Long: `
+package help import"cmd/go/internal/base" var HelpC = & base.Command
+{
+    UsageLine: "c", Short: "calling between Go and C", Long: `
 There are two different ways to call between Go and C/C++ code.
 
 The first is the cgo tool, which is part of the Go distribution. For
@@ -27,13 +22,12 @@ When either cgo or SWIG is used, go build will pass any .c, .m, .s, .S
 or .sx files to the C compiler, and any .cc, .cpp, .cxx files to the C++
 compiler. The CC or CXX environment variables may be set to determine
 the C or C++ compiler, respectively, to use.
-	`,
+	`, 
 }
 
-var HelpPackages = &base.Command{
-	UsageLine: "packages",
-	Short:     "package lists and patterns",
-	Long: `
+var HelpPackages = & base.Command
+{
+    UsageLine: "packages", Short: "package lists and patterns", Long: `
 Many commands apply to a set of packages:
 
 	go <action> [packages]
@@ -177,13 +171,12 @@ package that only has access to the colocated package's exported
 identifiers. See "go doc testing" for details.
 
 For more information about import paths, see "go help importpath".
-`,
+`, 
 }
 
-var HelpImportPath = &base.Command{
-	UsageLine: "importpath",
-	Short:     "import path syntax",
-	Long: `
+var HelpImportPath = & base.Command
+{
+    UsageLine: "importpath", Short: "import path syntax", Long: `
 An import path is used to uniquely identify and locate a package.
 In general, an import path denotes either a standard library package
 (such as "unicode/utf8") or a package found in a module (for more
@@ -390,13 +383,12 @@ This tag means to fetch modules with paths beginning with example.org
 from the module proxy available at the URL https://code.org/moduleproxy.
 See https://go.dev/ref/mod#goproxy-protocol for details about the
 proxy protocol.
-	`,
+	`, 
 }
 
-var HelpGopath = &base.Command{
-	UsageLine: "gopath",
-	Short:     "GOPATH environment variable",
-	Long: `
+var HelpGopath = & base.Command
+{
+    UsageLine: "gopath", Short: "GOPATH environment variable", Long: `
 The GOPATH environment variable is used to change the default
 location to store the module cache and installed binaries, if
 not overridden by GOMODCACHE and GOBIN respectively.
@@ -534,13 +526,12 @@ See https://go.dev/s/go15vendor for details.
 
 See https://go.dev/ref/mod#vendoring for details about vendoring in
 module mode.
-	`,
+	`, 
 }
 
-var HelpEnvironment = &base.Command{
-	UsageLine: "environment",
-	Short:     "environment variables",
-	Long: `
+var HelpEnvironment = & base.Command
+{
+    UsageLine: "environment", Short: "environment variables", Long: `
 
 The go command and the tools it invokes consult environment variables
 for configuration. If an environment variable is unset or empty, the go
@@ -780,13 +771,12 @@ Additional information available from 'go env' but not read from the environment
 		The directory where the go tools (compile, cover, doc, etc...) are installed.
 	GOVERSION
 		The version of the installed Go tree, as reported by runtime.Version.
-	`,
+	`, 
 }
 
-var HelpFileType = &base.Command{
-	UsageLine: "filetype",
-	Short:     "file types",
-	Long: `
+var HelpFileType = & base.Command
+{
+    UsageLine: "filetype", Short: "file types", Long: `
 The go command examines the contents of a restricted set of files
 in each directory. It identifies which files to examine based on
 the extension of the file name. These extensions are:
@@ -819,13 +809,12 @@ constraints, but the go command stops scanning for build constraints
 at the first item in the file that is not a blank line or //-style
 line comment. See the go/build package documentation for
 more details.
-	`,
+	`, 
 }
 
-var HelpBuildmode = &base.Command{
-	UsageLine: "buildmode",
-	Short:     "build modes",
-	Long: `
+var HelpBuildmode = & base.Command
+{
+    UsageLine: "buildmode", Short: "build modes", Long: `
 The 'go build' and 'go install' commands take a -buildmode argument which
 indicates which kind of object file is to be built. Currently supported values
 are:
@@ -874,13 +863,12 @@ are:
 
 On AIX, when linking a C program that uses a Go archive built with
 -buildmode=c-archive, you must pass -Wl,-bnoobjreorder to the C compiler.
-`,
+`, 
 }
 
-var HelpCache = &base.Command{
-	UsageLine: "cache",
-	Short:     "build and test caching",
-	Long: `
+var HelpCache = & base.Command
+{
+    UsageLine: "cache", Short: "build and test caching", Long: `
 The go command caches build outputs for reuse in future builds.
 The default location for cache data is a subdirectory named go-build
 in the standard user cache directory for the current operating system.
@@ -928,13 +916,12 @@ decisions about whether to reuse a cached test result.
 The GOCACHEPROG environment variable can be used to provide an
 externally managed build cache. For details see:
 "go doc cmd/go/internal/cacheprog".
-`,
+`, 
 }
 
-var HelpBuildConstraint = &base.Command{
-	UsageLine: "buildconstraint",
-	Short:     "build constraints",
-	Long: `
+var HelpBuildConstraint = & base.Command
+{
+    UsageLine: "buildconstraint", Short: "build constraints", Long: `
 A build constraint, also known as a build tag, is a condition under which a
 file should be included in the package. Build constraints are given by a
 line comment that begins
@@ -1073,13 +1060,12 @@ constraint when encountering the older syntax.
 In modules with a Go version of 1.21 or later, if a file's build constraint
 has a term for a Go major release, the language version used when compiling
 the file will be the minimum version implied by the build constraint.
-`,
+`, 
 }
 
-var HelpGoAuth = &base.Command{
-	UsageLine: "goauth",
-	Short:     "GOAUTH environment variable",
-	Long: `
+var HelpGoAuth = & base.Command
+{
+    UsageLine: "goauth", Short: "GOAUTH environment variable", Long: `
 GOAUTH is a semicolon-separated list of authentication commands for go-import and
 HTTPS module mirror interactions. The default is netrc.
 
@@ -1138,13 +1124,12 @@ GOAUTH commands again with the URL as an additional command-line argument
 and the HTTP Response to the program's stdin.
 If the server responds with an error again, the fetch fails: a URL-specific
 GOAUTH will only be attempted once per fetch.
-`,
+`, 
 }
 
-var HelpBuildJSON = &base.Command{
-	UsageLine: "buildjson",
-	Short:     "build -json encoding",
-	Long: `
+var HelpBuildJSON = & base.Command
+{
+    UsageLine: "buildjson", Short: "build -json encoding", Long: `
 The 'go build', 'go install', and 'go test' commands take a -json flag that
 reports build output and failures as structured JSON output on standard
 output.
@@ -1184,5 +1169,5 @@ have appeared from go build without the -json flag.
 Note that there may also be non-JSON error text on standard error, even
 with the -json flag. Typically, this indicates an early, serious error.
 Consumers should be robust to this.
-	`,
+	`, 
 }

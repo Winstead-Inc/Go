@@ -2,10 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-import "testplugin/issue44956/base"
-
-func F() *map[int]int { return base.X }
+package main import"testplugin/issue44956/base" func F() * map[int] int { return base.X }
 
 func main() {}

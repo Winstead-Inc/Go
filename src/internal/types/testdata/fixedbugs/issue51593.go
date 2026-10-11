@@ -2,12 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-func f[P interface{ m(R) }, R any]() {}
+package p func f[P interface { m(R) }, R any]() {}
 
 type T = interface { m(int) }
 
-func _() {
-	_ = f[T]
-}
+func _() { _ = f[T] }

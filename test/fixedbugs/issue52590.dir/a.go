@@ -2,67 +2,32 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a import"unsafe" func Append() { _ = append(appendArgs()) }
 
-import "unsafe"
+func Delete() { delete (deleteArgs()) }
 
-func Append() {
-	_ = append(appendArgs())
-}
+func Print() { print(ints()) }
 
-func Delete() {
-	delete(deleteArgs())
-}
+func Println() { println(ints()) }
 
-func Print() {
-	print(ints())
-}
+func Complex() { _ = complex(float64s()) }
 
-func Println() {
-	println(ints())
-}
+func Copy() { copy(slices()) }
 
-func Complex() {
-	_ = complex(float64s())
-}
+func UnsafeAdd() { _ = unsafe.Add(unsafeAdd()) }
 
-func Copy() {
-	copy(slices())
-}
+func UnsafeSlice() { _ = unsafe.Slice(unsafeSlice()) }
 
-func UnsafeAdd() {
-	_ = unsafe.Add(unsafeAdd())
-}
+func appendArgs()([] int , int) { return [] int {}, 0 }
 
-func UnsafeSlice() {
-	_ = unsafe.Slice(unsafeSlice())
-}
+func deleteArgs()(map[int] int , int) { return map[int] int {}, 0 }
 
-func appendArgs() ([]int, int) {
-	return []int{}, 0
-}
+func ints()(int , int) { return 1, 1 }
 
-func deleteArgs() (map[int]int, int) {
-	return map[int]int{}, 0
-}
+func float64s()(float64, float64) { return 0, 0 }
 
-func ints() (int, int) {
-	return 1, 1
-}
+func slices()([] int , [] int) { return [] int {},[] int {} }
 
-func float64s() (float64, float64) {
-	return 0, 0
-}
+func unsafeAdd()(unsafe.Pointer, int) { return nil, 0 }
 
-func slices() ([]int, []int) {
-	return []int{}, []int{}
-}
-
-func unsafeAdd() (unsafe.Pointer, int) {
-	return nil, 0
-}
-
-func unsafeSlice() (*byte, int) {
-	var p [10]byte
-	return &p[0], 0
-}
+func unsafeSlice()( * byte, int) { var p[10] byte return & p[0], 0 }

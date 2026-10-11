@@ -2,16 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package bug
+package bug type S struct { F func() }
 
-type S struct {
-	F func()
-}
+type X interface { Bar() }
 
-type X interface {
-	Bar()
-}
-
-func Foo(x X) *S {
-	return &S{F: x.Bar}
-}
+func Foo(x X) * S { return & S { F: x.Bar } }

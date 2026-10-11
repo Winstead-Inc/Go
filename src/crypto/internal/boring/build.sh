@@ -13,7 +13,7 @@ set -o pipefail
 GOARCH=${GOARCH:-$(go env GOARCH)}
 echo "# Building goboringcrypto_linux_$GOARCH.syso. Set GOARCH to override." >&2
 
-if ! which docker >/dev/null; then
+if ! which docker > /dev/null; then
 	echo "# Docker not found. Inside Google, see go/installdocker." >&2
 	exit 1
 fi
@@ -22,7 +22,7 @@ platform=""
 buildargs=""
 case "$GOARCH" in
 amd64)
-	if ! docker run --rm -t amd64/ubuntu:focal uname -m >/dev/null 2>&1; then
+	if ! docker run --rm -t amd64/ubuntu:focal uname -m > /dev/null 2>&1; then
 		echo "# Docker cannot run amd64 binaries."
 		exit 1
 	fi
@@ -30,7 +30,7 @@ amd64)
 	buildargs="--build-arg ubuntu=amd64/ubuntu"
 	;;
 arm64)
-	if ! docker run --rm -t arm64v8/ubuntu:focal uname -m >/dev/null 2>&1; then
+	if ! docker run --rm -t arm64v8/ubuntu:focal uname -m > /dev/null 2>&1; then
 		echo "# Docker cannot run arm64 binaries. Try:"
 		echo "	sudo apt-get install qemu binfmt-support qemu-user-static"
 		echo "	docker run --rm --privileged multiarch/qemu-user-static --reset -p yes"

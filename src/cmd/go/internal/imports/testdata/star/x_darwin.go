@@ -1,3 +1,1 @@
-package xxxx
-
-import "import3"
+package xxxx import"import3"

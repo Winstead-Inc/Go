@@ -2,13 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a var S struct { Str string`tag` }
 
-var S struct {
-	Str string `tag`
-}
-
-func F() string {
-	v := S
-	return v.Str
-}
+func F() string { v: = S return v.Str }

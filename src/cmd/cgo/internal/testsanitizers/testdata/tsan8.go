@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// This program failed when run under the C/C++ ThreadSanitizer.  The TSAN
+package main // This program failed when run under the C/C++ ThreadSanitizer.  The TSAN
 // sigaction function interceptor returned SIG_DFL instead of the Go runtime's
 // handler in registerSegvForwarder.
 
@@ -46,15 +44,7 @@ void registerSegvFowarder() {
 		exit(EXIT_FAILURE);
 	}
 }
-*/
-import "C"
-
-func main() {
-	C.registerSegvFowarder()
-
-	defer func() {
-		recover()
-	}()
-	var nilp *int
-	*nilp = 42
-}
+*/ import"C" func main
+(
+)
+{ C.registerSegvFowarder() defer func() { recover() }() var nilp * int * nilp = 42 }

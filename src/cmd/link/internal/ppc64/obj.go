@@ -28,89 +28,37 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package ppc64
+package ppc64 import("cmd/internal/objabi""cmd/internal/sys""cmd/link/internal/ld""internal/buildcfg") func Init()( * sys.Arch, ld.Arch)
+{
+    arch: = sys.ArchPPC64LE dynld: = "/lib64/ld64.so.2" musl: = "/lib/ld-musl-powerpc64le.so.1" if buildcfg.GOARCH == "ppc64"
+    {
+        arch = sys.ArchPPC64 dynld = "/lib64/ld64.so.2" musl = "/lib/ld-musl-powerpc64.so.1"
+    }
 
-import (
-	"cmd/internal/objabi"
-	"cmd/internal/sys"
-	"cmd/link/internal/ld"
-	"internal/buildcfg"
-)
+    theArch: = ld.Arch
+    {
+        Funcalign: funcAlign, Maxalign: maxAlign, Minalign: minAlign, Dwarfregsp: dwarfRegSP, Dwarfreglr: dwarfRegLR, TrampLimit: 0x1c00000, Adddynrel: adddynrel, Archinit: archinit, Archreloc: archreloc, Archrelocvariant: archrelocvariant, Extreloc: extreloc, Gentext: gentext, Trampoline: trampoline, Machoreloc1: machoreloc1, Xcoffreloc1: xcoffreloc1, ELF: ld.ELFArch
+        {
+            Linuxdynld: dynld, LinuxdynldMusl: musl, Freebsddynld: "XXX", Openbsddynld: "/usr/libexec/ld.so", Netbsddynld: "XXX", Dragonflydynld: "XXX", Solarisdynld: "XXX", Reloc1: elfreloc1, RelocSize: 24, SetupPLT: elfsetupplt, 
+        },
+    }
 
-func Init() (*sys.Arch, ld.Arch) {
-	arch := sys.ArchPPC64LE
-	dynld := "/lib64/ld64.so.2"
-	musl := "/lib/ld-musl-powerpc64le.so.1"
-
-	if buildcfg.GOARCH == "ppc64" {
-		arch = sys.ArchPPC64
-		dynld = "/lib64/ld64.so.2"
-		musl = "/lib/ld-musl-powerpc64.so.1"
-	}
-
-	theArch := ld.Arch{
-		Funcalign:  funcAlign,
-		Maxalign:   maxAlign,
-		Minalign:   minAlign,
-		Dwarfregsp: dwarfRegSP,
-		Dwarfreglr: dwarfRegLR,
-		TrampLimit: 0x1c00000,
-
-		Adddynrel:        adddynrel,
-		Archinit:         archinit,
-		Archreloc:        archreloc,
-		Archrelocvariant: archrelocvariant,
-		Extreloc:         extreloc,
-		Gentext:          gentext,
-		Trampoline:       trampoline,
-		Machoreloc1:      machoreloc1,
-		Xcoffreloc1:      xcoffreloc1,
-
-		ELF: ld.ELFArch{
-			Linuxdynld:     dynld,
-			LinuxdynldMusl: musl,
-
-			Freebsddynld:   "XXX",
-			Openbsddynld:   "/usr/libexec/ld.so",
-			Netbsddynld:    "XXX",
-			Dragonflydynld: "XXX",
-			Solarisdynld:   "XXX",
-
-			Reloc1:    elfreloc1,
-			RelocSize: 24,
-			SetupPLT:  elfsetupplt,
-		},
-	}
-
-	return arch, theArch
+    return arch, theArch
 }
 
-func archinit(ctxt *ld.Link) {
-	switch ctxt.HeadType {
-	default:
-		ld.Exitf("unknown -H option: %v", ctxt.HeadType)
+func archinit(ctxt * ld.Link)
+{
+    switch ctxt.HeadType
+    {
+        default: ld.Exitf("unknown -H option: %v", ctxt.HeadType) case objabi.Hplan9: /* plan 9 */ ld.HEADR = 32 if * ld.FlagRound == - 1
+        {
+            * ld.FlagRound = 4096
+        }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(4096, * ld.FlagRound) + int64(ld.HEADR) }
 
-	case objabi.Hplan9: /* plan 9 */
-		ld.HEADR = 32
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 4096
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(4096, *ld.FlagRound) + int64(ld.HEADR)
-		}
+        case objabi.Hlinux, /* ppc64 elf */ objabi.Hopenbsd: ld.Elfinit(ctxt) ld.HEADR = ld.ELFRESERVE if * ld.FlagRound == - 1 { * ld.FlagRound = 0x10000 }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(0x10000, * ld.FlagRound) + int64(ld.HEADR) }
 
-	case objabi.Hlinux, /* ppc64 elf */
-		objabi.Hopenbsd:
-		ld.Elfinit(ctxt)
-		ld.HEADR = ld.ELFRESERVE
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 0x10000
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(0x10000, *ld.FlagRound) + int64(ld.HEADR)
-		}
-
-	case objabi.Haix:
-		ld.Xcoffinit(ctxt)
-	}
+        case objabi.Haix: ld.Xcoffinit(ctxt)
+    }
 }

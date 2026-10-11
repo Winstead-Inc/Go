@@ -79,5 +79,4 @@ Core flags:
 	  	display offending line plus N lines of surrounding context
 	-json
 	  	emit analysis diagnostics (and errors) in JSON format
-*/
-package main
+*/ package main

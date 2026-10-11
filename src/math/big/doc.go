@@ -94,5 +94,4 @@ a variety of supported formats (see the respective SetString documentation).
 
 Finally, *[Int], *[Rat], and *[Float] satisfy [fmt.Scanner] for scanning
 and (except for *[Rat]) the Formatter interface for formatted printing.
-*/
-package big
+*/ package big

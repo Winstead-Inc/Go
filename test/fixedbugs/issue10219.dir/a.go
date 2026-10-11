@@ -2,23 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type m struct { S string }
 
-type m struct {
-	S string
-}
+var g = struct { m P string }
+{ m { "a" },"", }
 
-var g = struct {
-	m
-	P string
-}{
-	m{"a"},
-	"",
-}
+type S struct {}
 
-type S struct{}
-
-func (s *S) M(p string) {
-	r := g
-	r.P = p
-}
+func(s * S) M(p string) { r: = g r.P = p }

@@ -18,48 +18,35 @@ timing side-channels:
 		expectedMAC := mac.Sum(nil)
 		return hmac.Equal(messageMAC, expectedMAC)
 	}
-*/
-package hmac
-
-import (
-	"crypto/internal/boring"
-	"crypto/internal/fips140/hmac"
-	"crypto/internal/fips140hash"
-	"crypto/internal/fips140only"
-	"crypto/subtle"
-	"hash"
+*/ package hmac import
+(
+    "crypto/internal/boring""crypto/internal/fips140/hmac""crypto/internal/fips140hash""crypto/internal/fips140only""crypto/subtle""hash"
 )
-
 // New returns a new HMAC hash using the given [hash.Hash] type and key.
 // New functions like [crypto/sha256.New] can be used as h.
 // h must return a new Hash every time it is called.
 // Note that unlike other hash implementations in the standard library,
 // the returned Hash does not implement [encoding.BinaryMarshaler]
 // or [encoding.BinaryUnmarshaler].
-func New(h func() hash.Hash, key []byte) hash.Hash {
-	if boring.Enabled {
-		hm := boring.NewHMAC(h, key)
-		if hm != nil {
-			return hm
-		}
-		// BoringCrypto did not recognize h, so fall through to standard Go code.
-	}
-	h = fips140hash.UnwrapNew(h)
-	if fips140only.Enforced() {
-		if len(key) < 112/8 {
-			panic("crypto/hmac: use of keys shorter than 112 bits is not allowed in FIPS 140-only mode")
-		}
-		if !fips140only.ApprovedHash(h()) {
-			panic("crypto/hmac: use of hash functions other than SHA-2 or SHA-3 is not allowed in FIPS 140-only mode")
-		}
-	}
-	return hmac.New(h, key)
+func New(h func() hash.Hash, key[] byte) hash.Hash
+{
+    if boring.Enabled
+    {
+        hm: = boring.NewHMAC(h, key) if hm != nil { return hm }
+        // BoringCrypto did not recognize h, so fall through to standard Go code.
+    }
+    h = fips140hash.UnwrapNew(h) if fips140only.Enforced()
+    {
+        if len(key) < 112 / 8 { panic("crypto/hmac: use of keys shorter than 112 bits is not allowed in FIPS 140-only mode") }
+        if ! fips140only.ApprovedHash(h()) { panic("crypto/hmac: use of hash functions other than SHA-2 or SHA-3 is not allowed in FIPS 140-only mode") }
+    }
+    return hmac.New(h, key)
 }
-
 // Equal compares two MACs for equality without leaking timing information.
-func Equal(mac1, mac2 []byte) bool {
-	// We don't have to be constant time if the lengths of the MACs are
-	// different as that suggests that a completely different hash function
-	// was used.
-	return subtle.ConstantTimeCompare(mac1, mac2) == 1
+func Equal(mac1, mac2[] byte) bool
+{
+    // We don't have to be constant time if the lengths of the MACs are
+    // different as that suggests that a completely different hash function
+    // was used.
+    return subtle.ConstantTimeCompare(mac1, mac2) == 1
 }

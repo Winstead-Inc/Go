@@ -1,16 +1,13 @@
 // Copyright 2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Test cases for cgo.
 // Both the import "C" prologue and the main file are sorted by issue number.
 // This file contains C definitions (not just declarations)
 // and so it must NOT contain any //export directives on Go functions.
 // See testx.go for exports.
 
-package cgotest
-
-/*
+package cgotest /*
 #include <complex.h>
 #include <math.h>
 #include <stdarg.h>
@@ -999,1545 +996,963 @@ static void ditCallbackDisableDIT() {
 	disableDIT();
 	ditCallback();
 }
-*/
-import "C"
-
-import (
-	"context"
-	"crypto/subtle"
-	"fmt"
-	"internal/asan"
-	"internal/runtime/sys"
-	"math"
-	"math/rand"
-	"os"
-	"os/signal"
-	"reflect"
-	"runtime"
-	"runtime/cgo"
-	"sync"
-	"syscall"
-	"testing"
-	"time"
-	"unsafe"
+*/ import"C" import
+(
+    "context""crypto/subtle""fmt""internal/asan""internal/runtime/sys""math""math/rand""os""os/signal""reflect""runtime""runtime/cgo""sync""syscall""testing""time""unsafe"
 )
-
 // alignment
 
-func testAlign(t *testing.T) {
-	var evt C.SDL_KeyboardEvent
-	C.makeEvent(&evt)
-	if C.same(&evt, evt.typ, evt.which, evt.state, evt.keysym.scancode, evt.keysym.sym, evt.keysym.mod, evt.keysym.unicode) == 0 {
-		t.Error("*** bad alignment")
-		C.cTest(&evt)
-		t.Errorf("Go: %#x %#x %#x %#x %#x %#x %#x\n",
-			evt.typ, evt.which, evt.state, evt.keysym.scancode,
-			evt.keysym.sym, evt.keysym.mod, evt.keysym.unicode)
-		t.Error(evt)
-	}
+func testAlign(t * testing.T)
+{
+    var evt C.SDL_KeyboardEvent C.makeEvent( & evt) if C.same
+    (
+        & evt, evt.typ, evt.which, evt.state, evt.keysym.scancode, evt.keysym.sym, evt.keysym.mod, evt.keysym.unicode
+    )
+    == 0
+    {
+        t.Error("*** bad alignment") C.cTest( & evt) t.Errorf
+        (
+            "Go: %#x %#x %#x %#x %#x %#x %#x\n", evt.typ, evt.which, evt.state, evt.keysym.scancode, evt.keysym.sym, evt.keysym.mod, evt.keysym.unicode
+        )
+        t.Error(evt)
+    }
 }
-
 // api
 
-const greeting = "hello, world"
+const greeting = "hello, world" type testPair struct { Name string Got, Want interface {} }
 
-type testPair struct {
-	Name      string
-	Got, Want interface{}
+var testPairs = [] testPair
+{
+{ "GoString", C.GoString(C.greeting), greeting },
+{ "GoStringN", C.GoStringN(C.greeting, 5), greeting[: 5] },
+{ "GoBytes", C.GoBytes(unsafe.Pointer(C.greeting), 5),[] byte(greeting[: 5]) },
 }
 
-var testPairs = []testPair{
-	{"GoString", C.GoString(C.greeting), greeting},
-	{"GoStringN", C.GoStringN(C.greeting, 5), greeting[:5]},
-	{"GoBytes", C.GoBytes(unsafe.Pointer(C.greeting), 5), []byte(greeting[:5])},
+func testHelpers(t * testing.T)
+{
+    for _, pair: = range testPairs
+    {
+        if ! reflect.DeepEqual(pair.Got, pair.Want) { t.Errorf("%s: got %#v, want %#v", pair.Name, pair.Got, pair.Want) }
+    }
 }
-
-func testHelpers(t *testing.T) {
-	for _, pair := range testPairs {
-		if !reflect.DeepEqual(pair.Got, pair.Want) {
-			t.Errorf("%s: got %#v, want %#v", pair.Name, pair.Got, pair.Want)
-		}
-	}
-}
-
 // basic test cases
 
-const EINVAL = C.EINVAL /* test #define */
+const EINVAL = C.EINVAL /* test #define */ var KILO = C.KILO func uuidgen() { var uuid C.cgo_uuid_t C.uuid_generate( & uuid[0]) }
 
-var KILO = C.KILO
-
-func uuidgen() {
-	var uuid C.cgo_uuid_t
-	C.uuid_generate(&uuid[0])
+func Strtol(s string, base int)(int , error)
+{
+    p: = C.CString(s) n, err: = C.strtol(p, nil, C.int (base)) C.free(unsafe.Pointer(p)) return int(n), err
 }
 
-func Strtol(s string, base int) (int, error) {
-	p := C.CString(s)
-	n, err := C.strtol(p, nil, C.int(base))
-	C.free(unsafe.Pointer(p))
-	return int(n), err
+func Atol(s string) int { p: = C.CString(s) n: = C.atol(p) C.free(unsafe.Pointer(p)) return int (n) }
+
+func testConst(t * testing.T) { C.myConstFunc(nil, 0, nil) }
+
+func testEnum(t * testing.T) { if C.Enum1 != 1 || C.Enum2 != 2 { t.Error("bad enum", C.Enum1, C.Enum2) } }
+
+func testNamedEnum(t * testing.T)
+{
+    e: = new (C.enum_E) * e = C.Enum1 if * e != 1 { t.Error("bad enum", C.Enum1) }
+
+    * e = C.Enum2 if * e != 2 { t.Error("bad enum", C.Enum2) }
 }
 
-func Atol(s string) int {
-	p := C.CString(s)
-	n := C.atol(p)
-	C.free(unsafe.Pointer(p))
-	return int(n)
+func testCastToEnum(t * testing.T)
+{
+    e: = C.enum_E(C.Enum1) if e != 1 { t.Error("bad enum", C.Enum1) }
+
+    e = C.enum_E(C.Enum2) if e != 2 { t.Error("bad enum", C.Enum2) }
 }
 
-func testConst(t *testing.T) {
-	C.myConstFunc(nil, 0, nil)
+func testAtol(t * testing.T) { l: = Atol("123") if l != 123 { t.Error("Atol 123: ", l) } }
+
+func testErrno(t * testing.T)
+{
+    p: = C.CString("no-such-file") m: = C.CString("r") f, err: = C.fopen(p, m) C.free(unsafe.Pointer(p)) C.free(unsafe.Pointer(m)) if err == nil
+    {
+        C.fclose(f) t.Fatalf("C.fopen: should fail")
+    }
+    if err != syscall.ENOENT { t.Fatalf("C.fopen: unexpected error: %v", err) }
 }
 
-func testEnum(t *testing.T) {
-	if C.Enum1 != 1 || C.Enum2 != 2 {
-		t.Error("bad enum", C.Enum1, C.Enum2)
-	}
+func testMultipleAssign(t * testing.T)
+{
+    if runtime.GOOS == "windows" && usesUCRT(t)
+    {
+        // UCRT's strtol throws an unrecoverable crash when
+        // using an invalid base (that is, not 0 or 2..36).
+        // See go.dev/issue/62887.
+        t.Skip("skipping test on Windows when linking with UCRT")
+    }
+    p: = C.CString("234") n, m: = C.strtol(p, nil, 345), C.strtol(p, nil, 10) defer C.free(unsafe.Pointer(p)) if runtime.GOOS == "openbsd"
+    {
+        // Bug in OpenBSD strtol(3) - base > 36 succeeds.
+        if (n != 0 && n != 239089) || m != 234 { t.Fatal("Strtol x2: ", n, m) }
+    }
+    else if n != 0 || m != 234 { t.Fatal("Strtol x2: ", n, m) }
 }
 
-func testNamedEnum(t *testing.T) {
-	e := new(C.enum_E)
+var(cuint = (C.uint)(0) culong C.ulong cchar C.char) type Context struct { ctx * C.struct_ibv_context }
 
-	*e = C.Enum1
-	if *e != 1 {
-		t.Error("bad enum", C.Enum1)
-	}
-
-	*e = C.Enum2
-	if *e != 2 {
-		t.Error("bad enum", C.Enum2)
-	}
+func benchCgoCall(b * testing.B)
+{
+    b.Run("add-int", func(b * testing.B) { const x = C.int (2) const y = C.int (3) for i: = 0; i < b.N; i ++ { C.add(x, y) } }) b.Run
+    (
+        "one-pointer", func(b * testing.B) { var a0 C.VkDeviceCreateInfo for i: = 0; i < b.N; i ++ { C.handleComplexPointer( & a0) } }
+    )
+    b.Run
+    (
+        "string-pointer-escape", func(b * testing.B)
+        {
+            for i: = 0;
+            i < b.N;
+            i++ { var s string C.handleGoStringPointerEscape(unsafe.Pointer( & s)) }
+        }
+    )
+    b.Run
+    (
+        "string-pointer-noescape", func(b * testing.B)
+        {
+            for i: = 0;
+            i < b.N;
+            i++ { var s string C.handleGoStringPointerNoescape(unsafe.Pointer( & s)) }
+        }
+    )
+    b.Run
+    (
+        "eight-pointers", func(b * testing.B)
+        {
+            var a0, a1, a2, a3, a4, a5, a6, a7 C.VkDeviceCreateInfo for i: = 0;
+            i < b.N;
+            i++ { C.handleComplexPointer8( & a0, & a1, & a2, & a3, & a4, & a5, & a6, & a7) }
+        }
+    )
+    b.Run
+    (
+        "eight-pointers-nil", func(b * testing.B)
+        {
+            var a0, a1, a2, a3, a4, a5, a6, a7 * C.VkDeviceCreateInfo for i: = 0;
+            i < b.N;
+            i++ { C.handleComplexPointer8(a0, a1, a2, a3, a4, a5, a6, a7) }
+        }
+    )
+    b.Run
+    (
+        "eight-pointers-array", func(b * testing.B)
+        {
+            var a[8] C.VkDeviceCreateInfo for i: = 0;
+            i < b.N;
+            i++ { C.handleComplexPointer8( & a[0], & a[1], & a[2], & a[3], & a[4], & a[5], & a[6], & a[7]) }
+        }
+    )
+    b.Run
+    (
+        "eight-pointers-slice", func(b * testing.B)
+        {
+            a: = make([] C.VkDeviceCreateInfo, 8) for i: = 0;
+            i < b.N;
+            i++ { C.handleComplexPointer8( & a[0], & a[1], & a[2], & a[3], & a[4], & a[5], & a[6], & a[7]) }
+        }
+    )
 }
-
-func testCastToEnum(t *testing.T) {
-	e := C.enum_E(C.Enum1)
-	if e != 1 {
-		t.Error("bad enum", C.Enum1)
-	}
-
-	e = C.enum_E(C.Enum2)
-	if e != 2 {
-		t.Error("bad enum", C.Enum2)
-	}
-}
-
-func testAtol(t *testing.T) {
-	l := Atol("123")
-	if l != 123 {
-		t.Error("Atol 123: ", l)
-	}
-}
-
-func testErrno(t *testing.T) {
-	p := C.CString("no-such-file")
-	m := C.CString("r")
-	f, err := C.fopen(p, m)
-	C.free(unsafe.Pointer(p))
-	C.free(unsafe.Pointer(m))
-	if err == nil {
-		C.fclose(f)
-		t.Fatalf("C.fopen: should fail")
-	}
-	if err != syscall.ENOENT {
-		t.Fatalf("C.fopen: unexpected error: %v", err)
-	}
-}
-
-func testMultipleAssign(t *testing.T) {
-	if runtime.GOOS == "windows" && usesUCRT(t) {
-		// UCRT's strtol throws an unrecoverable crash when
-		// using an invalid base (that is, not 0 or 2..36).
-		// See go.dev/issue/62887.
-		t.Skip("skipping test on Windows when linking with UCRT")
-	}
-	p := C.CString("234")
-	n, m := C.strtol(p, nil, 345), C.strtol(p, nil, 10)
-	defer C.free(unsafe.Pointer(p))
-	if runtime.GOOS == "openbsd" {
-		// Bug in OpenBSD strtol(3) - base > 36 succeeds.
-		if (n != 0 && n != 239089) || m != 234 {
-			t.Fatal("Strtol x2: ", n, m)
-		}
-	} else if n != 0 || m != 234 {
-		t.Fatal("Strtol x2: ", n, m)
-	}
-}
-
-var (
-	cuint  = (C.uint)(0)
-	culong C.ulong
-	cchar  C.char
-)
-
-type Context struct {
-	ctx *C.struct_ibv_context
-}
-
-func benchCgoCall(b *testing.B) {
-	b.Run("add-int", func(b *testing.B) {
-		const x = C.int(2)
-		const y = C.int(3)
-
-		for i := 0; i < b.N; i++ {
-			C.add(x, y)
-		}
-	})
-
-	b.Run("one-pointer", func(b *testing.B) {
-		var a0 C.VkDeviceCreateInfo
-		for i := 0; i < b.N; i++ {
-			C.handleComplexPointer(&a0)
-		}
-	})
-	b.Run("string-pointer-escape", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			var s string
-			C.handleGoStringPointerEscape(unsafe.Pointer(&s))
-		}
-	})
-	b.Run("string-pointer-noescape", func(b *testing.B) {
-		for i := 0; i < b.N; i++ {
-			var s string
-			C.handleGoStringPointerNoescape(unsafe.Pointer(&s))
-		}
-	})
-	b.Run("eight-pointers", func(b *testing.B) {
-		var a0, a1, a2, a3, a4, a5, a6, a7 C.VkDeviceCreateInfo
-		for i := 0; i < b.N; i++ {
-			C.handleComplexPointer8(&a0, &a1, &a2, &a3, &a4, &a5, &a6, &a7)
-		}
-	})
-	b.Run("eight-pointers-nil", func(b *testing.B) {
-		var a0, a1, a2, a3, a4, a5, a6, a7 *C.VkDeviceCreateInfo
-		for i := 0; i < b.N; i++ {
-			C.handleComplexPointer8(a0, a1, a2, a3, a4, a5, a6, a7)
-		}
-	})
-	b.Run("eight-pointers-array", func(b *testing.B) {
-		var a [8]C.VkDeviceCreateInfo
-		for i := 0; i < b.N; i++ {
-			C.handleComplexPointer8(&a[0], &a[1], &a[2], &a[3], &a[4], &a[5], &a[6], &a[7])
-		}
-	})
-	b.Run("eight-pointers-slice", func(b *testing.B) {
-		a := make([]C.VkDeviceCreateInfo, 8)
-		for i := 0; i < b.N; i++ {
-			C.handleComplexPointer8(&a[0], &a[1], &a[2], &a[3], &a[4], &a[5], &a[6], &a[7])
-		}
-	})
-}
-
 // Benchmark measuring overhead from Go to C and back to Go (via a callback)
-func benchCallback(b *testing.B) {
-	var x = false
-	for i := 0; i < b.N; i++ {
-		nestedCall(func() { x = true })
-	}
-	if !x {
-		b.Fatal("nestedCall was not invoked")
-	}
+func benchCallback(b * testing.B)
+{
+    var x = false for i: = 0;
+    i < b.N;
+    i++ { nestedCall(func() { x = true }) }
+    if ! x { b.Fatal("nestedCall was not invoked") }
 }
 
-var sinkString string
-
-func benchGoString(b *testing.B) {
-	for i := 0; i < b.N; i++ {
-		sinkString = C.GoString(C.cstr)
-	}
-	const want = "abcefghijklmnopqrstuvwxyzABCEFGHIJKLMNOPQRSTUVWXYZ1234567890"
-	if sinkString != want {
-		b.Fatalf("%q != %q", sinkString, want)
-	}
+var sinkString string func benchGoString(b * testing.B)
+{
+    for i: = 0;
+    i < b.N;
+    i++ { sinkString = C.GoString(C.cstr) }
+    const want = "abcefghijklmnopqrstuvwxyzABCEFGHIJKLMNOPQRSTUVWXYZ1234567890" if sinkString != want { b.Fatalf("%q != %q", sinkString, want) }
 }
-
 // Static (build-time) test that syntax traversal visits all operands of s[i:j:k].
-func sliceOperands(array [2000]int) {
-	_ = array[C.KILO:C.KILO:C.KILO] // no type error
+func sliceOperands(array[2000] int)
+{
+    _ = array[C.KILO: C.KILO: C.KILO] // no type error
 }
-
 // set in cgo_thread_lock.go init
-var testThreadLockFunc = func(*testing.T) {}
-
+var testThreadLockFunc = func( * testing.T) {}
 // complex alignment
 
-func TestComplexAlign(t *testing.T) {
-	if C.cplxAlign.x != 3.14 {
-		t.Errorf("got %v, expected 3.14", C.cplxAlign.x)
-	}
-	if C.cplxAlign.y != 2.17 {
-		t.Errorf("got %v, expected 2.17", C.cplxAlign.y)
-	}
+func TestComplexAlign(t * testing.T)
+{
+    if C.cplxAlign.x != 3.14 { t.Errorf("got %v, expected 3.14", C.cplxAlign.x) }
+    if C.cplxAlign.y != 2.17 { t.Errorf("got %v, expected 2.17", C.cplxAlign.y) }
 }
-
 // constants and pointer checking
 
-func testCheckConst(t *testing.T) {
-	// The test is that this compiles successfully.
-	p := C.malloc(C.size_t(unsafe.Sizeof(C.int(0))))
-	defer C.free(p)
-	C.CheckConstFunc(&C.CheckConstStruct{(*C.int)(p)}, C.CheckConstVal)
+func testCheckConst(t * testing.T)
+{
+    // The test is that this compiles successfully.
+    p: = C.malloc(C.size_t(unsafe.Sizeof(C.int (0)))) defer C.free(p) C.CheckConstFunc( & C.CheckConstStruct { ( * C.int)(p) }, C.CheckConstVal)
 }
-
 // duplicate symbol
 
-func duplicateSymbols() {
-	fmt.Printf("%v %v %v\n", C.base_symbol, C.alias_one, C.alias_two)
-}
-
+func duplicateSymbols() { fmt.Printf("%v %v %v\n", C.base_symbol, C.alias_one, C.alias_two) }
 // environment
-
 // This is really an os package test but here for convenience.
-func testSetEnv(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		// Go uses SetEnvironmentVariable on windows. However,
-		// C runtime takes a *copy* at process startup of the
-		// OS environment, and stores it in environ/envp.
-		// It is this copy that	getenv/putenv manipulate.
-		t.Logf("skipping test")
-		return
-	}
-	const key = "CGO_OS_TEST_KEY"
-	const val = "CGO_OS_TEST_VALUE"
-	os.Setenv(key, val)
-	keyc := C.CString(key)
-	defer C.free(unsafe.Pointer(keyc))
-	v := C.getenv(keyc)
-	if uintptr(unsafe.Pointer(v)) == 0 {
-		t.Fatal("getenv returned NULL")
-	}
-	vs := C.GoString(v)
-	if vs != val {
-		t.Fatalf("getenv() = %q; want %q", vs, val)
-	}
+func testSetEnv(t * testing.T)
+{
+    if runtime.GOOS == "windows"
+    {
+        // Go uses SetEnvironmentVariable on windows. However,
+        // C runtime takes a *copy* at process startup of the
+        // OS environment, and stores it in environ/envp.
+        // It is this copy that	getenv/putenv manipulate.
+        t.Logf("skipping test") return 
+    }
+    const key = "CGO_OS_TEST_KEY" const val = "CGO_OS_TEST_VALUE" os.Setenv(key, val) keyc: = C.CString(key) defer C.free(unsafe.Pointer(keyc)) v: = C.getenv
+    (
+        keyc
+    )
+    if uintptr(unsafe.Pointer(v)) == 0 { t.Fatal("getenv returned NULL") }
+    vs: = C.GoString(v) if vs != val { t.Fatalf("getenv() = %q; want %q", vs, val) }
 }
-
 // function pointer variables
 
-func callBridge(f C.intFunc) int {
-	return int(C.bridge_int_func(f))
-}
+func callBridge(f C.intFunc) int { return int (C.bridge_int_func(f)) }
 
-func callCBridge(f C.intFunc) C.int {
-	return C.bridge_int_func(f)
-}
+func callCBridge(f C.intFunc) C. int { return C.bridge_int_func(f) }
 
-func testFpVar(t *testing.T) {
-	const expected = 42
-	f := C.intFunc(C.fortytwo)
-	res1 := C.bridge_int_func(f)
-	if r1 := int(res1); r1 != expected {
-		t.Errorf("got %d, want %d", r1, expected)
-	}
-	res2 := callCBridge(f)
-	if r2 := int(res2); r2 != expected {
-		t.Errorf("got %d, want %d", r2, expected)
-	}
-	r3 := callBridge(f)
-	if r3 != expected {
-		t.Errorf("got %d, want %d", r3, expected)
-	}
+func testFpVar(t * testing.T)
+{
+    const expected = 42 f: = C.intFunc(C.fortytwo) res1: = C.bridge_int_func(f) if r1: = int(res1);
+    r1 != expected { t.Errorf("got %d, want %d", r1, expected) }
+    res2: = callCBridge(f) if r2: = int(res2);
+    r2 != expected { t.Errorf("got %d, want %d", r2, expected) }
+    r3: = callBridge(f) if r3 != expected { t.Errorf("got %d, want %d", r3, expected) }
 }
-
 // issue 1222
-type AsyncEvent struct {
-	event C.struct_ibv_async_event
-}
-
+type AsyncEvent struct { event C.struct_ibv_async_event }
 // issue 1635
 
-func test1635(t *testing.T) {
-	C.scatter()
-	if v := C.hola; v != 0 {
-		t.Fatalf("C.hola is %d, should be 0", v)
-	}
-	if v := C.testHola(); v != 0 {
-		t.Fatalf("C.testHola() is %d, should be 0", v)
-	}
+func test1635(t * testing.T)
+{
+    C.scatter() if v: = C.hola;
+    v != 0 { t.Fatalf("C.hola is %d, should be 0", v) }
+    if v: = C.testHola();
+    v != 0 { t.Fatalf("C.testHola() is %d, should be 0", v) }
 }
-
 // issue 2470
 
-func testUnsignedInt(t *testing.T) {
-	a := (int64)(C.UINT32VAL)
-	b := (int64)(0xc008427b)
-	if a != b {
-		t.Errorf("Incorrect unsigned int - got %x, want %x", a, b)
-	}
+func testUnsignedInt(t * testing.T)
+{
+    a: = (int64)(C.UINT32VAL) b: = (int64)(0xc008427b) if a != b { t.Errorf("Incorrect unsigned int - got %x, want %x", a, b) }
 }
-
 // issue 3250
 
-func test3250(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("not applicable on windows")
-	}
+func test3250(t * testing.T)
+{
+    if runtime.GOOS == "windows" { t.Skip("not applicable on windows") }
 
-	t.Skip("skipped, see golang.org/issue/5885")
-	var (
-		thres = 1
-		sig   = syscall_dot_SIGCHLD
-	)
-	type result struct {
-		n   int
-		sig os.Signal
-	}
-	var (
-		sigCh     = make(chan os.Signal, 10)
-		waitStart = make(chan struct{})
-		waitDone  = make(chan result)
-	)
-
-	signal.Notify(sigCh, sig)
-
-	go func() {
-		n := 0
-		alarm := time.After(time.Second * 3)
-		for {
-			select {
-			case <-waitStart:
-				waitStart = nil
-			case v := <-sigCh:
-				n++
-				if v != sig || n > thres {
-					waitDone <- result{n, v}
-					return
-				}
-			case <-alarm:
-				waitDone <- result{n, sig}
-				return
-			}
-		}
-	}()
-
-	waitStart <- struct{}{}
-	C.testSendSIG()
-	r := <-waitDone
-	if r.sig != sig {
-		t.Fatalf("received signal %v, but want %v", r.sig, sig)
-	}
-	t.Logf("got %d signals\n", r.n)
-	if r.n <= thres {
-		t.Fatalf("expected more than %d", thres)
-	}
+    t.Skip("skipped, see golang.org/issue/5885") var(thres = 1 sig = syscall_dot_SIGCHLD) type result struct { n int sig os.Signal }
+    var(sigCh = make(chan os.Signal, 10) waitStart = make(chan struct {}) waitDone = make(chan result)) signal.Notify(sigCh, sig) go func()
+    {
+        n: = 0 alarm: = time.After(time.Second * 3) for 
+        {
+            select
+            {
+                case <- waitStart: waitStart = nil case v: = <- sigCh: n++ if v != sig || n > thres { waitDone <- result { n, v } return }
+                case <- alarm: waitDone <- result { n, sig }
+                return 
+            }
+        }
+    }
+() waitStart <- struct {}
+{}
+    C.testSendSIG() r: = <- waitDone if r.sig != sig { t.Fatalf("received signal %v, but want %v", r.sig, sig) }
+    t.Logf("got %d signals\n", r.n) if r.n <= thres { t.Fatalf("expected more than %d", thres) }
 }
-
 // issue 3261
 
-func testLibgcc(t *testing.T) {
-	var table = []struct {
-		in, out C.int
-	}{
-		{0, 0},
-		{1, 1},
-		{-42, 42},
-		{1000300, 1000300},
-		{1 - 1<<31, 1<<31 - 1},
-	}
-	for _, v := range table {
-		if o := C.vabs(v.in); o != v.out {
-			t.Fatalf("abs(%d) got %d, should be %d", v.in, o, v.out)
-			return
-		}
-	}
+func testLibgcc(t * testing.T)
+{
+    var table = [] struct { in, out C.int }
+{ { 0, 0 }, { 1, 1 }, { - 42, 42 }, { 1000300, 1000300 }, { 1 - 1 << 31, 1 << 31 - 1 }, }
+    for _, v: = range table { if o: = C.vabs(v.in); o != v.out { t.Fatalf("abs(%d) got %d, should be %d", v.in, o, v.out) return } }
 }
-
 // issue 3729
 
-func test3729(t *testing.T) {
-	if runtime.GOOS == "windows" {
-		t.Skip("skipping on windows")
-	}
+func test3729(t * testing.T)
+{
+    if runtime.GOOS == "windows" { t.Skip("skipping on windows") }
 
-	_, e := C.g()
-	if e != syscall.E2BIG {
-		t.Errorf("got %q, expect %q", e, syscall.E2BIG)
-	}
-	_, e = C.g2(C.EINVAL, C._expA, C._expB, C._expC, C._expD)
-	if e != syscall.EINVAL {
-		t.Errorf("got %q, expect %q", e, syscall.EINVAL)
-	}
+    _, e: = C.g() if e != syscall.E2BIG { t.Errorf("got %q, expect %q", e, syscall.E2BIG) }
+    _, e = C.g2(C.EINVAL, C._expA, C._expB, C._expC, C._expD) if e != syscall.EINVAL { t.Errorf("got %q, expect %q", e, syscall.EINVAL) }
 }
-
 // issue 3945
 
-func testPrintf(t *testing.T) {
-	C.say()
-}
-
+func testPrintf(t * testing.T) { C.say() }
 // issue 4054
 
-var issue4054a = []int{C.A, C.B, C.C, C.D, C.E, C.F, C.G, C.H, C.I, C.J}
-
+var issue4054a = [] int { C.A, C.B, C.C, C.D, C.E, C.F, C.G, C.H, C.I, C.J }
 // issue 4339
 
-func test4339(t *testing.T) {
-	C.handle4339(&C.exported4339)
-}
-
+func test4339(t * testing.T) { C.handle4339( & C.exported4339) }
 // issue 4417
 
-func testBoolAlign(t *testing.T) {
-	b := C.c_bool(true, true, 10, true, false)
-	if b != 10 {
-		t.Fatalf("found %d expected 10\n", b)
-	}
-	b = C.c_bool(true, true, 5, true, true)
-	if b != 5 {
-		t.Fatalf("found %d expected 5\n", b)
-	}
-	b = C.c_bool(true, true, 3, true, false)
-	if b != 3 {
-		t.Fatalf("found %d expected 3\n", b)
-	}
-	b = C.c_bool(false, false, 1, true, false)
-	if b != 1 {
-		t.Fatalf("found %d expected 1\n", b)
-	}
-	b = C.c_bool(false, true, 200, true, false)
-	if b != 200 {
-		t.Fatalf("found %d expected 200\n", b)
-	}
+func testBoolAlign(t * testing.T)
+{
+    b: = C.c_bool(true, true, 10, true, false) if b != 10 { t.Fatalf("found %d expected 10\n", b) }
+    b = C.c_bool(true, true, 5, true, true) if b != 5 { t.Fatalf("found %d expected 5\n", b) }
+    b = C.c_bool(true, true, 3, true, false) if b != 3 { t.Fatalf("found %d expected 3\n", b) }
+    b = C.c_bool(false, false, 1, true, false) if b != 1 { t.Fatalf("found %d expected 1\n", b) }
+    b = C.c_bool(false, true, 200, true, false) if b != 200 { t.Fatalf("found %d expected 200\n", b) }
 }
-
 // issue 4857
 
-func test4857() {
-	_ = C.issue4857()
-}
-
+func test4857() { _ = C.issue4857() }
 // issue 5224
 
-func testCflags(t *testing.T) {
-	is_windows := C.is_windows == 1
-	if is_windows != (runtime.GOOS == "windows") {
-		t.Errorf("is_windows: %v, runtime.GOOS: %s", is_windows, runtime.GOOS)
-	}
-	if C.common != 123 {
-		t.Errorf("common: %v (expected 123)", C.common)
-	}
+func testCflags(t * testing.T)
+{
+    is_windows: = C.is_windows == 1 if is_windows != (runtime.GOOS == "windows")
+    {
+        t.Errorf("is_windows: %v, runtime.GOOS: %s", is_windows, runtime.GOOS)
+    }
+    if C.common != 123 { t.Errorf("common: %v (expected 123)", C.common) }
 }
-
 // issue 5227
 
-func test5227(t *testing.T) {
-	C.init()
-}
+func test5227(t * testing.T) { C.init () }
 
-func selectfont() C.Fontinfo {
-	return C.SansTypeface
-}
-
+func selectfont() C.Fontinfo { return C.SansTypeface }
 // issue 5242
 
-func test5242(t *testing.T) {
-	if got := C.issue5242(C.foo{}, C.bar{}); got != 5242 {
-		t.Errorf("got %v", got)
-	}
-}
+func test5242(t * testing.T) { if got: = C.issue5242(C.foo {}, C.bar {}); got != 5242 { t.Errorf("got %v", got) } }
 
-func test5603(t *testing.T) {
-	var x [5]int64
-	exp := int64(C.issue5603exp)
-	x[0] = int64(C.issue5603foo0())
-	x[1] = int64(C.issue5603foo1(nil))
-	x[2] = int64(C.issue5603foo2(nil, nil))
-	x[3] = int64(C.issue5603foo3(nil, nil, nil))
-	x[4] = int64(C.issue5603foo4(nil, nil, nil, nil))
-	for i, v := range x {
-		if v != exp {
-			t.Errorf("issue5603foo%d() returns %v, expected %v", i, v, exp)
-		}
-	}
+func test5603(t * testing.T)
+{
+    var x[5] int64 exp: = int64(C.issue5603exp) x[0] = int64(C.issue5603foo0()) x[1] = int64(C.issue5603foo1(nil)) x[2] = int64(C.issue5603foo2(nil, nil)) x[3] = int64
+    (
+        C.issue5603foo3(nil, nil, nil)
+    )
+    x[4] = int64(C.issue5603foo4(nil, nil, nil, nil)) for i, v: = range x
+    {
+        if v != exp { t.Errorf("issue5603foo%d() returns %v, expected %v", i, v, exp) }
+    }
 }
-
 // issue 5337
 
-func test5337(t *testing.T) {
-	C.test5337()
-}
-
+func test5337(t * testing.T) { C.test5337() }
 // issue 5740
 
-func test5740(t *testing.T) {
-	if v := C.test5740a() + C.test5740b(); v != 5 {
-		t.Errorf("expected 5, got %v", v)
-	}
-}
-
+func test5740(t * testing.T) { if v: = C.test5740a() + C.test5740b(); v != 5 { t.Errorf("expected 5, got %v", v) } }
 // issue 5986
 
-func test5986(t *testing.T) {
-	C.output5986()
-}
-
+func test5986(t * testing.T) { C.output5986() }
 // issue 6128
 
-func test6128() {
-	// nothing to run, just make sure this compiles.
-	_ = C.X
+func test6128()
+{
+    // nothing to run, just make sure this compiles.
+    _ = C.X
 }
-
 // issue 6390
 
-func test6390(t *testing.T) {
-	p1 := C.malloc(1024)
-	if p1 == nil {
-		t.Fatalf("C.malloc(1024) returned nil")
-	}
-	p2 := C.malloc(0)
-	if p2 == nil {
-		t.Fatalf("C.malloc(0) returned nil")
-	}
-	C.free(p1)
-	C.free(p2)
+func test6390(t * testing.T)
+{
+    p1: = C.malloc(1024) if p1 == nil { t.Fatalf("C.malloc(1024) returned nil") }
+    p2: = C.malloc(0) if p2 == nil { t.Fatalf("C.malloc(0) returned nil") }
+    C.free(p1) C.free(p2)
 }
 
-func test6472() {
-	// nothing to run, just make sure this compiles
-	s := new(C.z)
-	println(s.y[0].x)
+func test6472()
+{
+    // nothing to run, just make sure this compiles
+    s: = new (C.z) println(s.y[0].x)
 }
-
 // issue 6506
 
-func test6506() {
-	// nothing to run, just make sure this compiles
-	var x C.size_t
-
-	C.calloc(x, x)
-	C.malloc(x)
-	C.realloc(nil, x)
-	C.memcpy(nil, nil, x)
-	C.memcmp(nil, nil, x)
-	C.memmove(nil, nil, x)
-	C.strncpy(nil, nil, x)
-	C.strncmp(nil, nil, x)
-	C.strncat(nil, nil, x)
-	x = C.strxfrm(nil, nil, x)
-	C.memchr(nil, 0, x)
-	x = C.strcspn(nil, nil)
-	x = C.strspn(nil, nil)
-	C.memset(nil, 0, x)
-	x = C.strlen(nil)
-	_ = x
+func test6506()
+{
+    // nothing to run, just make sure this compiles
+    var x C.size_t C.calloc(x, x) C.malloc(x) C.realloc(nil, x) C.memcpy(nil, nil, x) C.memcmp(nil, nil, x) C.memmove(nil, nil, x) C.strncpy(nil, nil, x) C.strncmp
+    (
+        nil, nil, x
+    )
+    C.strncat(nil, nil, x) x = C.strxfrm(nil, nil, x) C.memchr(nil, 0, x) x = C.strcspn(nil, nil) x = C.strspn(nil, nil) C.memset(nil, 0, x) x = C.strlen(nil) _ = x
 }
-
 // issue 6612
 
-func testNaming(t *testing.T) {
-	C.myfunc()
-	C.myfunc_def()
-	if v := C.myvar; v != 5 {
-		t.Errorf("C.myvar = %d, want 5", v)
-	}
-	if v := C.myvar_def; v != 5 {
-		t.Errorf("C.myvar_def = %d, want 5", v)
-	}
-	if s := C.GoString(C.mytext); s != "abcdef" {
-		t.Errorf("C.mytext = %q, want %q", s, "abcdef")
-	}
-	if s := C.GoString(C.mytext_def); s != "abcdef" {
-		t.Errorf("C.mytext_def = %q, want %q", s, "abcdef")
-	}
-	if c := C.myenum; c != 1234 {
-		t.Errorf("C.myenum = %v, want 1234", c)
-	}
-	if c := C.myenum_def; c != 1234 {
-		t.Errorf("C.myenum_def = %v, want 1234", c)
-	}
-	{
-		const c = C.myenum
-		if c != 1234 {
-			t.Errorf("C.myenum as const = %v, want 1234", c)
-		}
-	}
-	{
-		const c = C.myenum_def
-		if c != 1234 {
-			t.Errorf("C.myenum as const = %v, want 1234", c)
-		}
-	}
-	if c := C.myint_def; c != 12345 {
-		t.Errorf("C.myint_def = %v, want 12345", c)
-	}
-	{
-		const c = C.myint_def
-		if c != 12345 {
-			t.Errorf("C.myint as const = %v, want 12345", c)
-		}
-	}
+func testNaming(t * testing.T)
+{
+    C.myfunc() C.myfunc_def() if v: = C.myvar;
+    v != 5 { t.Errorf("C.myvar = %d, want 5", v) }
+    if v: = C.myvar_def;
+    v != 5 { t.Errorf("C.myvar_def = %d, want 5", v) }
+    if s: = C.GoString(C.mytext);
+    s != "abcdef" { t.Errorf("C.mytext = %q, want %q", s, "abcdef") }
+    if s: = C.GoString(C.mytext_def);
+    s != "abcdef" { t.Errorf("C.mytext_def = %q, want %q", s, "abcdef") }
+    if c: = C.myenum;
+    c != 1234 { t.Errorf("C.myenum = %v, want 1234", c) }
+    if c: = C.myenum_def;
+    c != 1234 { t.Errorf("C.myenum_def = %v, want 1234", c) }
+{ const c = C.myenum if c != 1234 { t.Errorf("C.myenum as const = %v, want 1234", c) } }
+{ const c = C.myenum_def if c != 1234 { t.Errorf("C.myenum as const = %v, want 1234", c) } }
+    if c: = C.myint_def;
+    c != 12345 { t.Errorf("C.myint_def = %v, want 12345", c) }
+{ const c = C.myint_def if c != 12345 { t.Errorf("C.myint as const = %v, want 12345", c) } }
 
-	if c := C.myfloat_def; c != 1.5 {
-		t.Errorf("C.myint_def = %v, want 1.5", c)
-	}
-	{
-		const c = C.myfloat_def
-		if c != 1.5 {
-			t.Errorf("C.myint as const = %v, want 1.5", c)
-		}
-	}
+    if c: = C.myfloat_def;
+    c != 1.5 { t.Errorf("C.myint_def = %v, want 1.5", c) }
+{ const c = C.myfloat_def if c != 1.5 { t.Errorf("C.myint as const = %v, want 1.5", c) } }
 
-	if s := C.mystring_def; s != "hello" {
-		t.Errorf("C.mystring_def = %q, want %q", s, "hello")
-	}
+    if s: = C.mystring_def;
+    s != "hello" { t.Errorf("C.mystring_def = %q, want %q", s, "hello") }
 }
-
 // issue 6907
 
-func test6907(t *testing.T) {
-	want := "yarn"
-	s := C.Issue6907CopyString(want)
-	defer C.free(unsafe.Pointer(s))
-	if got := C.GoString(s); got != want {
-		t.Errorf("C.GoString(C.Issue6907CopyString(%q)) == %q, want %q", want, got, want)
-	}
+func test6907(t * testing.T)
+{
+    want: = "yarn" s: = C.Issue6907CopyString(want) defer C.free(unsafe.Pointer(s)) if got: = C.GoString(s);
+    got != want { t.Errorf("C.GoString(C.Issue6907CopyString(%q)) == %q, want %q", want, got, want) }
 }
-
 // issue 7560
 
-func test7560(t *testing.T) {
-	// some mingw don't implement __packed__ correctly.
-	if C.offset7560() != 1 {
-		t.Skip("C compiler did not pack struct")
-	}
-
-	// C.misaligned should have x but then a padding field to get to the end of the struct.
-	// There should not be a field named 'y'.
-	var v C.misaligned
-	rt := reflect.TypeOf(&v).Elem()
-	if rt.NumField() != 2 || rt.Field(0).Name != "x" || rt.Field(1).Name != "_" {
-		t.Errorf("unexpected fields in C.misaligned:\n")
-		for i := 0; i < rt.NumField(); i++ {
-			t.Logf("%+v\n", rt.Field(i))
-		}
-	}
+func test7560(t * testing.T)
+{
+    // some mingw don't implement __packed__ correctly.
+    if C.offset7560() != 1 { t.Skip("C compiler did not pack struct") }
+    // C.misaligned should have x but then a padding field to get to the end of the struct.
+    // There should not be a field named 'y'.
+    var v C.misaligned rt: = reflect.TypeOf( & v).Elem() if rt.NumField() != 2 || rt.Field(0).Name != "x" || rt.Field(1).Name != "_"
+    {
+        t.Errorf("unexpected fields in C.misaligned:\n") for i: = 0;
+        i < rt.NumField();
+        i++ { t.Logf("%+v\n", rt.Field(i)) }
+    }
 }
-
 // issue 7786
 
-func f() {
-	var x1 *C.typedef_test7786
-	var x2 *C.struct_test7786
-	x1 = x2
-	x2 = x1
-	C.f7786(x1)
-	C.f7786(x2)
-	C.g7786(x1)
-	C.g7786(x2)
-
-	var b1 *C.typedef_body7786
-	var b2 *C.struct_body7786
-	b1 = b2
-	b2 = b1
-	C.b7786(b1)
-	C.b7786(b2)
-	C.c7786(b1)
-	C.c7786(b2)
-
-	var u1 *C.typedef_union7786
-	var u2 *C.union_union7786
-	u1 = u2
-	u2 = u1
-	C.u7786(u1)
-	C.u7786(u2)
-	C.v7786(u1)
-	C.v7786(u2)
+func f()
+{
+    var x1 * C.typedef_test7786 var x2 * C.struct_test7786 x1 = x2 x2 = x1 C.f7786(x1) C.f7786(x2) C.g7786(x1) C.g7786(x2) var b1 * C.typedef_body7786 var b2 * C.struct_body7786 b1 = b2 b2 = b1 C.b7786
+    (
+        b1
+    )
+    C.b7786(b2) C.c7786(b1) C.c7786(b2) var u1 * C.typedef_union7786 var u2 * C.union_union7786 u1 = u2 u2 = u1 C.u7786(u1) C.u7786(u2) C.v7786(u1) C.v7786(u2)
 }
-
 // issue 8092
 
-func test8092(t *testing.T) {
-	tests := []struct {
-		s    string
-		a, b *C.char
-	}{
-		{"text", &C.text[0], C.ctext()},
-		{"data", &C.data[0], C.cdata()},
-	}
-	for _, test := range tests {
-		if test.a != test.b {
-			t.Errorf("%s: pointer mismatch: %v != %v", test.s, test.a, test.b)
-		}
-		if got := C.GoString(test.a); got != test.s {
-			t.Errorf("%s: points at %#v, want %#v", test.s, got, test.s)
-		}
-	}
+func test8092(t * testing.T)
+{
+    tests: = [] struct { s string a, b * C.char }
+{ { "text", & C.text[0], C.ctext() }, { "data", & C.data[0], C.cdata() }, }
+    for _, test: = range tests
+    {
+        if test.a != test.b { t.Errorf("%s: pointer mismatch: %v != %v", test.s, test.a, test.b) }
+        if got: = C.GoString(test.a);
+        got != test.s { t.Errorf("%s: points at %#v, want %#v", test.s, got, test.s) }
+    }
 }
-
 // issues 8368 and 8441
 
-func issue8368(one *C.struct_one, two *C.struct_two) {
-}
+func issue8368(one * C.struct_one, two * C.struct_two) {}
 
-func issue8441(one *C.one, two *C.two) {
-	issue8441(two.x, one.x)
-}
-
+func issue8441(one * C.one, two * C.two) { issue8441(two.x, one.x) }
 // issue 8428
 
-var _ = C.struct_issue8428one{
-	b: C.char(0),
-	// The trailing rest field is not available in cgo.
-	// See issue 11925.
-	// rest: [0]C.char{},
+var _ = C.struct_issue8428one
+{
+    b: C. char(0), // The trailing rest field is not available in cgo.
+    // See issue 11925.
+    // rest: [0]C.char{},
 }
 
-var _ = C.struct_issue8428two{
-	p:    unsafe.Pointer(nil),
-	b:    C.char(0),
-	rest: [0]C.char{},
-}
+var _ = C.struct_issue8428two { p: unsafe.Pointer(nil), b: C.char (0), rest: [0] C.char {}, }
 
-var _ = C.struct_issue8428three{
-	w: [1][2][3][0]C.char{},
-	x: [2][3][0][1]C.char{},
-	y: [3][0][1][2]C.char{},
-	z: [0][1][2][3]C.char{},
+var _ = C.struct_issue8428three
+{
+    w: [1][2][3][0] C. char {},
+    x: [2][3][0][1] C. char {},
+    y: [3][0][1][2] C. char {},
+    z: [0][1][2][3] C. char {},
 }
-
 // issue 8811
 
-func test8811(t *testing.T) {
-	C.issue8811Execute()
-}
-
+func test8811(t * testing.T) { C.issue8811Execute() }
 // issue 9557
 
-func test9557(t *testing.T) {
-	// implicitly dereference a Go variable
-	foo := C.issue9557foo
-	if v := foo.a; v != 42 {
-		t.Fatalf("foo.a expected 42, but got %d", v)
-	}
-
-	// explicitly dereference a C variable
-	if v := (*C.issue9557foo).a; v != 42 {
-		t.Fatalf("(*C.issue9557foo).a expected 42, but is %d", v)
-	}
-
-	// implicitly dereference a C variable
-	if v := C.issue9557foo.a; v != 42 {
-		t.Fatalf("C.issue9557foo.a expected 42, but is %d", v)
-	}
+func test9557(t * testing.T)
+{
+    // implicitly dereference a Go variable
+    foo: = C.issue9557foo if v: = foo.a;
+    v != 42 { t.Fatalf("foo.a expected 42, but got %d", v) }
+    // explicitly dereference a C variable
+    if v: = ( * C.issue9557foo).a;
+    v != 42 { t.Fatalf("(*C.issue9557foo).a expected 42, but is %d", v) }
+    // implicitly dereference a C variable
+    if v: = C.issue9557foo.a;
+    v != 42 { t.Fatalf("C.issue9557foo.a expected 42, but is %d", v) }
 }
-
 // issue 8331 part 1
 
-func issue8331a() C.issue8331 {
-	return issue8331Var
-}
-
+func issue8331a() C.issue8331 { return issue8331Var }
 // issue 10303
 
-func test10303(t *testing.T, n int) {
-	if asan.Enabled {
-		t.Skip("variable z is heap-allocated due to extra allocations with -asan; see #70079")
-	}
-	if runtime.Compiler == "gccgo" {
-		t.Skip("gccgo permits C pointers on the stack")
-	}
-
-	// Run at a few different stack depths just to avoid an unlucky pass
-	// due to variables ending up on different pages.
-	if n > 0 {
-		test10303(t, n-1)
-	}
-	if t.Failed() {
-		return
-	}
-	var x, y, z, v, si C.int
-	var s C.Struct
-	C.setintstar(&x)
-	C.setintptr(&y)
-	C.setvoidptr(unsafe.Pointer(&v))
-	s.P = &si
-	C.setstruct(s)
-
-	if uintptr(unsafe.Pointer(&x))&^0xfff == uintptr(unsafe.Pointer(&z))&^0xfff {
-		t.Error("C int* argument on stack")
-	}
-	if uintptr(unsafe.Pointer(&y))&^0xfff == uintptr(unsafe.Pointer(&z))&^0xfff {
-		t.Error("C intptr argument on stack")
-	}
-	if uintptr(unsafe.Pointer(&v))&^0xfff == uintptr(unsafe.Pointer(&z))&^0xfff {
-		t.Error("C void* argument on stack")
-	}
-	if uintptr(unsafe.Pointer(&si))&^0xfff == uintptr(unsafe.Pointer(&z))&^0xfff {
-		t.Error("C struct field pointer on stack")
-	}
+func test10303(t * testing.T, n int)
+{
+    if asan.Enabled { t.Skip("variable z is heap-allocated due to extra allocations with -asan; see #70079") }
+    if runtime.Compiler == "gccgo" { t.Skip("gccgo permits C pointers on the stack") }
+    // Run at a few different stack depths just to avoid an unlucky pass
+    // due to variables ending up on different pages.
+    if n > 0 { test10303(t, n - 1) }
+    if t.Failed() { return }
+    var x, y, z, v, si C. int var s C.Struct C.setintstar( & x) C.setintptr( & y) C.setvoidptr(unsafe.Pointer( & v)) s.P = & si C.setstruct(s) if uintptr
+    (
+        unsafe.Pointer( & x)
+    )
+    &^ 0xfff == uintptr(unsafe.Pointer( & z)) &^ 0xfff { t.Error("C int* argument on stack") }
+    if uintptr(unsafe.Pointer( & y)) &^ 0xfff == uintptr(unsafe.Pointer( & z)) &^ 0xfff { t.Error("C intptr argument on stack") }
+    if uintptr(unsafe.Pointer( & v)) &^ 0xfff == uintptr(unsafe.Pointer( & z)) &^ 0xfff { t.Error("C void* argument on stack") }
+    if uintptr(unsafe.Pointer( & si)) &^ 0xfff == uintptr(unsafe.Pointer( & z)) &^ 0xfff { t.Error("C struct field pointer on stack") }
 }
-
 // issue 11925
 
-func test11925(t *testing.T) {
-	if C.sizeof_struct_a11925 != unsafe.Sizeof(C.struct_a11925{}) {
-		t.Errorf("size of a changed: C %d, Go %d", C.sizeof_struct_a11925, unsafe.Sizeof(C.struct_a11925{}))
-	}
-	if C.sizeof_struct_b11925 != unsafe.Sizeof(C.struct_b11925{}) {
-		t.Errorf("size of b changed: C %d, Go %d", C.sizeof_struct_b11925, unsafe.Sizeof(C.struct_b11925{}))
-	}
+func test11925(t * testing.T)
+{
+    if C.sizeof_struct_a11925 != unsafe.Sizeof(C.struct_a11925 {})
+    {
+        t.Errorf("size of a changed: C %d, Go %d", C.sizeof_struct_a11925, unsafe.Sizeof(C.struct_a11925 {}))
+    }
+    if C.sizeof_struct_b11925 != unsafe.Sizeof(C.struct_b11925 {})
+    {
+        t.Errorf("size of b changed: C %d, Go %d", C.sizeof_struct_b11925, unsafe.Sizeof(C.struct_b11925 {}))
+    }
 }
-
 // issue 12030
 
-func test12030(t *testing.T) {
-	buf := (*C.char)(C.malloc(256))
-	defer C.free(unsafe.Pointer(buf))
-	for _, f := range []float64{1.0, 2.0, 3.14} {
-		C.issue12030conv(buf, C.double(f))
-		got := C.GoString(buf)
-		if want := fmt.Sprintf("d=%g", f); got != want {
-			t.Fatalf("C.sprintf failed for %g: %q != %q", f, got, want)
-		}
-	}
+func test12030(t * testing.T)
+{
+    buf: = ( * C.char)(C.malloc(256)) defer C.free(unsafe.Pointer(buf)) for _, f: = range[] float64 { 1.0, 2.0, 3.14 }
+    {
+        C.issue12030conv(buf, C.double (f)) got: = C.GoString(buf) if want: = fmt.Sprintf("d=%g", f);
+        got != want { t.Fatalf("C.sprintf failed for %g: %q != %q", f, got, want) }
+    }
 }
-
 // issue 13402
 
-var _ C.complexfloat
-var _ C.complexdouble
-
-// issue 13930
+var _ C.complexfloat var _ C.complexdouble // issue 13930
 // Test that cgo's multiple-value special form for
 // C function calls works in variable declaration statements.
 
-var _, _ = C.abs(0)
+var _, _ = C.abs(0) // issue 14838
 
-// issue 14838
-
-func test14838(t *testing.T) {
-	data := []byte{0, 1, 2, 3, 4, 5, 6, 7, 8, 9}
-	cData := C.CBytes(data)
-	defer C.free(cData)
-
-	if C.check_cbytes((*C.char)(cData), C.size_t(len(data))) == 0 {
-		t.Fatalf("mismatched data: expected %v, got %v", data, (*(*[10]byte)(unsafe.Pointer(cData)))[:])
-	}
+func test14838(t * testing.T)
+{
+    data: = [] byte { 0, 1, 2, 3, 4, 5, 6, 7, 8, 9 }
+    cData: = C.CBytes(data) defer C.free(cData) if C.check_cbytes(( * C.char)(cData), C.size_t(len(data))) == 0
+    {
+        t.Fatalf("mismatched data: expected %v, got %v", data, ( * ( * [10] byte)(unsafe.Pointer(cData)))[:])
+    }
 }
-
 // issue 17065
 
-var sink C.int
-
-func test17065(t *testing.T) {
-	if runtime.GOOS == "darwin" || runtime.GOOS == "ios" {
-		t.Skip("broken on darwin; issue 17065")
-	}
-	for i := range C.ii {
-		sink = C.ii[i]
-	}
+var sink C. int func test17065(t * testing.T)
+{
+    if runtime.GOOS == "darwin" || runtime.GOOS == "ios" { t.Skip("broken on darwin; issue 17065") }
+    for i: = range C.ii { sink = C.ii[i] }
 }
-
 // issue 17537
 
-func test17537(t *testing.T) {
-	v := C.S17537{i: 17537}
-	if got, want := C.I17537(&v), C.int(17537); got != want {
-		t.Errorf("got %d, want %d", got, want)
-	}
+func test17537(t * testing.T)
+{
+    v: = C.S17537 { i: 17537 }
+    if got, want: = C.I17537( & v), C. int(17537);
+    got != want { t.Errorf("got %d, want %d", got, want) }
 
-	p := (*C.char)(C.malloc(1))
-	defer C.free(unsafe.Pointer(p))
-	*p = 17
-	if got, want := C.F17537(&p), C.int(17); got != want {
-		t.Errorf("got %d, want %d", got, want)
-	}
+    p: = ( * C.char)(C.malloc(1)) defer C.free(unsafe.Pointer(p)) * p = 17 if got, want: = C.F17537( & p), C. int(17);
+    got != want { t.Errorf("got %d, want %d", got, want) }
 
-	C.F18298(nil)
-	var v18298 C.T18298_2
-	C.G18298(C.T18298_1(v18298))
+    C.F18298(nil) var v18298 C.T18298_2 C.G18298(C.T18298_1(v18298))
 }
-
 // issue 17723
 
-func testAPI() {
-	var cs *C.char
-	cs = C.CString("hello")
-	defer C.free(unsafe.Pointer(cs))
-	var s string
-	s = C.GoString((*C.char)(C.api_hello))
-	s = C.GoStringN((*C.char)(C.api_hello), C.int(6))
-	var b []byte
-	b = C.GoBytes(unsafe.Pointer(C.api_hello), C.int(6))
-	_, _ = s, b
-	C.cstring_pointer_fun(nil)
+func testAPI()
+{
+    var cs * C. char cs = C.CString("hello") defer C.free(unsafe.Pointer(cs)) var s string s = C.GoString(( * C.char)(C.api_hello)) s = C.GoStringN
+    (
+( * C.char)(C.api_hello), C. int(6)
+    )
+    var b[] byte b = C.GoBytes(unsafe.Pointer(C.api_hello), C.int (6)) _, _ = s, b C.cstring_pointer_fun(nil)
 }
-
 // issue 18126
 
-func test18126(t *testing.T) {
-	p := C.malloc(1)
-	_, err := C.Issue18126C(&p)
-	C.free(p)
-	_ = err
-}
-
+func test18126(t * testing.T) { p: = C.malloc(1) _, err: = C.Issue18126C( & p) C.free(p) _ = err }
 // issue 18720
 
-func test18720(t *testing.T) {
-	if got, want := C.HELLO_WORLD, "hello\000world"; got != want {
-		t.Errorf("C.HELLO_WORLD == %q, expected %q", got, want)
-	}
+func test18720(t * testing.T)
+{
+    if got, want: = C.HELLO_WORLD, "hello\000world";
+    got != want { t.Errorf("C.HELLO_WORLD == %q, expected %q", got, want) }
 
-	if got, want := C.VAR1, C.int(5); got != want {
-		t.Errorf("C.VAR1 == %v, expected %v", got, want)
-	}
+    if got, want: = C.VAR1, C. int(5);
+    got != want { t.Errorf("C.VAR1 == %v, expected %v", got, want) }
 
-	if got, want := *C.ADDR, C.int(5); got != want {
-		t.Errorf("*C.ADDR == %v, expected %v", got, want)
-	}
+    if got, want: = * C.ADDR, C. int(5);
+    got != want { t.Errorf("*C.ADDR == %v, expected %v", got, want) }
 
-	if got, want := C.CALL, C.int(6); got != want {
-		t.Errorf("C.CALL == %v, expected %v", got, want)
-	}
+    if got, want: = C.CALL, C. int(6);
+    got != want { t.Errorf("C.CALL == %v, expected %v", got, want) }
 
-	if got, want := C.CALL, C.int(7); got != want {
-		t.Errorf("C.CALL == %v, expected %v", got, want)
-	}
-
-	// Issue 20125.
-	if got, want := C.SIZE_OF_FOO, 1; got != want {
-		t.Errorf("C.SIZE_OF_FOO == %v, expected %v", got, want)
-	}
+    if got, want: = C.CALL, C. int(7);
+    got != want { t.Errorf("C.CALL == %v, expected %v", got, want) }
+    // Issue 20125.
+    if got, want: = C.SIZE_OF_FOO, 1;
+    got != want { t.Errorf("C.SIZE_OF_FOO == %v, expected %v", got, want) }
 }
-
 // issue 20129
 
-func test20129(t *testing.T) {
-	if C.issue20129 != 0 {
-		t.Fatal("test is broken")
-	}
-	C.issue20129Foo()
-	if C.issue20129 != 1 {
-		t.Errorf("got %v but expected %v", C.issue20129, 1)
-	}
-	C.issue20129Bar()
-	if C.issue20129 != 2 {
-		t.Errorf("got %v but expected %v", C.issue20129, 2)
-	}
+func test20129(t * testing.T)
+{
+    if C.issue20129 != 0 { t.Fatal("test is broken") }
+    C.issue20129Foo() if C.issue20129 != 1 { t.Errorf("got %v but expected %v", C.issue20129, 1) }
+    C.issue20129Bar() if C.issue20129 != 2 { t.Errorf("got %v but expected %v", C.issue20129, 2) }
 }
-
 // issue 20369
 
-func test20369(t *testing.T) {
-	if C.XUINT64_MAX != math.MaxUint64 {
-		t.Fatalf("got %v, want %v", uint64(C.XUINT64_MAX), uint64(math.MaxUint64))
-	}
+func test20369(t * testing.T)
+{
+    if C.XUINT64_MAX != math.MaxUint64 { t.Fatalf("got %v, want %v", uint64(C.XUINT64_MAX), uint64(math.MaxUint64)) }
 }
-
 // issue 21668
 
-var issue21668_X = C.x21668
+var issue21668_X = C.x21668 // issue 21708
 
-// issue 21708
-
-func test21708(t *testing.T) {
-	if got, want := C.CAST_TO_INT64, -1; got != want {
-		t.Errorf("C.CAST_TO_INT64 == %v, expected %v", got, want)
-	}
-}
-
+func test21708(t * testing.T) { if got, want: = C.CAST_TO_INT64, - 1; got != want { t.Errorf("C.CAST_TO_INT64 == %v, expected %v", got, want) } }
 // issue 21809
 
-func test21809(t *testing.T) {
-	longVar := C.long(3)
-	typedefVar := C.MySigned_t(4)
-	typedefTypedefVar := C.MySigned2_t(5)
-
-	// all three should be considered identical to `long`
-	if ret := C.takes_long(longVar); ret != 9 {
-		t.Errorf("got %v but expected %v", ret, 9)
-	}
-	if ret := C.takes_long(typedefVar); ret != 16 {
-		t.Errorf("got %v but expected %v", ret, 16)
-	}
-	if ret := C.takes_long(typedefTypedefVar); ret != 25 {
-		t.Errorf("got %v but expected %v", ret, 25)
-	}
-
-	// They should also be identical to the typedef'd type
-	if ret := C.takes_typedef(longVar); ret != 9 {
-		t.Errorf("got %v but expected %v", ret, 9)
-	}
-	if ret := C.takes_typedef(typedefVar); ret != 16 {
-		t.Errorf("got %v but expected %v", ret, 16)
-	}
-	if ret := C.takes_typedef(typedefTypedefVar); ret != 25 {
-		t.Errorf("got %v but expected %v", ret, 25)
-	}
+func test21809(t * testing.T)
+{
+    longVar: = C. long(3) typedefVar: = C.MySigned_t(4) typedefTypedefVar: = C.MySigned2_t(5) // all three should be considered identical to `long`
+    if ret: = C.takes_long(longVar);
+    ret != 9 { t.Errorf("got %v but expected %v", ret, 9) }
+    if ret: = C.takes_long(typedefVar);
+    ret != 16 { t.Errorf("got %v but expected %v", ret, 16) }
+    if ret: = C.takes_long(typedefTypedefVar);
+    ret != 25 { t.Errorf("got %v but expected %v", ret, 25) }
+    // They should also be identical to the typedef'd type
+    if ret: = C.takes_typedef(longVar);
+    ret != 9 { t.Errorf("got %v but expected %v", ret, 9) }
+    if ret: = C.takes_typedef(typedefVar);
+    ret != 16 { t.Errorf("got %v but expected %v", ret, 16) }
+    if ret: = C.takes_typedef(typedefTypedefVar);
+    ret != 25 { t.Errorf("got %v but expected %v", ret, 25) }
 }
-
 // issue 22906
 
-func test22906(t *testing.T) {
-	var x1 C.jobject = 0 // Note: 0, not nil. That makes sure we use uintptr for these types.
-	_ = x1
-	var x2 C.jclass = 0
-	_ = x2
-	var x3 C.jthrowable = 0
-	_ = x3
-	var x4 C.jstring = 0
-	_ = x4
-	var x5 C.jarray = 0
-	_ = x5
-	var x6 C.jbooleanArray = 0
-	_ = x6
-	var x7 C.jbyteArray = 0
-	_ = x7
-	var x8 C.jcharArray = 0
-	_ = x8
-	var x9 C.jshortArray = 0
-	_ = x9
-	var x10 C.jintArray = 0
-	_ = x10
-	var x11 C.jlongArray = 0
-	_ = x11
-	var x12 C.jfloatArray = 0
-	_ = x12
-	var x13 C.jdoubleArray = 0
-	_ = x13
-	var x14 C.jobjectArray = 0
-	_ = x14
-	var x15 C.jweak = 0
-	_ = x15
+func test22906(t * testing.T)
+{
+    var x1 C.jobject = 0 // Note: 0, not nil. That makes sure we use uintptr for these types.
+    _ = x1 var x2 C.jclass = 0 _ = x2 var x3 C.jthrowable = 0 _ = x3 var x4 C.jstring = 0 _ = x4 var x5 C.jarray = 0 _ = x5 var x6 C.jbooleanArray = 0 _ = x6 var x7 C.jbyteArray = 0 _ = x7 var x8 C.jcharArray = 0 _ = x8 var x9 C.jshortArray = 0 _ = x9 var x10 C.jintArray = 0 _ = x10 var x11 C.jlongArray = 0 _ = x11 var x12 C.jfloatArray = 0 _ = x12 var x13 C.jdoubleArray = 0 _ = x13 var x14 C.jobjectArray = 0 _ = x14 var x15 C.jweak = 0 _ = x15
 }
-
 // issue 22958
 // Nothing to run, just make sure this compiles.
-var Vissue22958 C.issue22958Type
-
-func test23356(t *testing.T) {
-	if got, want := C.a(), C.int(5); got != want {
-		t.Errorf("C.a() == %v, expected %v", got, want)
-	}
-	if got, want := C.r(), C.int(3); got != want {
-		t.Errorf("C.r() == %v, expected %v", got, want)
-	}
+var Vissue22958 C.issue22958Type func test23356(t * testing.T)
+{
+    if got, want: = C.a(), C. int(5);
+    got != want { t.Errorf("C.a() == %v, expected %v", got, want) }
+    if got, want: = C.r(), C. int(3);
+    got != want { t.Errorf("C.r() == %v, expected %v", got, want) }
 }
-
 // issue 23720
 
-func Issue23720F() {
-	var x C.issue23720A
-	C.issue23720F(x)
-}
-
+func Issue23720F() { var x C.issue23720A C.issue23720F(x) }
 // issue 24206
 
-func test24206(t *testing.T) {
-	if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" {
-		t.Skipf("skipping on %s/%s", runtime.GOOS, runtime.GOARCH)
-	}
+func test24206(t * testing.T)
+{
+    if runtime.GOOS != "linux" || runtime.GOARCH != "amd64" { t.Skipf("skipping on %s/%s", runtime.GOOS, runtime.GOARCH) }
 
-	if l := len(C.GoString(C.dangerousString1())); l != 123 {
-		t.Errorf("Incorrect string length - got %d, want 123", l)
-	}
-	if l := len(C.GoString(C.dangerousString2())); l != 4096+123 {
-		t.Errorf("Incorrect string length - got %d, want %d", l, 4096+123)
-	}
+    if l: = len(C.GoString(C.dangerousString1()));
+    l != 123 { t.Errorf("Incorrect string length - got %d, want 123", l) }
+    if l: = len(C.GoString(C.dangerousString2()));
+    l != 4096 + 123 { t.Errorf("Incorrect string length - got %d, want %d", l, 4096 + 123) }
 }
-
 // issue 25143
 
-func issue25143sum(ns ...C.int) C.int {
-	total := C.int(0)
-	for _, n := range ns {
-		total += n
-	}
-	return total
-}
+func issue25143sum(ns ... C.int) C. int { total: = C.int (0) for _, n: = range ns { total += n } return total }
 
-func test25143(t *testing.T) {
-	if got, want := issue25143sum(1, 2, 3), C.int(6); got != want {
-		t.Errorf("issue25143sum(1, 2, 3) == %v, expected %v", got, want)
-	}
+func test25143(t * testing.T)
+{
+    if got, want: = issue25143sum(1, 2, 3), C. int(6);
+    got != want { t.Errorf("issue25143sum(1, 2, 3) == %v, expected %v", got, want) }
 }
-
 // issue 26066
 // Wrong type of constant with GCC 8 and newer.
 
-func test26066(t *testing.T) {
-	var i = int64(C.issue26066)
-	if i != -1 {
-		t.Errorf("got %d, want -1", i)
-	}
-}
-
+func test26066(t * testing.T) { var i = int64(C.issue26066) if i != - 1 { t.Errorf("got %d, want -1", i) } }
 // issue 26517
-var a C.TypeOne
-var b C.TypeTwo
-
-// issue 27660
+var a C.TypeOne var b C.TypeTwo // issue 27660
 // Stress the interaction between the race detector and cgo in an
 // attempt to reproduce the memory corruption described in #27660.
 // The bug was very timing sensitive; at the time of writing this
 // test would only trigger the bug about once out of every five runs.
 
-func test27660(t *testing.T) {
-	ctx, cancel := context.WithCancel(context.Background())
-	defer cancel()
-	ints := make([]int, 100)
-	locks := make([]sync.Mutex, 100)
-	// Slowly create threads so that ThreadSanitizer is forced to
-	// frequently resize its SyncClocks.
-	for i := 0; i < 100; i++ {
-		go func() {
-			for ctx.Err() == nil {
-				// Sleep in C for long enough that it is likely that the runtime
-				// will retake this goroutine's currently wired P.
-				C.usleep(1000 /* 1ms */)
-				runtime.Gosched() // avoid starvation (see #28701)
-			}
-		}()
-		go func() {
-			// Trigger lots of synchronization and memory reads/writes to
-			// increase the likelihood that the race described in #27660
-			// results in corruption of ThreadSanitizer's internal state
-			// and thus an assertion failure or segfault.
-			i := 0
-			for ctx.Err() == nil {
-				j := rand.Intn(100)
-				locks[j].Lock()
-				ints[j]++
-				locks[j].Unlock()
-				// needed for gccgo, to avoid creation of an
-				// unpreemptible "fast path" in this loop. Choice
-				// of (1<<24) is somewhat arbitrary.
-				if i%(1<<24) == 0 {
-					runtime.Gosched()
-				}
-				i++
-
-			}
-		}()
-		time.Sleep(time.Millisecond)
-	}
+func test27660(t * testing.T)
+{
+    ctx, cancel: = context.WithCancel(context.Background()) defer cancel() ints: = make([] int , 100) locks: = make([] sync.Mutex, 100) // Slowly create threads so that ThreadSanitizer is forced to
+    // frequently resize its SyncClocks.
+    for i: = 0;
+    i < 100;
+    i++
+    {
+        go func()
+        {
+            for ctx.Err() == nil
+            {
+                // Sleep in C for long enough that it is likely that the runtime
+                // will retake this goroutine's currently wired P.
+                C.usleep(1000/* 1ms */) runtime.Gosched() // avoid starvation (see #28701)
+            }
+        }
+() go func()
+        {
+            // Trigger lots of synchronization and memory reads/writes to
+            // increase the likelihood that the race described in #27660
+            // results in corruption of ThreadSanitizer's internal state
+            // and thus an assertion failure or segfault.
+            i: = 0 for ctx.Err() == nil
+            {
+                j: = rand.Intn(100) locks[j].Lock() ints[j]++ locks[j].Unlock() // needed for gccgo, to avoid creation of an
+                // unpreemptible "fast path" in this loop. Choice
+                // of (1<<24) is somewhat arbitrary.
+                if i % (1 << 24) == 0 { runtime.Gosched() }
+                i++
+            }
+        }
+() time.Sleep(time.Millisecond)
+    }
 }
-
 // issue 28540
 
-func twoargsF() {
-	var v struct{ p *byte }
-	C.twoargs1(C.twoargs2(), C.twoargs3(unsafe.Pointer(&v)))
-}
-
+func twoargsF() { var v struct { p * byte } C.twoargs1(C.twoargs2(), C.twoargs3(unsafe.Pointer( & v))) }
 // issue 28545
 
-func issue28545G(p **C.char) {
-	C.issue28545F(p, -1, (0))
-	C.issue28545F(p, 2+3, complex(1, 1))
-	C.issue28545F(p, issue28772Constant, issue28772Constant2)
+func issue28545G(p ** C.char)
+{
+    C.issue28545F(p, - 1, (0)) C.issue28545F(p, 2 + 3, complex(1, 1)) C.issue28545F(p, issue28772Constant, issue28772Constant2)
 }
-
 // issue 28772 part 1 - part 2 in testx.go
 
-const issue28772Constant = C.issue28772Constant
+const issue28772Constant = C.issue28772Constant // issue 28896
 
-// issue 28896
-
-func offset(i int) uintptr {
-	var pi C.innerPacked
-	var po C.outerPacked
-	var ui C.innerUnpacked
-	var uo C.outerUnpacked
-	switch i {
-	case 0:
-		return unsafe.Offsetof(pi.f2)
-	case 1:
-		return unsafe.Offsetof(po.g2)
-	case 2:
-		return unsafe.Offsetof(ui.f2)
-	case 3:
-		return unsafe.Offsetof(uo.g2)
-	default:
-		panic("can't happen")
-	}
+func offset(i int) uintptr
+{
+    var pi C.innerPacked var po C.outerPacked var ui C.innerUnpacked var uo C.outerUnpacked switch i
+    {
+        case 0: return unsafe.Offsetof(pi.f2) case 1: return unsafe.Offsetof(po.g2) case 2: return unsafe.Offsetof(ui.f2) case 3: return unsafe.Offsetof
+        (
+            uo.g2
+        )
+        default: panic("can't happen")
+    }
 }
 
-func test28896(t *testing.T) {
-	for i := 0; i < 4; i++ {
-		c := uintptr(C.offset(C.int(i)))
-		g := offset(i)
-		if c != g {
-			t.Errorf("%d: C: %d != Go %d", i, c, g)
-		}
-	}
+func test28896(t * testing.T)
+{
+    for i: = 0;
+    i < 4;
+    i++ { c: = uintptr(C.offset(C.int (i))) g: = offset(i) if c != g { t.Errorf("%d: C: %d != Go %d", i, c, g) } }
 }
-
 // issue 29383
 // cgo's /*line*/ comments failed when inserted after '/',
 // because the result looked like a "//" comment.
 // No runtime test; just make sure it compiles.
 
-func Issue29383(n, size uint) int {
-	if ^C.size_t(0)/C.size_t(n) < C.size_t(size) {
-		return 0
-	}
-	return 0
-}
-
+func Issue29383(n, size uint) int { if ^ C.size_t(0) / C.size_t(n) < C.size_t(size) { return 0 } return 0 }
 // issue 29748
 // Error handling a struct initializer that requires pointer checking.
 // Compilation test only, nothing to run.
 
-var Vissue29748 = C.f29748(&C.S29748{
-	nil,
-})
-
-func Fissue299748() {
-	C.f29748(&C.S29748{
-		nil,
-	})
-}
-
+var Vissue29748 = C.f29748( & C.S29748 { nil, }) func Fissue299748() { C.f29748( & C.S29748 { nil, }) }
 // issue 29781
 
-var issue29781X struct{ X int }
+var issue29781X struct { X int }
 
-func issue29781F(...int) int { return 0 }
+func issue29781F( ... int) int { return 0 }
 
-func issue29781G() {
-	var p *C.char
-	C.issue29781F(&p, C.ISSUE29781C+1)
-	C.issue29781F(nil, (C.int)(
-		0))
-	C.issue29781F(&p, (C.int)(0))
-	C.issue29781F(&p, (C.int)(
-		0))
-	C.issue29781F(&p, (C.int)(issue29781X.
-		X))
+func issue29781G()
+{
+    var p * C. char C.issue29781F( & p, C.ISSUE29781C + 1) C.issue29781F(nil, (C.int)(0)) C.issue29781F( & p, (C.int)(0)) C.issue29781F( & p, (C.int)(0)) C.issue29781F
+    (
+        & p, (C.int)(issue29781X.X)
+    )
 }
-
 // issue 30065
 
-func test30065(t *testing.T) {
-	var a [256]byte
-	b := []byte("a")
-	C.memcpy(unsafe.Pointer(&a), unsafe.Pointer(&b[0]), 1)
-	if a[0] != 'a' {
-		t.Errorf("&a failed: got %c, want %c", a[0], 'a')
-	}
+func test30065(t * testing.T)
+{
+    var a[256] byte b: = [] byte("a") C.memcpy(unsafe.Pointer( & a), unsafe.Pointer( & b[0]), 1) if a[0] != 'a'
+    {
+        t.Errorf("&a failed: got %c, want %c", a[0],'a')
+    }
 
-	b = []byte("b")
-	C.memcpy(unsafe.Pointer(&a[0]), unsafe.Pointer(&b[0]), 1)
-	if a[0] != 'b' {
-		t.Errorf("&a[0] failed: got %c, want %c", a[0], 'b')
-	}
+    b = [] byte("b") C.memcpy(unsafe.Pointer( & a[0]), unsafe.Pointer( & b[0]), 1) if a[0] != 'b'
+    {
+        t.Errorf("&a[0] failed: got %c, want %c", a[0],'b')
+    }
 
-	d := make([]byte, 256)
-	b = []byte("c")
-	C.memcpy(unsafe.Pointer(&d[0]), unsafe.Pointer(&b[0]), 1)
-	if d[0] != 'c' {
-		t.Errorf("&d[0] failed: got %c, want %c", d[0], 'c')
-	}
+    d: = make([] byte, 256) b = [] byte("c") C.memcpy(unsafe.Pointer( & d[0]), unsafe.Pointer( & b[0]), 1) if d[0] != 'c'
+    {
+        t.Errorf("&d[0] failed: got %c, want %c", d[0],'c')
+    }
 }
-
 // issue 31093
 // No runtime test; just make sure it compiles.
 
-func Issue31093() {
-	C.issue31093F(C.ushort(0))
-}
-
+func Issue31093() { C.issue31093F(C.ushort(0)) }
 // issue 32579
 
-func test32579(t *testing.T) {
-	var s [1]C.struct_S32579
-	C.memset(unsafe.Pointer(&s[0].data[0]), 1, 1)
-	if s[0].data[0] != 1 {
-		t.Errorf("&s[0].data[0] failed: got %d, want %d", s[0].data[0], 1)
-	}
+func test32579(t * testing.T)
+{
+    var s[1] C.struct_S32579 C.memset(unsafe.Pointer( & s[0].data[0]), 1, 1) if s[0].data[0] != 1
+    {
+        t.Errorf("&s[0].data[0] failed: got %d, want %d", s[0].data[0], 1)
+    }
 }
-
 // issue 37033, check if cgo.Handle works properly
 
-func testHandle(t *testing.T) {
-	ch := make(chan int)
-
-	for i := 0; i < 42; i++ {
-		h := cgo.NewHandle(ch)
-		go func() {
-			C.cFunc37033(C.uintptr_t(h))
-		}()
-		if v := <-ch; issue37033 != v {
-			t.Fatalf("unexpected receiving value: got %d, want %d", v, issue37033)
-		}
-		h.Delete()
-	}
+func testHandle(t * testing.T)
+{
+    ch: = make(chan int) for i: = 0;
+    i < 42;
+    i++
+    {
+        h: = cgo.NewHandle(ch) go func() { C.cFunc37033(C.uintptr_t(h)) }
+() if v: = <- ch;
+        issue37033 != v { t.Fatalf("unexpected receiving value: got %d, want %d", v, issue37033) }
+        h.Delete()
+    }
 }
-
 // issue 38649
 
-var issue38649 C.netbsd_gid = 42
+var issue38649 C.netbsd_gid = 42 // issue 39877
 
-// issue 39877
-
-var issue39877 *C.void = nil
-
-// issue 40494
+var issue39877 * C. void = nil // issue 40494
 // No runtime test; just make sure it compiles.
 
-func Issue40494() {
-	C.issue40494(C.enum_Enum40494(C.X_40494), (*C.union_Union40494)(nil))
-}
-
+func Issue40494() { C.issue40494(C.enum_Enum40494(C.X_40494),( * C.union_Union40494)(nil)) }
 // Issue 45451.
-func test45451(t *testing.T) {
-	var u *C.issue45451
-	typ := reflect.ValueOf(u).Type().Elem()
-
-	// The type is undefined in C so allocating it should panic.
-	defer func() {
-		if r := recover(); r == nil {
-			t.Error("expected panic")
-		}
-	}()
-
-	_ = reflect.New(typ)
-	t.Errorf("reflect.New(%v) should have panicked", typ)
+func test45451(t * testing.T)
+{
+    var u * C.issue45451 typ: = reflect.ValueOf(u).Type().Elem() // The type is undefined in C so allocating it should panic.
+    defer func() { if r: = recover(); r == nil { t.Error("expected panic") } }
+() _ = reflect.New(typ) t.Errorf("reflect.New(%v) should have panicked", typ)
 }
-
 // issue 52542
 
-func func52542[T ~[]C.int]() {}
+func func52542[T ~ [] C.int]() {}
 
-type type52542[T ~*C.float] struct{}
-
+type type52542[T ~* C.float] struct {}
 // issue67517 is just a compilation test, there is no runtime test.
-func issue67517() {
-	C.issue67517(&C.issue67517struct{
-		a: 0,
-
-		b: nil,
-	})
-	C.issue67517(&C.issue67517struct{
-		a: 0,
-		// comment
-		b: nil,
-	})
-	C.issue67517(&C.issue67517struct{
-		a: 0 +
-			// comment
-			1,
-		// comment
-		b: nil,
-	})
+func issue67517()
+{
+    C.issue67517( & C.issue67517struct { a: 0, b: nil, }) C.issue67517
+    (
+        & C.issue67517struct
+        {
+            a: 0, // comment
+            b: nil, 
+        }
+    )
+    C.issue67517
+    (
+        & C.issue67517struct
+        {
+            a: 0 + // comment
+            1, // comment
+            b: nil, 
+        }
+    )
 }
-
 // Issue 69086.
-func test69086(t *testing.T) {
-	var s C.issue69086struct
+func test69086(t * testing.T)
+{
+    var s C.issue69086struct typ: = reflect.TypeOf(s) for i: = 0;
+    i < typ.NumField();
+    i++
+    {
+        f: = typ.Field(i) t.Logf("field %d: name %s size %d align %d offset %d", i, f.Name, f.Type.Size(), f.Type.Align(), f.Offset)
+    }
 
-	typ := reflect.TypeOf(s)
-	for i := 0; i < typ.NumField(); i++ {
-		f := typ.Field(i)
-		t.Logf("field %d: name %s size %d align %d offset %d", i, f.Name, f.Type.Size(), f.Type.Align(), f.Offset)
-	}
-
-	s.c = 1
-	got := C.issue690861(&s)
-	if got != 1 {
-		t.Errorf("field: got %d, want 1", got)
-	}
-	got = C.issue690862(1, 2, 3, s)
-	if got != 1234 {
-		t.Errorf("call: got %d, want 1234", got)
-	}
+    s.c = 1 got: = C.issue690861( & s) if got != 1 { t.Errorf("field: got %d, want 1", got) }
+    got = C.issue690862(1, 2, 3, s) if got != 1234 { t.Errorf("call: got %d, want 1234", got) }
 }
-
 // Issue 75751: no runtime test, just make sure it compiles.
-func test75751() int {
-	return int(*C.issue75751m) + int(*C.issue75751m2)
-}
-
+func test75751() int { return int ( * C.issue75751m) + int ( * C.issue75751m2) }
 // Issue 76340.
-func test76340(t *testing.T) {
-	var emptyInterface C.GoInterface
-	r1 := C.issue76340testFromC(emptyInterface)
-	if r1 != 0 {
-		t.Errorf("issue76340testFromC with nil interface: got %d, want 0", r1)
-	}
+func test76340(t * testing.T)
+{
+    var emptyInterface C.GoInterface r1: = C.issue76340testFromC(emptyInterface) if r1 != 0
+    {
+        t.Errorf("issue76340testFromC with nil interface: got %d, want 0", r1)
+    }
 
-	r2 := C.issue76340returnFromC(42)
-	if r2.t == nil && r2.v == nil {
-		t.Error("issue76340returnFromC(42) returned nil interface")
-	}
+    r2: = C.issue76340returnFromC(42) if r2.t == nil && r2.v == nil { t.Error("issue76340returnFromC(42) returned nil interface") }
 
-	r3 := C.issue76340returnFromC(0)
-	if r3.t != nil || r3.v != nil {
-		t.Errorf("issue76340returnFromC(0) returned non-nil interface: got %v, want nil", r3)
-	}
+    r3: = C.issue76340returnFromC(0) if r3.t != nil || r3.v != nil
+    {
+        t.Errorf("issue76340returnFromC(0) returned non-nil interface: got %v, want nil", r3)
+    }
 }
 
-func testDITCgo(t *testing.T) {
-	if !sys.DITSupported {
-		t.Skip("CPU does not support DIT")
-	}
+func testDITCgo(t * testing.T)
+{
+    if ! sys.DITSupported { t.Skip("CPU does not support DIT") }
 
-	ditAlreadyEnabled := sys.DITEnabled()
-	C.enableDIT()
+    ditAlreadyEnabled: = sys.DITEnabled() C.enableDIT() if ditAlreadyEnabled != sys.DITEnabled()
+    {
+        t.Fatalf("DIT state not preserved across cgo call: before %t, after %t", ditAlreadyEnabled, sys.DITEnabled())
+    }
 
-	if ditAlreadyEnabled != sys.DITEnabled() {
-		t.Fatalf("DIT state not preserved across cgo call: before %t, after %t", ditAlreadyEnabled, sys.DITEnabled())
-	}
-
-	subtle.WithDataIndependentTiming(func() {
-		C.disableDIT()
-
-		if !sys.DITEnabled() {
-			t.Fatal("DIT disabled after disabling in cgo call")
-		}
-	})
+    subtle.WithDataIndependentTiming(func() { C.disableDIT() if ! sys.DITEnabled() { t.Fatal("DIT disabled after disabling in cgo call") } })
 }
 
-func testDITCgoCallback(t *testing.T) {
-	if !sys.DITSupported {
-		t.Skip("CPU does not support DIT")
-	}
+func testDITCgoCallback(t * testing.T)
+{
+    if ! sys.DITSupported { t.Skip("CPU does not support DIT") }
 
-	ditAlreadyEnabled := sys.DITEnabled()
+    ditAlreadyEnabled: = sys.DITEnabled() subtle.WithDataIndependentTiming
+    (
+        func() { if C.ditCallbackTest() != 1 { t.Fatal("DIT not enabled in cgo callback within WithDataIndependentTiming") } }
+    )
 
-	subtle.WithDataIndependentTiming(func() {
-		if C.ditCallbackTest() != 1 {
-			t.Fatal("DIT not enabled in cgo callback within WithDataIndependentTiming")
-		}
-	})
-
-	if ditAlreadyEnabled != sys.DITEnabled() {
-		t.Fatalf("DIT state not preserved across cgo callback: before %t, after %t", ditAlreadyEnabled, sys.DITEnabled())
-	}
+    if ditAlreadyEnabled != sys.DITEnabled()
+    {
+        t.Fatalf("DIT state not preserved across cgo callback: before %t, after %t", ditAlreadyEnabled, sys.DITEnabled())
+    }
 }
 
-func testDITCgoCallbackEnableDIT(t *testing.T) {
-	if !sys.DITSupported {
-		t.Skip("CPU does not support DIT")
-	}
+func testDITCgoCallbackEnableDIT(t * testing.T)
+{
+    if ! sys.DITSupported { t.Skip("CPU does not support DIT") }
 
-	ditAlreadyEnabled := sys.DITEnabled()
-
-	C.ditCallbackEnableDIT()
-
-	if ditAlreadyEnabled != sys.DITEnabled() {
-		t.Fatalf("DIT state not preserved across cgo callback: before %t, after %t", ditAlreadyEnabled, sys.DITEnabled())
-	}
+    ditAlreadyEnabled: = sys.DITEnabled() C.ditCallbackEnableDIT() if ditAlreadyEnabled != sys.DITEnabled()
+    {
+        t.Fatalf("DIT state not preserved across cgo callback: before %t, after %t", ditAlreadyEnabled, sys.DITEnabled())
+    }
 }
 
-func testDITCgoCallbackDisableDIT(t *testing.T) {
-	if !sys.DITSupported {
-		t.Skip("CPU does not support DIT")
-	}
+func testDITCgoCallbackDisableDIT(t * testing.T)
+{
+    if ! sys.DITSupported { t.Skip("CPU does not support DIT") }
 
-	ditAlreadyEnabled := sys.DITEnabled()
+    ditAlreadyEnabled: = sys.DITEnabled() subtle.WithDataIndependentTiming
+    (
+        func() { C.ditCallbackDisableDIT() if ! sys.DITEnabled() { t.Fatal("DIT disabled after disabling in cgo call") } }
+    )
 
-	subtle.WithDataIndependentTiming(func() {
-		C.ditCallbackDisableDIT()
-
-		if !sys.DITEnabled() {
-			t.Fatal("DIT disabled after disabling in cgo call")
-		}
-	})
-
-	if ditAlreadyEnabled != sys.DITEnabled() {
-		t.Fatalf("DIT state not preserved across cgo callback: before %t, after %t", ditAlreadyEnabled, sys.DITEnabled())
-	}
+    if ditAlreadyEnabled != sys.DITEnabled()
+    {
+        t.Fatalf("DIT state not preserved across cgo callback: before %t, after %t", ditAlreadyEnabled, sys.DITEnabled())
+    }
 }

@@ -2,10 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a2
-
-import "./a0"
-
-func New() int {
-	return a0.Builder[int]{}.New1()
-}
+package a2 import"./a0" func New() int { return a0.Builder[int] {}.New1() }

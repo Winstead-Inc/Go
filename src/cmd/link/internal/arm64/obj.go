@@ -28,95 +28,44 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package arm64
+package arm64 import("cmd/internal/objabi""cmd/internal/sys""cmd/link/internal/ld") func Init()( * sys.Arch, ld.Arch)
+{
+    arch: = sys.ArchARM64 theArch: = ld.Arch
+    {
+        Funcalign: funcAlign, Maxalign: maxAlign, Minalign: minAlign, Dwarfregsp: dwarfRegSP, Dwarfreglr: dwarfRegLR, TrampLimit: 0x7c00000, // 26-bit signed offset * 4, leave room for PLT etc.
 
-import (
-	"cmd/internal/objabi"
-	"cmd/internal/sys"
-	"cmd/link/internal/ld"
-)
+        Adddynrel: adddynrel, Archinit: archinit, Archreloc: archreloc, Archrelocvariant: archrelocvariant, Extreloc: extreloc, Gentext: gentext, GenSymsLate: gensymlate, Machoreloc1: machoreloc1, MachorelocSize: 8, PEreloc1: pereloc1, Trampoline: trampoline, ELF: ld.ELFArch
+        {
+            Androiddynld: "/system/bin/linker64", Linuxdynld: "/lib/ld-linux-aarch64.so.1", LinuxdynldMusl: "/lib/ld-musl-aarch64.so.1", Freebsddynld: "/usr/libexec/ld-elf.so.1", Openbsddynld: "/usr/libexec/ld.so", Netbsddynld: "/libexec/ld.elf_so", Dragonflydynld: "XXX", Solarisdynld: "XXX", Reloc1: elfreloc1, RelocSize: 24, SetupPLT: elfsetupplt, 
+        },
+    }
 
-func Init() (*sys.Arch, ld.Arch) {
-	arch := sys.ArchARM64
-
-	theArch := ld.Arch{
-		Funcalign:  funcAlign,
-		Maxalign:   maxAlign,
-		Minalign:   minAlign,
-		Dwarfregsp: dwarfRegSP,
-		Dwarfreglr: dwarfRegLR,
-		TrampLimit: 0x7c00000, // 26-bit signed offset * 4, leave room for PLT etc.
-
-		Adddynrel:        adddynrel,
-		Archinit:         archinit,
-		Archreloc:        archreloc,
-		Archrelocvariant: archrelocvariant,
-		Extreloc:         extreloc,
-		Gentext:          gentext,
-		GenSymsLate:      gensymlate,
-		Machoreloc1:      machoreloc1,
-		MachorelocSize:   8,
-		PEreloc1:         pereloc1,
-		Trampoline:       trampoline,
-
-		ELF: ld.ELFArch{
-			Androiddynld:   "/system/bin/linker64",
-			Linuxdynld:     "/lib/ld-linux-aarch64.so.1",
-			LinuxdynldMusl: "/lib/ld-musl-aarch64.so.1",
-
-			Freebsddynld:   "/usr/libexec/ld-elf.so.1",
-			Openbsddynld:   "/usr/libexec/ld.so",
-			Netbsddynld:    "/libexec/ld.elf_so",
-			Dragonflydynld: "XXX",
-			Solarisdynld:   "XXX",
-
-			Reloc1:    elfreloc1,
-			RelocSize: 24,
-			SetupPLT:  elfsetupplt,
-		},
-	}
-
-	return arch, theArch
+    return arch, theArch
 }
 
-func archinit(ctxt *ld.Link) {
-	switch ctxt.HeadType {
-	default:
-		ld.Exitf("unknown -H option: %v", ctxt.HeadType)
+func archinit(ctxt * ld.Link)
+{
+    switch ctxt.HeadType
+    {
+        default: ld.Exitf("unknown -H option: %v", ctxt.HeadType) case objabi.Hplan9: /* plan 9 */ ld.HEADR = 32 if * ld.FlagRound == - 1
+        {
+            * ld.FlagRound = 4096
+        }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(4096, * ld.FlagRound) + int64(ld.HEADR) }
 
-	case objabi.Hplan9: /* plan 9 */
-		ld.HEADR = 32
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 4096
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(4096, *ld.FlagRound) + int64(ld.HEADR)
-		}
+        case objabi.Hlinux, /* arm64 elf */ objabi.Hfreebsd, objabi.Hnetbsd, objabi.Hopenbsd: ld.Elfinit(ctxt) ld.HEADR = ld.ELFRESERVE if * ld.FlagRound == - 1
+        {
+            * ld.FlagRound = 0x10000
+        }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(0x10000, * ld.FlagRound) + int64(ld.HEADR) }
 
-	case objabi.Hlinux, /* arm64 elf */
-		objabi.Hfreebsd,
-		objabi.Hnetbsd,
-		objabi.Hopenbsd:
-		ld.Elfinit(ctxt)
-		ld.HEADR = ld.ELFRESERVE
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 0x10000
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(0x10000, *ld.FlagRound) + int64(ld.HEADR)
-		}
+        case objabi.Hdarwin: /* apple MACH */ ld.HEADR = ld.INITIAL_MACHO_HEADR if * ld.FlagRound == - 1
+        {
+            * ld.FlagRound = 16384 // 16K page alignment
+        }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(1 << 32, * ld.FlagRound) + int64(ld.HEADR) }
 
-	case objabi.Hdarwin: /* apple MACH */
-		ld.HEADR = ld.INITIAL_MACHO_HEADR
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 16384 // 16K page alignment
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(1<<32, *ld.FlagRound) + int64(ld.HEADR)
-		}
-
-	case objabi.Hwindows: /* PE executable */
-		// ld.HEADR, ld.FlagTextAddr, ld.FlagRound are set in ld.Peinit
-		return
-	}
+        case objabi.Hwindows: /* PE executable */ // ld.HEADR, ld.FlagTextAddr, ld.FlagRound are set in ld.Peinit
+        return 
+    }
 }

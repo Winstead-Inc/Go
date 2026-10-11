@@ -2,10 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package mypkg
-
-import "fmt"
-
-func go2() {
-	fmt.Println("go2")
-}
+package mypkg import"fmt" func go2() { fmt.Println("go2") }

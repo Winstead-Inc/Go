@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// This program failed when run under the C/C++ ThreadSanitizer. The
+package main // This program failed when run under the C/C++ ThreadSanitizer. The
 // TSAN library was not keeping track of whether signals should be
 // delivered on the alternate signal stack, and the Go signal handler
 // was not preserving callee-saved registers from C callers.
@@ -40,28 +38,15 @@ void spin() {
 
 	free(prev);
 }
-*/
-import "C"
-
-import (
-	"io"
-	"runtime/pprof"
-	"time"
+*/ import"C" import
+(
+    "io""runtime/pprof""time"
 )
-
-func goSpin() {
-	start := time.Now()
-	for n := 0; n < 1<<20; n++ {
-		_ = make([]byte, n)
-		if time.Since(start) > 50*time.Millisecond {
-			break
-		}
-	}
+func goSpin()
+{
+    start: = time.Now() for n: = 0;
+    n < 1 << 20;
+    n++ { _ = make([] byte, n) if time.Since(start) > 50 * time.Millisecond { break } }
 }
 
-func main() {
-	pprof.StartCPUProfile(io.Discard)
-	go C.spin()
-	goSpin()
-	pprof.StopCPUProfile()
-}
+func main() { pprof.StartCPUProfile(io.Discard) go C.spin() goSpin() pprof.StopCPUProfile() }

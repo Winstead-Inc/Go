@@ -2,12 +2,8 @@
 // gccgo -fgo-optimize-allocs -c escapeinfo.go
 // objcopy -j .go_export escapeinfo.o escapeinfo.gox
 
-package escapeinfo
+package escapeinfo type T struct { data[] byte }
 
-type T struct{ data []byte }
+func NewT(data[] byte) * T { return & T { data } }
 
-func NewT(data []byte) *T {
-	return &T{data}
-}
-
-func (*T) Read(p []byte) {}
+func( * T) Read(p[] byte) {}

@@ -2,11 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ifaceassert
+package ifaceassert type I1 interface { M() int }
+type I2 interface { M() string }
 
-type I1 interface{ M() int }
-type I2 interface{ M() string }
-
-func _(x I1) {
-	_ = x.(I2) // ERROR "impossible type assertion"
+func _(x I1)
+{
+    _ = x.(I2) // ERROR "impossible type assertion"
 }

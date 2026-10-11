@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package token
+package token // exports for tests
 
-// exports for tests
-
-func SearchInts(a []int, x int) int { return searchInts(a, x) }
+func SearchInts(a[] int , x int) int { return searchInts(a, x) }

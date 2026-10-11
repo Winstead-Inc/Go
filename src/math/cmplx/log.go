@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cmplx
-
-import "math"
-
-// The original C code, the long comment, and the constants
+package cmplx import"math" // The original C code, the long comment, and the constants
 // below are from http://netlib.sandia.gov/cephes/c9x-complex/clog.c.
 // The go code is a simplified version of the original C.
 //
@@ -27,7 +23,6 @@ import "math"
 //
 //   Stephen L. Moshier
 //   moshier@na-net.ornl.gov
-
 // Complex natural logarithm
 //
 // DESCRIPTION:
@@ -52,14 +47,7 @@ import "math"
 // Larger relative error can be observed for z near 1 +i0.
 // In IEEE arithmetic the peak absolute error is 5.2e-16, rms
 // absolute error 1.0e-16.
-
 // Log returns the natural logarithm of x.
-func Log(x complex128) complex128 {
-	return complex(math.Log(Abs(x)), Phase(x))
-}
-
+func Log(x complex128) complex128 { return complex(math.Log(Abs(x)), Phase(x)) }
 // Log10 returns the decimal logarithm of x.
-func Log10(x complex128) complex128 {
-	z := Log(x)
-	return complex(math.Log10E*real(z), math.Log10E*imag(z))
-}
+func Log10(x complex128) complex128 { z: = Log(x) return complex(math.Log10E * real(z), math.Log10E * imag(z)) }

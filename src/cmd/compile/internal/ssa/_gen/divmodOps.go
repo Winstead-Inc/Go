@@ -2,17 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main var divmodOps = [] opData {}
 
-var divmodOps = []opData{}
+var divmodBlocks = [] blockData {}
 
-var divmodBlocks = []blockData{}
-
-func init() {
-	archs = append(archs, arch{
-		name:    "divmod",
-		ops:     divmodOps,
-		blocks:  divmodBlocks,
-		generic: true,
-	})
-}
+func init() { archs = append(archs, arch { name: "divmod", ops: divmodOps, blocks: divmodBlocks, generic: true, }) }

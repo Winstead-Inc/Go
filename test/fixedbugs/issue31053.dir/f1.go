@@ -2,17 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package f1
+package f1 type Foo struct { doneChan chan bool Name string fOO int hook func() }
 
-type Foo struct {
-	doneChan chan bool
-	Name     string
-	fOO      int
-	hook     func()
-}
+func(f * Foo) Exported() {}
 
-func (f *Foo) Exported() {
-}
-
-func (f *Foo) unexported() {
-}
+func(f * Foo) unexported() {}

@@ -2,15 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type Stringer interface { String() string }
 
-type Stringer interface {
-	String() string
-}
-
-func Stringify[T Stringer](s []T) (ret []string) {
-	for _, v := range s {
-		ret = append(ret, v.String())
-	}
-	return ret
-}
+func Stringify[T Stringer](s[] T)(ret[] string) { for _, v: = range s { ret = append(ret, v.String()) } return ret }

@@ -2,108 +2,65 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ssadebug
-
-import (
-	"cmp"
-	"internal/buildcfg"
-	"slices"
-
-	"cmd/compile/internal/abi"
-	"cmd/compile/internal/ir"
-	"cmd/compile/internal/ssa"
-	"cmd/compile/internal/ssa/ssabase"
-	"cmd/compile/internal/ssa/ssaop"
-	"cmd/compile/internal/types"
-	"cmd/internal/dwarf"
-	"cmd/internal/obj"
-	"cmd/internal/src"
+package ssadebug import
+(
+    "cmp""internal/buildcfg""slices""cmd/compile/internal/abi""cmd/compile/internal/ir""cmd/compile/internal/ssa""cmd/compile/internal/ssa/ssabase""cmd/compile/internal/ssa/ssaop""cmd/compile/internal/types""cmd/internal/dwarf""cmd/internal/obj""cmd/internal/src"
 )
-
 // A FuncDebug contains all the debug information for the variables in a
 // function. Variables are identified by their LocalSlot, which may be
 // the result of decomposing a larger variable.
-type FuncDebug struct {
-	// Slots is all the slots used in the debug info, indexed by their SlotID.
-	Slots []ssa.LocalSlot
-	// The user variables, indexed by VarID.
-	Vars []*ir.Name
-	// The slots that make up each variable, indexed by VarID.
-	VarSlots [][]ssa.SlotID
-	// The location list data, indexed by VarID. Must be processed by PutLocationList.
-	LocationLists [][]ssa.LocListEntry
-	// Register-resident output parameters for the function. This is filled in at
-	// SSA generation time.
-	RegOutputParams []*ir.Name
-	// Variable declarations that were removed during optimization
-	OptDcl []*ir.Name
-	// The ssa.Func.EntryID value, used to build location lists for
-	// return values promoted to heap in later DWARF generation.
-	EntryID ssa.ID
-
-	// Filled in by the user. Translates Block and Value ID to PC.
-	//
-	// NOTE: block is only used if value is BlockStart.ID or BlockEnd.ID.
-	// Otherwise, it is ignored.
-	GetPC func(block, value ssa.ID) int64
+type FuncDebug struct 
+{
+    // Slots is all the slots used in the debug info, indexed by their SlotID.
+    Slots[] ssa.LocalSlot // The user variables, indexed by VarID.
+    Vars[] * ir.Name // The slots that make up each variable, indexed by VarID.
+    VarSlots[][] ssa.SlotID // The location list data, indexed by VarID. Must be processed by PutLocationList.
+    LocationLists[][] ssa.LocListEntry // Register-resident output parameters for the function. This is filled in at
+    // SSA generation time.
+    RegOutputParams[] * ir.Name // Variable declarations that were removed during optimization
+    OptDcl[] * ir.Name // The ssa.Func.EntryID value, used to build location lists for
+    // return values promoted to heap in later DWARF generation.
+    EntryID ssa.ID // Filled in by the user. Translates Block and Value ID to PC.
+    //
+    // NOTE: block is only used if value is BlockStart.ID or BlockEnd.ID.
+    // Otherwise, it is ignored.
+    GetPC func(block, value ssa.ID) int64
 }
-
 // slotCanonicalizer is a table used to lookup and canonicalize
 // LocalSlot's in a type insensitive way (e.g. taking into account the
 // base name, offset, and width of the slot, but ignoring the slot
 // type).
-type slotCanonicalizer struct {
-	slmap  map[slotKey]SlKeyIdx
-	slkeys []ssa.LocalSlot
+type slotCanonicalizer struct { slmap map[slotKey] SlKeyIdx slkeys[] ssa.LocalSlot }
+
+func newSlotCanonicalizer() * slotCanonicalizer
+{
+    return & slotCanonicalizer
+    {
+        slmap: make(map[slotKey] SlKeyIdx), slkeys: [] ssa.LocalSlot { ssa.LocalSlot { N: nil } },
+    }
 }
 
-func newSlotCanonicalizer() *slotCanonicalizer {
-	return &slotCanonicalizer{
-		slmap:  make(map[slotKey]SlKeyIdx),
-		slkeys: []ssa.LocalSlot{ssa.LocalSlot{N: nil}},
-	}
-}
-
-type SlKeyIdx uint32
-
-const noSlot = SlKeyIdx(0)
-
-// slotKey is a type-insensitive encapsulation of a LocalSlot; it
+type SlKeyIdx uint32 const noSlot = SlKeyIdx(0) // slotKey is a type-insensitive encapsulation of a LocalSlot; it
 // is used to key a map within slotCanonicalizer.
-type slotKey struct {
-	name        *ir.Name
-	offset      int64
-	width       int64
-	splitOf     SlKeyIdx // idx in slkeys slice in slotCanonicalizer
-	splitOffset int64
+type slotKey struct 
+{
+    name * ir.Name offset int64 width int64 splitOf SlKeyIdx // idx in slkeys slice in slotCanonicalizer
+    splitOffset int64
 }
-
 // lookup looks up a LocalSlot in the slot canonicalizer "sc", returning
 // a canonical index for the slot, and adding it to the table if need
 // be. Return value is the canonical slot index, and a boolean indicating
 // whether the slot was found in the table already (TRUE => found).
-func (sc *slotCanonicalizer) lookup(ls ssa.LocalSlot) (SlKeyIdx, bool) {
-	split := noSlot
-	if ls.SplitOf != nil {
-		split, _ = sc.lookup(*ls.SplitOf)
-	}
-	k := slotKey{
-		name: ls.N, offset: ls.Off, width: ls.Type.Size(),
-		splitOf: split, splitOffset: ls.SplitOffset,
-	}
-	if idx, ok := sc.slmap[k]; ok {
-		return idx, true
-	}
-	rv := SlKeyIdx(len(sc.slkeys))
-	sc.slkeys = append(sc.slkeys, ls)
-	sc.slmap[k] = rv
-	return rv, false
+func(sc * slotCanonicalizer) lookup(ls ssa.LocalSlot)(SlKeyIdx, bool)
+{
+    split: = noSlot if ls.SplitOf != nil { split, _ = sc.lookup( * ls.SplitOf) }
+    k: = slotKey { name: ls.N, offset: ls.Off, width: ls.Type.Size(), splitOf: split, splitOffset: ls.SplitOffset, }
+    if idx, ok: = sc.slmap[k];
+    ok { return idx, true }
+    rv: = SlKeyIdx(len(sc.slkeys)) sc.slkeys = append(sc.slkeys, ls) sc.slmap[k] = rv return rv, false
 }
 
-func (sc *slotCanonicalizer) canonSlot(idx SlKeyIdx) ssa.LocalSlot {
-	return sc.slkeys[idx]
-}
-
+func(sc * slotCanonicalizer) canonSlot(idx SlKeyIdx) ssa.LocalSlot { return sc.slkeys[idx] }
 // PopulateABIInRegArgOps examines the entry block of the function
 // and looks for incoming parameters that have missing or partial
 // OpArg{Int,Float}Reg values, inserting additional values in
@@ -135,346 +92,254 @@ func (sc *slotCanonicalizer) canonSlot(idx SlKeyIdx) ssa.LocalSlot {
 // This function examines the live OpArg{Int,Float}Reg values and
 // synthesizes new (dead) values for the non-live params or the
 // non-live pieces of partially live params.
-func PopulateABIInRegArgOps(f *ssa.Func) {
-	pri := f.ABISelf.ABIAnalyzeFuncType(f.Type)
+func PopulateABIInRegArgOps(f * ssa.Func)
+{
+    pri: = f.ABISelf.ABIAnalyzeFuncType(f.Type) // When manufacturing new slots that correspond to splits of
+    // composite parameters, we want to avoid creating a new sub-slot
+    // that differs from some existing sub-slot only by type, since
+    // the debug location analysis will treat that slot as a separate
+    // entity. To achieve this, create a lookup table of existing
+    // slots that is type-insenstitive.
+    sc: = newSlotCanonicalizer() for _, sl: = range f.Names { sc.lookup(sl) }
+    // Add slot -> value entry to f.NamedValues if not already present.
+    addToNV: = func(v * ssa.Value, sl ssa.LocalSlot)
+    {
+        values, ok: = f.NamedValues[sl] if ! ok
+        {
+            // Haven't seen this slot yet.
+            f.Names = append(f.Names, sl)
+        }
+        else
+        {
+            for _, ev: = range values { if v == ev { return } }
+        }
+        values = append(values, v) f.NamedValues[sl] = values
+    }
 
-	// When manufacturing new slots that correspond to splits of
-	// composite parameters, we want to avoid creating a new sub-slot
-	// that differs from some existing sub-slot only by type, since
-	// the debug location analysis will treat that slot as a separate
-	// entity. To achieve this, create a lookup table of existing
-	// slots that is type-insenstitive.
-	sc := newSlotCanonicalizer()
-	for _, sl := range f.Names {
-		sc.lookup(sl)
-	}
+    newValues: = [] * ssa.Value {}
 
-	// Add slot -> value entry to f.NamedValues if not already present.
-	addToNV := func(v *ssa.Value, sl ssa.LocalSlot) {
-		values, ok := f.NamedValues[sl]
-		if !ok {
-			// Haven't seen this slot yet.
-			f.Names = append(f.Names, sl)
-		} else {
-			for _, ev := range values {
-				if v == ev {
-					return
-				}
-			}
-		}
-		values = append(values, v)
-		f.NamedValues[sl] = values
-	}
-
-	newValues := []*ssa.Value{}
-
-	abiRegIndexToRegister := func(reg abi.RegIndex) int8 {
-		i := f.ABISelf.FloatIndexFor(reg)
-		if i >= 0 { // float PR
-			return f.Config.FloatParamRegs[i]
-		} else {
-			return f.Config.IntParamRegs[reg]
-		}
-	}
-
-	// Helper to construct a new OpArg{Float,Int}Reg op value.
-	var pos src.XPos
-	if len(f.Entry.Values) != 0 {
-		pos = f.Entry.Values[0].Pos
-	}
-	synthesizeOpIntFloatArg := func(n *ir.Name, t *types.Type, reg abi.RegIndex, sl ssa.LocalSlot) *ssa.Value {
-		aux := &ssa.AuxNameOffset{Name: n, Offset: sl.Off}
-		op, auxInt := ssa.ArgOpAndRegisterFor(reg, f.ABISelf)
-		v := f.NewValueNoBlock(op, t, pos)
-		v.AuxInt = auxInt
-		v.Aux = aux
-		v.Args = nil
-		v.Block = f.Entry
-		newValues = append(newValues, v)
-		addToNV(v, sl)
-		f.SetHome(v, &f.Config.Registers[abiRegIndexToRegister(reg)])
-		return v
-	}
-
-	// Make a pass through the entry block looking for
-	// OpArg{Int,Float}Reg ops. Record the slots they use in a table
-	// ("sc"). We use a type-insensitive lookup for the slot table,
-	// since the type we get from the ABI analyzer won't always match
-	// what the compiler uses when creating OpArg{Int,Float}Reg ops.
-	for _, v := range f.Entry.Values {
-		if v.Op == ssaop.OpArgIntReg || v.Op == ssaop.OpArgFloatReg {
-			aux := v.Aux.(*ssa.AuxNameOffset)
-			sl := ssa.LocalSlot{N: aux.Name, Type: v.Type, Off: aux.Offset}
-			// install slot in lookup table
-			idx, _ := sc.lookup(sl)
-			// add to f.NamedValues if not already present
-			addToNV(v, sc.canonSlot(idx))
-		} else if v.Op.IsCall() {
-			// if we hit a call, we've gone too far.
-			break
-		}
-	}
-
-	// Now make a pass through the ABI in-params, looking for params
-	// or pieces of params that we didn't encounter in the loop above.
-	for _, inp := range pri.InParams() {
-		if !isNamedRegParam(inp) {
-			continue
-		}
-		n := inp.Name
-
-		// Param is spread across one or more registers. Walk through
-		// each piece to see whether we've seen an arg reg op for it.
-		types, offsets := inp.RegisterTypesAndOffsets()
-		for k, t := range types {
-			// Note: this recipe for creating a LocalSlot is designed
-			// to be compatible with the one used in expand_calls.go
-			// as opposed to decompose.go. The expand calls code just
-			// takes the base name and creates an offset into it,
-			// without using the SplitOf/SplitOffset fields. The code
-			// in decompose.go does the opposite -- it creates a
-			// LocalSlot object with "Off" set to zero, but with
-			// SplitOf pointing to a parent slot, and SplitOffset
-			// holding the offset into the parent object.
-			pieceSlot := ssa.LocalSlot{N: n, Type: t, Off: offsets[k]}
-
-			// Look up this piece to see if we've seen a reg op
-			// for it. If not, create one.
-			_, found := sc.lookup(pieceSlot)
-			if !found {
-				// This slot doesn't appear in the map, meaning it
-				// corresponds to an in-param that is not live, or
-				// a portion of an in-param that is not live/used.
-				// Add a new dummy OpArg{Int,Float}Reg for it.
-				synthesizeOpIntFloatArg(n, t, inp.Registers[k],
-					pieceSlot)
-			}
-		}
-	}
-
-	// Insert the new values into the head of the block.
-	f.Entry.Values = append(newValues, f.Entry.Values...)
+    abiRegIndexToRegister: = func(reg abi.RegIndex) int8
+    {
+        i: = f.ABISelf.FloatIndexFor(reg) if i >= 0
+        {
+            // float PR
+            return f.Config.FloatParamRegs[i]
+        }
+        else { return f.Config.IntParamRegs[reg] }
+    }
+    // Helper to construct a new OpArg{Float,Int}Reg op value.
+    var pos src.XPos if len(f.Entry.Values) != 0 { pos = f.Entry.Values[0].Pos }
+    synthesizeOpIntFloatArg: = func(n * ir.Name, t * types.Type, reg abi.RegIndex, sl ssa.LocalSlot) * ssa.Value
+    {
+        aux: = & ssa.AuxNameOffset { Name: n, Offset: sl.Off }
+        op, auxInt: = ssa.ArgOpAndRegisterFor(reg, f.ABISelf) v: = f.NewValueNoBlock(op, t, pos) v.AuxInt = auxInt v.Aux = aux v.Args = nil v.Block = f.Entry newValues = append
+        (
+            newValues, v
+        )
+        addToNV(v, sl) f.SetHome(v, & f.Config.Registers[abiRegIndexToRegister(reg)]) return v
+    }
+    // Make a pass through the entry block looking for
+    // OpArg{Int,Float}Reg ops. Record the slots they use in a table
+    // ("sc"). We use a type-insensitive lookup for the slot table,
+    // since the type we get from the ABI analyzer won't always match
+    // what the compiler uses when creating OpArg{Int,Float}Reg ops.
+    for _, v: = range f.Entry.Values
+    {
+        if v.Op == ssaop.OpArgIntReg || v.Op == ssaop.OpArgFloatReg
+        {
+            aux: = v.Aux.( * ssa.AuxNameOffset) sl: = ssa.LocalSlot { N: aux.Name, Type: v.Type, Off: aux.Offset }
+            // install slot in lookup table
+            idx, _: = sc.lookup(sl) // add to f.NamedValues if not already present
+            addToNV(v, sc.canonSlot(idx))
+        }
+        else if v.Op.IsCall()
+        {
+            // if we hit a call, we've gone too far.
+            break
+        }
+    }
+    // Now make a pass through the ABI in-params, looking for params
+    // or pieces of params that we didn't encounter in the loop above.
+    for _, inp: = range pri.InParams()
+    {
+        if ! isNamedRegParam(inp) { continue }
+        n: = inp.Name // Param is spread across one or more registers. Walk through
+        // each piece to see whether we've seen an arg reg op for it.
+        types, offsets: = inp.RegisterTypesAndOffsets() for k, t: = range types
+        {
+            // Note: this recipe for creating a LocalSlot is designed
+            // to be compatible with the one used in expand_calls.go
+            // as opposed to decompose.go. The expand calls code just
+            // takes the base name and creates an offset into it,
+            // without using the SplitOf/SplitOffset fields. The code
+            // in decompose.go does the opposite -- it creates a
+            // LocalSlot object with "Off" set to zero, but with
+            // SplitOf pointing to a parent slot, and SplitOffset
+            // holding the offset into the parent object.
+            pieceSlot: = ssa.LocalSlot { N: n, Type: t, Off: offsets[k] }
+            // Look up this piece to see if we've seen a reg op
+            // for it. If not, create one.
+            _, found: = sc.lookup(pieceSlot) if ! found
+            {
+                // This slot doesn't appear in the map, meaning it
+                // corresponds to an in-param that is not live, or
+                // a portion of an in-param that is not live/used.
+                // Add a new dummy OpArg{Int,Float}Reg for it.
+                synthesizeOpIntFloatArg(n, t, inp.Registers[k], pieceSlot)
+            }
+        }
+    }
+    // Insert the new values into the head of the block.
+    f.Entry.Values = append(newValues, f.Entry.Values ...)
 }
-
 // BuildFuncDebug builds debug information for f, placing the results
 // in "rval". f must be fully processed, so that each Value is where it
 // will be when machine code is emitted.
-func BuildFuncDebug(ctxt *obj.Link, f *ssa.Func, loggingLevel int, stackOffset func(ssa.LocalSlot) int32, rval *FuncDebug) {
-	if f.RegAlloc == nil {
-		f.Fatalf("BuildFuncDebug on func %v that has not been fully processed", f)
-	}
-	state := &f.Cache.DebugState
-	state.LoggingLevel = loggingLevel % 1000
+func BuildFuncDebug(ctxt * obj.Link, f * ssa.Func, loggingLevel int , stackOffset func(ssa.LocalSlot) int32, rval * FuncDebug)
+{
+    if f.RegAlloc == nil { f.Fatalf("BuildFuncDebug on func %v that has not been fully processed", f) }
+    state: = & f.Cache.DebugState state.LoggingLevel = loggingLevel % 1000 // A specific number demands exactly that many iterations. Under
+    // particular circumstances it make require more than the total of
+    // 2 passes implied by a single run through liveness and a single
+    // run through location list generation.
+    state.ConvergeCount = loggingLevel / 1000 state.F = f state.Registers = f.Config.Registers state.StackOffset = stackOffset state.Ctxt = ctxt if buildcfg.Experiment.RegabiArgs
+    {
+        PopulateABIInRegArgOps(f)
+    }
 
-	// A specific number demands exactly that many iterations. Under
-	// particular circumstances it make require more than the total of
-	// 2 passes implied by a single run through liveness and a single
-	// run through location list generation.
-	state.ConvergeCount = loggingLevel / 1000
-	state.F = f
-	state.Registers = f.Config.Registers
-	state.StackOffset = stackOffset
-	state.Ctxt = ctxt
+    if state.LoggingLevel > 0 { state.Logf("Generating location lists for function %q\n", f.Name) }
 
-	if buildcfg.Experiment.RegabiArgs {
-		PopulateABIInRegArgOps(f)
-	}
+    if state.VarParts == nil { state.VarParts = make(map[ * ir.Name][] ssa.SlotID) } else { clear(state.VarParts) }
+    // Recompose any decomposed variables, and establish the canonical
+    // IDs for each var and slot by filling out state.vars and state.slots.
 
-	if state.LoggingLevel > 0 {
-		state.Logf("Generating location lists for function %q\n", f.Name)
-	}
+    state.Slots = state.Slots[: 0] state.Vars = state.Vars[: 0] for i, slot: = range f.Names
+    {
+        state.Slots = append(state.Slots, slot) if ir.IsSynthetic(slot.N) || ! ssa.IsVarWantedForDebug(slot.N) { continue }
 
-	if state.VarParts == nil {
-		state.VarParts = make(map[*ir.Name][]ssa.SlotID)
-	} else {
-		clear(state.VarParts)
-	}
+        topSlot: = slot for topSlot.SplitOf != nil { topSlot = * topSlot.SplitOf }
+        if _, ok: = state.VarParts[topSlot.N];
+        ! ok { state.Vars = append(state.Vars, topSlot.N) }
+        state.VarParts[topSlot.N] = append(state.VarParts[topSlot.N], ssa.SlotID(i))
+    }
+    // Recreate the LocalSlot for each stack-only variable.
+    // This would probably be better as an output from stackframe.
+    for _, b: = range f.Blocks
+    {
+        for _, v: = range b.Values
+        {
+            if v.Op == ssaop.OpVarDef
+            {
+                n: = v.Aux.( * ir.Name) if ir.IsSynthetic(n) || ! ssa.IsVarWantedForDebug(n) { continue }
 
-	// Recompose any decomposed variables, and establish the canonical
-	// IDs for each var and slot by filling out state.vars and state.slots.
+                if _, ok: = state.VarParts[n];
+                ! ok
+                {
+                    slot: = ssa.LocalSlot { N: n, Type: v.Type, Off: 0 }
+                    state.Slots = append(state.Slots, slot) state.VarParts[n] = [] ssa.SlotID { ssa.SlotID(len(state.Slots) - 1) }
+                    state.Vars = append(state.Vars, n)
+                }
+            }
+        }
+    }
+    // Fill in the var<->slot mappings.
+    if cap(state.VarSlots) < len(state.Vars) { state.VarSlots = make([][] ssa.SlotID, len(state.Vars)) }
+    else
+    {
+        state.VarSlots = state.VarSlots[: len(state.Vars)] for i: = range state.VarSlots { state.VarSlots[i] = state.VarSlots[i][: 0] }
+    }
+    if cap(state.SlotVars) < len(state.Slots) { state.SlotVars = make([] ssa.VarID, len(state.Slots)) }
+    else { state.SlotVars = state.SlotVars[: len(state.Slots)] }
 
-	state.Slots = state.Slots[:0]
-	state.Vars = state.Vars[:0]
-	for i, slot := range f.Names {
-		state.Slots = append(state.Slots, slot)
-		if ir.IsSynthetic(slot.N) || !ssa.IsVarWantedForDebug(slot.N) {
-			continue
-		}
+    for varID, n: = range state.Vars
+    {
+        parts: = state.VarParts[n] slices.SortFunc
+        (
+            parts, func(a, b ssa.SlotID) int { return cmp.Compare(varOffset(state.Slots[a]), varOffset(state.Slots[b])) }
+        )
 
-		topSlot := slot
-		for topSlot.SplitOf != nil {
-			topSlot = *topSlot.SplitOf
-		}
-		if _, ok := state.VarParts[topSlot.N]; !ok {
-			state.Vars = append(state.Vars, topSlot.N)
-		}
-		state.VarParts[topSlot.N] = append(state.VarParts[topSlot.N], ssa.SlotID(i))
-	}
+        state.VarSlots[varID] = parts for _, slotID: = range parts { state.SlotVars[slotID] = ssa.VarID(varID) }
+    }
 
-	// Recreate the LocalSlot for each stack-only variable.
-	// This would probably be better as an output from stackframe.
-	for _, b := range f.Blocks {
-		for _, v := range b.Values {
-			if v.Op == ssaop.OpVarDef {
-				n := v.Aux.(*ir.Name)
-				if ir.IsSynthetic(n) || !ssa.IsVarWantedForDebug(n) {
-					continue
-				}
+    state.InitializeCache(f, len(state.VarParts), len(state.Slots)) for i, slot: = range f.Names
+    {
+        if ir.IsSynthetic(slot.N) || ! ssa.IsVarWantedForDebug(slot.N) { continue }
+        for _, value: = range f.NamedValues[slot] { state.ValueNames[value.ID] = append(state.ValueNames[value.ID], ssa.SlotID(i)) }
+    }
 
-				if _, ok := state.VarParts[n]; !ok {
-					slot := ssa.LocalSlot{N: n, Type: v.Type, Off: 0}
-					state.Slots = append(state.Slots, slot)
-					state.VarParts[n] = []ssa.SlotID{ssa.SlotID(len(state.Slots) - 1)}
-					state.Vars = append(state.Vars, n)
-				}
-			}
-		}
-	}
-
-	// Fill in the var<->slot mappings.
-	if cap(state.VarSlots) < len(state.Vars) {
-		state.VarSlots = make([][]ssa.SlotID, len(state.Vars))
-	} else {
-		state.VarSlots = state.VarSlots[:len(state.Vars)]
-		for i := range state.VarSlots {
-			state.VarSlots[i] = state.VarSlots[i][:0]
-		}
-	}
-	if cap(state.SlotVars) < len(state.Slots) {
-		state.SlotVars = make([]ssa.VarID, len(state.Slots))
-	} else {
-		state.SlotVars = state.SlotVars[:len(state.Slots)]
-	}
-
-	for varID, n := range state.Vars {
-		parts := state.VarParts[n]
-		slices.SortFunc(parts, func(a, b ssa.SlotID) int {
-			return cmp.Compare(varOffset(state.Slots[a]), varOffset(state.Slots[b]))
-		})
-
-		state.VarSlots[varID] = parts
-		for _, slotID := range parts {
-			state.SlotVars[slotID] = ssa.VarID(varID)
-		}
-	}
-
-	state.InitializeCache(f, len(state.VarParts), len(state.Slots))
-
-	for i, slot := range f.Names {
-		if ir.IsSynthetic(slot.N) || !ssa.IsVarWantedForDebug(slot.N) {
-			continue
-		}
-		for _, value := range f.NamedValues[slot] {
-			state.ValueNames[value.ID] = append(state.ValueNames[value.ID], ssa.SlotID(i))
-		}
-	}
-
-	blockLocs := state.Liveness()
-	state.BuildLocationLists(blockLocs)
-
-	// Populate "rval" with what we've computed.
-	rval.Slots = state.Slots
-	rval.VarSlots = state.VarSlots
-	rval.Vars = state.Vars
-	rval.LocationLists = state.Lists
+    blockLocs: = state.Liveness() state.BuildLocationLists(blockLocs) // Populate "rval" with what we've computed.
+    rval.Slots = state.Slots rval.VarSlots = state.VarSlots rval.Vars = state.Vars rval.LocationLists = state.Lists
 }
-
 // varOffset returns the offset of slot within the user variable it was
 // decomposed from. This has nothing to do with its stack offset.
-func varOffset(slot ssa.LocalSlot) int64 {
-	offset := slot.Off
-	s := &slot
-	for ; s.SplitOf != nil; s = s.SplitOf {
-		offset += s.SplitOffset
-	}
-	return offset
+func varOffset(slot ssa.LocalSlot) int64
+{
+    offset: = slot.Off s: = & slot for ;
+    s.SplitOf != nil;
+    s = s.SplitOf { offset += s.SplitOffset }
+    return offset
 }
-
 // PutLocationList adds entries (a location list in structured form)
 // to listSym, encoding it in the appropriate DWARF format.
-func (debugInfo *FuncDebug) PutLocationList(entries []ssa.LocListEntry, ctxt *obj.Link, listSym, startPC *obj.LSym) {
-	if buildcfg.Experiment.Dwarf5 {
-		debugInfo.PutLocationListDwarf5(entries, ctxt, listSym, startPC)
-	} else {
-		debugInfo.PutLocationListDwarf4(entries, ctxt, listSym, startPC)
-	}
+func(debugInfo * FuncDebug) PutLocationList(entries[] ssa.LocListEntry, ctxt * obj.Link, listSym, startPC * obj.LSym)
+{
+    if buildcfg.Experiment.Dwarf5 { debugInfo.PutLocationListDwarf5(entries, ctxt, listSym, startPC) }
+    else { debugInfo.PutLocationListDwarf4(entries, ctxt, listSym, startPC) }
 }
-
 // PutLocationListDwarf5 adds entries (a location list in structured form)
 // to listSym in DWARF 5 format.
-func (debugInfo *FuncDebug) PutLocationListDwarf5(entries []ssa.LocListEntry, ctxt *obj.Link, listSym, startPC *obj.LSym) {
-	getPC := debugInfo.GetPC
-
-	// base address entry
-	listSym.WriteInt(ctxt, listSym.Size, 1, dwarf.DW_LLE_base_addressx)
-	listSym.WriteDwTxtAddrx(ctxt, listSym.Size, startPC, ctxt.DwTextCount*2)
-
-	var stbuf, enbuf [10]byte
-	for _, entry := range entries {
-		begin := getPC(entry.StartBlock, entry.StartValue)
-		end := getPC(entry.EndBlock, entry.EndValue)
-
-		// Write LLE_offset_pair tag followed by payload (ULEB for start
-		// and then end).
-		listSym.WriteInt(ctxt, listSym.Size, 1, dwarf.DW_LLE_offset_pair)
-		stb := stbuf[:0]
-		enb := enbuf[:0]
-		stb = dwarf.AppendUleb128(stb, uint64(begin))
-		enb = dwarf.AppendUleb128(enb, uint64(end))
-		listSym.WriteBytes(ctxt, listSym.Size, stb)
-		listSym.WriteBytes(ctxt, listSym.Size, enb)
-
-		// DWARF5 uses ULEB128-encoded length for the location expression.
-		stb = stbuf[:0]
-		stb = dwarf.AppendUleb128(stb, uint64(len(entry.Expr)))
-		listSym.WriteBytes(ctxt, listSym.Size, stb)
-		listSym.WriteBytes(ctxt, listSym.Size, entry.Expr)
-	}
-
-	// Terminator
-	listSym.WriteInt(ctxt, listSym.Size, 1, dwarf.DW_LLE_end_of_list)
+func(debugInfo * FuncDebug) PutLocationListDwarf5(entries[] ssa.LocListEntry, ctxt * obj.Link, listSym, startPC * obj.LSym)
+{
+    getPC: = debugInfo.GetPC // base address entry
+    listSym.WriteInt(ctxt, listSym.Size, 1, dwarf.DW_LLE_base_addressx) listSym.WriteDwTxtAddrx(ctxt, listSym.Size, startPC, ctxt.DwTextCount * 2) var stbuf, enbuf
+    [
+        10
+    ]
+    byte for _, entry: = range entries
+    {
+        begin: = getPC(entry.StartBlock, entry.StartValue) end: = getPC(entry.EndBlock, entry.EndValue) // Write LLE_offset_pair tag followed by payload (ULEB for start
+        // and then end).
+        listSym.WriteInt(ctxt, listSym.Size, 1, dwarf.DW_LLE_offset_pair) stb: = stbuf[: 0] enb: = enbuf[: 0] stb = dwarf.AppendUleb128(stb, uint64(begin)) enb = dwarf.AppendUleb128
+        (
+            enb, uint64(end)
+        )
+        listSym.WriteBytes(ctxt, listSym.Size, stb) listSym.WriteBytes(ctxt, listSym.Size, enb) // DWARF5 uses ULEB128-encoded length for the location expression.
+        stb = stbuf[: 0] stb = dwarf.AppendUleb128(stb, uint64(len(entry.Expr))) listSym.WriteBytes(ctxt, listSym.Size, stb) listSym.WriteBytes
+        (
+            ctxt, listSym.Size, entry.Expr
+        )
+    }
+    // Terminator
+    listSym.WriteInt(ctxt, listSym.Size, 1, dwarf.DW_LLE_end_of_list)
 }
-
 // PutLocationListDwarf4 adds entries (a location list in structured form)
 // to listSym in DWARF 4 format.
-func (debugInfo *FuncDebug) PutLocationListDwarf4(entries []ssa.LocListEntry, ctxt *obj.Link, listSym, startPC *obj.LSym) {
-	getPC := debugInfo.GetPC
+func(debugInfo * FuncDebug) PutLocationListDwarf4(entries[] ssa.LocListEntry, ctxt * obj.Link, listSym, startPC * obj.LSym)
+{
+    getPC: = debugInfo.GetPC if ctxt.UseBASEntries
+    {
+        listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, ^ 0) listSym.WriteAddr(ctxt, listSym.Size, ctxt.Arch.PtrSize, startPC, 0)
+    }
 
-	if ctxt.UseBASEntries {
-		listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, ^0)
-		listSym.WriteAddr(ctxt, listSym.Size, ctxt.Arch.PtrSize, startPC, 0)
-	}
+    for _, entry: = range entries
+    {
+        begin: = getPC(entry.StartBlock, entry.StartValue) end: = getPC(entry.EndBlock, entry.EndValue) // Horrible hack. If a range contains only zero-width
+        // instructions, e.g. an Arg, and it's at the beginning of the
+        // function, this would be indistinguishable from an
+        // end entry. Fudge it.
+        if begin == 0 && end == 0 { end = 1 }
 
-	for _, entry := range entries {
-		begin := getPC(entry.StartBlock, entry.StartValue)
-		end := getPC(entry.EndBlock, entry.EndValue)
-
-		// Horrible hack. If a range contains only zero-width
-		// instructions, e.g. an Arg, and it's at the beginning of the
-		// function, this would be indistinguishable from an
-		// end entry. Fudge it.
-		if begin == 0 && end == 0 {
-			end = 1
-		}
-
-		if ctxt.UseBASEntries {
-			listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, begin)
-			listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, end)
-		} else {
-			listSym.WriteCURelativeAddr(ctxt, listSym.Size, startPC, begin)
-			listSym.WriteCURelativeAddr(ctxt, listSym.Size, startPC, end)
-		}
-
-		// Write 2-byte length prefix followed by the location expression.
-		listSym.WriteInt(ctxt, listSym.Size, 2, int64(len(entry.Expr)))
-		listSym.WriteBytes(ctxt, listSym.Size, entry.Expr)
-	}
-
-	// End entry.
-	listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, 0)
-	listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, 0)
+        if ctxt.UseBASEntries
+        {
+            listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, begin) listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, end)
+        }
+        else { listSym.WriteCURelativeAddr(ctxt, listSym.Size, startPC, begin) listSym.WriteCURelativeAddr(ctxt, listSym.Size, startPC, end) }
+        // Write 2-byte length prefix followed by the location expression.
+        listSym.WriteInt(ctxt, listSym.Size, 2, int64(len(entry.Expr))) listSym.WriteBytes(ctxt, listSym.Size, entry.Expr)
+    }
+    // End entry.
+    listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, 0) listSym.WriteInt(ctxt, listSym.Size, ctxt.Arch.PtrSize, 0)
 }
-
 // locatePrologEnd walks the entry block of a function with incoming
 // register arguments and locates the last instruction in the prolog
 // that spills a register arg. It returns the ID of that instruction,
@@ -495,106 +360,77 @@ func (debugInfo *FuncDebug) PutLocationListDwarf4(entries []ssa.LocListEntry, ct
 // optimization turned off (e.g. "-N"). If optimization is enabled
 // we can't be assured of finding all input arguments spilled in the
 // entry block prolog.
-func locatePrologEnd(f *ssa.Func, needCloCtx bool) (ssa.ID, *ssa.Value) {
-
-	// returns true if this instruction looks like it moves an ABI
-	// register (or context register for rangefunc bodies) to the
-	// stack, along with the value being stored.
-	isRegMoveLike := func(v *ssa.Value) (bool, ssa.ID) {
-		n, ok := v.Aux.(*ir.Name)
-		var r ssa.ID
-		if (!ok || n.Class != ir.PPARAM) && !needCloCtx {
-			return false, r
-		}
-		regInputs, memInputs, spInputs := 0, 0, 0
-		for _, a := range v.Args {
-			if a.Op == ssaop.OpArgIntReg || a.Op == ssaop.OpArgFloatReg ||
-				(needCloCtx && a.Op.IsLoweredGetClosurePtr()) {
-				regInputs++
-				r = a.ID
-			} else if a.Type.IsMemory() {
-				memInputs++
-			} else if a.Op == ssaop.OpSP {
-				spInputs++
-			} else {
-				return false, r
-			}
-		}
-		return v.Type.IsMemory() && memInputs == 1 &&
-			regInputs == 1 && spInputs == 1, r
-	}
-
-	// OpArg*Reg values we've seen so far on our forward walk,
-	// for which we have not yet seen a corresponding spill.
-	regArgs := make([]ssa.ID, 0, 32)
-
-	// removeReg tries to remove a value from regArgs, returning true
-	// if found and removed, or false otherwise.
-	removeReg := func(r ssa.ID) bool {
-		for i := 0; i < len(regArgs); i++ {
-			if regArgs[i] == r {
-				regArgs = slices.Delete(regArgs, i, i+1)
-				return true
-			}
-		}
-		return false
-	}
-
-	// Walk forwards through the block. When we see OpArg*Reg, record
-	// the value it produces in the regArgs list. When see a store that uses
-	// the value, remove the entry. When we hit the last store (use)
-	// then we've arrived at the end of the prolog.
-	var cloRegStore *ssa.Value
-	for k, v := range f.Entry.Values {
-		if v.Op == ssaop.OpArgIntReg || v.Op == ssaop.OpArgFloatReg {
-			regArgs = append(regArgs, v.ID)
-			continue
-		}
-		if needCloCtx && v.Op.IsLoweredGetClosurePtr() {
-			regArgs = append(regArgs, v.ID)
-			cloRegStore = v
-			continue
-		}
-		if ok, r := isRegMoveLike(v); ok {
-			if removed := removeReg(r); removed {
-				if len(regArgs) == 0 {
-					// Found our last spill; return the value after
-					// it. Note that it is possible that this spill is
-					// the last instruction in the block. If so, then
-					// return the "end of block" sentinel.
-					if k < len(f.Entry.Values)-1 {
-						return f.Entry.Values[k+1].ID, cloRegStore
-					}
-					return ssa.BlockEnd.ID, cloRegStore
-				}
-			}
-		}
-		if v.Op.IsCall() {
-			// if we hit a call, we've gone too far.
-			return v.ID, cloRegStore
-		}
-	}
-	// nothing found
-	return ssa.ID(-1), cloRegStore
+func locatePrologEnd(f * ssa.Func, needCloCtx bool)(ssa.ID, * ssa.Value)
+{
+    // returns true if this instruction looks like it moves an ABI
+    // register (or context register for rangefunc bodies) to the
+    // stack, along with the value being stored.
+    isRegMoveLike: = func(v * ssa.Value)(bool , ssa.ID)
+    {
+        n, ok: = v.Aux.( * ir.Name) var r ssa.ID if ( ! ok || n.Class != ir.PPARAM) && ! needCloCtx { return false, r }
+        regInputs, memInputs, spInputs: = 0, 0, 0 for _, a: = range v.Args
+        {
+            if a.Op == ssaop.OpArgIntReg || a.Op == ssaop.OpArgFloatReg || (needCloCtx && a.Op.IsLoweredGetClosurePtr()) { regInputs ++ r = a.ID }
+            else if a.Type.IsMemory() { memInputs ++ }
+            else if a.Op == ssaop.OpSP { spInputs ++ } else { return false, r }
+        }
+        return v.Type.IsMemory() && memInputs == 1 && regInputs == 1 && spInputs == 1, r
+    }
+    // OpArg*Reg values we've seen so far on our forward walk,
+    // for which we have not yet seen a corresponding spill.
+    regArgs: = make([] ssa.ID, 0, 32) // removeReg tries to remove a value from regArgs, returning true
+    // if found and removed, or false otherwise.
+    removeReg: = func(r ssa.ID) bool
+    {
+        for i: = 0;
+        i < len(regArgs);
+        i++ { if regArgs[i] == r { regArgs = slices.Delete(regArgs, i, i + 1) return true } }
+        return false
+    }
+    // Walk forwards through the block. When we see OpArg*Reg, record
+    // the value it produces in the regArgs list. When see a store that uses
+    // the value, remove the entry. When we hit the last store (use)
+    // then we've arrived at the end of the prolog.
+    var cloRegStore * ssa.Value for k, v: = range f.Entry.Values
+    {
+        if v.Op == ssaop.OpArgIntReg || v.Op == ssaop.OpArgFloatReg { regArgs = append(regArgs, v.ID) continue }
+        if needCloCtx && v.Op.IsLoweredGetClosurePtr() { regArgs = append(regArgs, v.ID) cloRegStore = v continue }
+        if ok, r: = isRegMoveLike(v);
+        ok
+        {
+            if removed: = removeReg(r);
+            removed
+            {
+                if len(regArgs) == 0
+                {
+                    // Found our last spill; return the value after
+                    // it. Note that it is possible that this spill is
+                    // the last instruction in the block. If so, then
+                    // return the "end of block" sentinel.
+                    if k < len(f.Entry.Values) - 1 { return f.Entry.Values[k + 1].ID, cloRegStore }
+                    return ssa.BlockEnd.ID, cloRegStore
+                }
+            }
+        }
+        if v.Op.IsCall()
+        {
+            // if we hit a call, we've gone too far.
+            return v.ID, cloRegStore
+        }
+    }
+    // nothing found
+    return ssa.ID( - 1), cloRegStore
 }
-
 // isNamedRegParam returns true if the param corresponding to "p"
 // is a named, non-blank input parameter assigned to one or more
 // registers.
-func isNamedRegParam(p abi.ABIParamAssignment) bool {
-	if p.Name == nil {
-		return false
-	}
-	n := p.Name
-	if n.Sym() == nil || n.Sym().IsBlank() {
-		return false
-	}
-	if len(p.Registers) == 0 {
-		return false
-	}
-	return true
+func isNamedRegParam(p abi.ABIParamAssignment) bool
+{
+    if p.Name == nil { return false }
+    n: = p.Name if n.Sym() == nil || n.Sym().IsBlank() { return false }
+    if len(p.Registers) == 0 { return false }
+    return true
 }
-
 // BuildFuncDebugNoOptimized populates a FuncDebug object "rval" with
 // entries corresponding to the register-resident input parameters for
 // the function "f"; it is used when we are compiling without
@@ -606,187 +442,123 @@ func isNamedRegParam(p abi.ABIParamAssignment) bool {
 // to the register params, here we also build location lists (where
 // appropriate for the ".closureptr" compiler-synthesized variable
 // needed by the debugger for range func bodies.
-func BuildFuncDebugNoOptimized(ctxt *obj.Link, f *ssa.Func, loggingEnabled bool, stackOffset func(ssa.LocalSlot) int32, rval *FuncDebug) {
-	needCloCtx := f.CloSlot != nil
-	pri := f.ABISelf.ABIAnalyzeFuncType(f.Type)
+func BuildFuncDebugNoOptimized(ctxt * obj.Link, f * ssa.Func, loggingEnabled bool , stackOffset func(ssa.LocalSlot) int32, rval * FuncDebug)
+{
+    needCloCtx: = f.CloSlot != nil pri: = f.ABISelf.ABIAnalyzeFuncType(f.Type) // Look to see if we have any named register-promoted parameters,
+    // and/or whether we need location info for the ".closureptr"
+    // synthetic variable; if not bail early and let the caller sort
+    // things out for the remainder of the params/locals.
+    numRegParams: = 0 for _, inp: = range pri.InParams() { if isNamedRegParam(inp) { numRegParams ++ } }
+    if numRegParams == 0 && ! needCloCtx { return }
 
-	// Look to see if we have any named register-promoted parameters,
-	// and/or whether we need location info for the ".closureptr"
-	// synthetic variable; if not bail early and let the caller sort
-	// things out for the remainder of the params/locals.
-	numRegParams := 0
-	for _, inp := range pri.InParams() {
-		if isNamedRegParam(inp) {
-			numRegParams++
-		}
-	}
-	if numRegParams == 0 && !needCloCtx {
-		return
-	}
+    state: = ssa.DebugState { F: f }
 
-	state := ssa.DebugState{F: f}
+    if loggingEnabled { state.Logf("generating -N reg param loc lists for func %q\n", f.Name) }
+    // cloReg stores the obj register num that the context register
+    // appears in within the function prolog, where appropriate.
+    var cloReg int16 extraForCloCtx: = 0 if needCloCtx { extraForCloCtx = 1 }
+    // Allocate location lists.
+    rval.LocationLists = make([][] ssa.LocListEntry, numRegParams + extraForCloCtx) // Locate the value corresponding to the last spill of
+    // an input register.
+    afterPrologVal, cloRegStore: = locatePrologEnd(f, needCloCtx) if needCloCtx
+    {
+        reg, _: = state.F.GetHome(cloRegStore.ID).( * ssabase.Register) cloReg = reg.ObjNum if loggingEnabled
+        {
+            state.Logf("needCloCtx is true for func %q, cloreg=%v\n", f.Name, reg)
+        }
+    }
 
-	if loggingEnabled {
-		state.Logf("generating -N reg param loc lists for func %q\n", f.Name)
-	}
+    addVarSlot: = func(name * ir.Name, typ * types.Type)
+    {
+        sl: = ssa.LocalSlot { N: name, Type: typ, Off: 0 }
+        rval.Vars = append(rval.Vars, name) rval.Slots = append(rval.Slots, sl) slid: = len(rval.VarSlots) rval.VarSlots = append
+        (
+            rval.VarSlots, [] ssa.SlotID { ssa.SlotID(slid) }
+        )
+    }
+    // Make an initial pass to populate the vars/slots for our return
+    // value, covering first the input parameters and then (if needed)
+    // the special ".closureptr" var for rangefunc bodies.
+    params: = [] abi.ABIParamAssignment {}
+    for _, inp: = range pri.InParams()
+    {
+        if ! isNamedRegParam(inp)
+        {
+            // will be sorted out elsewhere
+            continue
+        }
+        if ! ssa.IsVarWantedForDebug(inp.Name) { continue }
+        addVarSlot(inp.Name, inp.Type) params = append(params, inp)
+    }
+    if needCloCtx
+    {
+        addVarSlot(f.CloSlot, f.CloSlot.Type()) cloAssign: = abi.ABIParamAssignment
+        {
+            Type: f.CloSlot.Type(), Name: f.CloSlot, Registers: [] abi.RegIndex { 0 },
+            // dummy
+        }
+        params = append(params, cloAssign)
+    }
+    // Walk the input params again and process the register-resident elements.
+    pidx: = 0 for _, inp: = range params
+    {
+        if ! isNamedRegParam(inp)
+        {
+            // will be sorted out elsewhere
+            continue
+        }
+        if ! ssa.IsVarWantedForDebug(inp.Name) { continue }
 
-	// cloReg stores the obj register num that the context register
-	// appears in within the function prolog, where appropriate.
-	var cloReg int16
+        sl: = rval.Slots[pidx] n: = rval.Vars[pidx] if afterPrologVal == ssa.ID( - 1)
+        {
+            // This can happen for degenerate functions with infinite
+            // loops such as that in issue 45948. In such cases, leave
+            // the var/slot set up for the param, but don't try to
+            // emit a location list.
+            if loggingEnabled { state.Logf("locatePrologEnd failed, skipping %v\n", n) }
+            pidx++ continue
+        }
+        // Param is arriving in one or more registers. We need a 2-element
+        // location expression for it. First entry in location list
+        // will correspond to lifetime in input registers.
+        if loggingEnabled { state.Logf("param %v:\n  [<entry>, %d]:\n", n, afterPrologVal) }
+        var regExpr[] byte rtypes, _: = inp.RegisterTypesAndOffsets() padding: = make([] uint64, 0, 32) padding = inp.ComputePadding(padding) for k, r: = range inp.Registers
+        {
+            var reg int16 if n == f.CloSlot { reg = cloReg } else { reg = ssa.ObjRegForAbiReg(r, f.Config) }
+            dwreg: = ctxt.Arch.DWARFRegisters[reg] if dwreg < 32 { regExpr = append(regExpr, dwarf.DW_OP_reg0 + byte(dwreg)) }
+            else { regExpr = append(regExpr, dwarf.DW_OP_regx) regExpr = dwarf.AppendUleb128(regExpr, uint64(dwreg)) }
+            if loggingEnabled { state.Logf("    piece %d -> dwreg %d", k, dwreg) }
+            if len(inp.Registers) > 1
+            {
+                regExpr = append(regExpr, dwarf.DW_OP_piece) ts: = rtypes[k].Size() regExpr = dwarf.AppendUleb128(regExpr, uint64(ts)) if padding[k] > 0
+                {
+                    if loggingEnabled { state.Logf(" [pad %d bytes]", padding[k]) }
+                    regExpr = append(regExpr, dwarf.DW_OP_piece) regExpr = dwarf.AppendUleb128(regExpr, padding[k])
+                }
+            }
+            if loggingEnabled { state.Logf("\n") }
+        }
+        rval.LocationLists[pidx] = append
+        (
+            rval.LocationLists[pidx], ssa.LocListEntry
+            {
+                StartBlock: f.Entry.ID, StartValue: ssa.BlockStart.ID, EndBlock: f.Entry.ID, EndValue: afterPrologVal, Expr: regExpr, 
+            }
+        )
+        // Second entry in the location list will be the stack home
+        // of the param, once it has been spilled.  Emit that now.
+        var stackExpr[] byte soff: = stackOffset(sl) if soff == 0 { stackExpr = append(stackExpr, dwarf.DW_OP_call_frame_cfa) }
+        else { stackExpr = append(stackExpr, dwarf.DW_OP_fbreg) stackExpr = dwarf.AppendSleb128(stackExpr, int64(soff)) }
+        if loggingEnabled { state.Logf("  [%d, <end>): stackOffset=%d\n", afterPrologVal, soff) }
 
-	extraForCloCtx := 0
-	if needCloCtx {
-		extraForCloCtx = 1
-	}
+        rval.LocationLists[pidx] = append
+        (
+            rval.LocationLists[pidx], ssa.LocListEntry
+            {
+                StartBlock: f.Entry.ID, StartValue: afterPrologVal, EndBlock: f.Entry.ID, EndValue: ssa.FuncEnd.ID, Expr: stackExpr, 
+            }
+        )
 
-	// Allocate location lists.
-	rval.LocationLists = make([][]ssa.LocListEntry, numRegParams+extraForCloCtx)
-
-	// Locate the value corresponding to the last spill of
-	// an input register.
-	afterPrologVal, cloRegStore := locatePrologEnd(f, needCloCtx)
-
-	if needCloCtx {
-		reg, _ := state.F.GetHome(cloRegStore.ID).(*ssabase.Register)
-		cloReg = reg.ObjNum
-		if loggingEnabled {
-			state.Logf("needCloCtx is true for func %q, cloreg=%v\n",
-				f.Name, reg)
-		}
-	}
-
-	addVarSlot := func(name *ir.Name, typ *types.Type) {
-		sl := ssa.LocalSlot{N: name, Type: typ, Off: 0}
-		rval.Vars = append(rval.Vars, name)
-		rval.Slots = append(rval.Slots, sl)
-		slid := len(rval.VarSlots)
-		rval.VarSlots = append(rval.VarSlots, []ssa.SlotID{ssa.SlotID(slid)})
-	}
-
-	// Make an initial pass to populate the vars/slots for our return
-	// value, covering first the input parameters and then (if needed)
-	// the special ".closureptr" var for rangefunc bodies.
-	params := []abi.ABIParamAssignment{}
-	for _, inp := range pri.InParams() {
-		if !isNamedRegParam(inp) {
-			// will be sorted out elsewhere
-			continue
-		}
-		if !ssa.IsVarWantedForDebug(inp.Name) {
-			continue
-		}
-		addVarSlot(inp.Name, inp.Type)
-		params = append(params, inp)
-	}
-	if needCloCtx {
-		addVarSlot(f.CloSlot, f.CloSlot.Type())
-		cloAssign := abi.ABIParamAssignment{
-			Type:      f.CloSlot.Type(),
-			Name:      f.CloSlot,
-			Registers: []abi.RegIndex{0}, // dummy
-		}
-		params = append(params, cloAssign)
-	}
-
-	// Walk the input params again and process the register-resident elements.
-	pidx := 0
-	for _, inp := range params {
-		if !isNamedRegParam(inp) {
-			// will be sorted out elsewhere
-			continue
-		}
-		if !ssa.IsVarWantedForDebug(inp.Name) {
-			continue
-		}
-
-		sl := rval.Slots[pidx]
-		n := rval.Vars[pidx]
-
-		if afterPrologVal == ssa.ID(-1) {
-			// This can happen for degenerate functions with infinite
-			// loops such as that in issue 45948. In such cases, leave
-			// the var/slot set up for the param, but don't try to
-			// emit a location list.
-			if loggingEnabled {
-				state.Logf("locatePrologEnd failed, skipping %v\n", n)
-			}
-			pidx++
-			continue
-		}
-
-		// Param is arriving in one or more registers. We need a 2-element
-		// location expression for it. First entry in location list
-		// will correspond to lifetime in input registers.
-		if loggingEnabled {
-			state.Logf("param %v:\n  [<entry>, %d]:\n", n, afterPrologVal)
-		}
-		var regExpr []byte
-		rtypes, _ := inp.RegisterTypesAndOffsets()
-		padding := make([]uint64, 0, 32)
-		padding = inp.ComputePadding(padding)
-		for k, r := range inp.Registers {
-			var reg int16
-			if n == f.CloSlot {
-				reg = cloReg
-			} else {
-				reg = ssa.ObjRegForAbiReg(r, f.Config)
-			}
-			dwreg := ctxt.Arch.DWARFRegisters[reg]
-			if dwreg < 32 {
-				regExpr = append(regExpr, dwarf.DW_OP_reg0+byte(dwreg))
-			} else {
-				regExpr = append(regExpr, dwarf.DW_OP_regx)
-				regExpr = dwarf.AppendUleb128(regExpr, uint64(dwreg))
-			}
-			if loggingEnabled {
-				state.Logf("    piece %d -> dwreg %d", k, dwreg)
-			}
-			if len(inp.Registers) > 1 {
-				regExpr = append(regExpr, dwarf.DW_OP_piece)
-				ts := rtypes[k].Size()
-				regExpr = dwarf.AppendUleb128(regExpr, uint64(ts))
-				if padding[k] > 0 {
-					if loggingEnabled {
-						state.Logf(" [pad %d bytes]", padding[k])
-					}
-					regExpr = append(regExpr, dwarf.DW_OP_piece)
-					regExpr = dwarf.AppendUleb128(regExpr, padding[k])
-				}
-			}
-			if loggingEnabled {
-				state.Logf("\n")
-			}
-		}
-		rval.LocationLists[pidx] = append(rval.LocationLists[pidx], ssa.LocListEntry{
-			StartBlock: f.Entry.ID,
-			StartValue: ssa.BlockStart.ID,
-			EndBlock:   f.Entry.ID,
-			EndValue:   afterPrologVal,
-			Expr:       regExpr,
-		})
-
-		// Second entry in the location list will be the stack home
-		// of the param, once it has been spilled.  Emit that now.
-		var stackExpr []byte
-		soff := stackOffset(sl)
-		if soff == 0 {
-			stackExpr = append(stackExpr, dwarf.DW_OP_call_frame_cfa)
-		} else {
-			stackExpr = append(stackExpr, dwarf.DW_OP_fbreg)
-			stackExpr = dwarf.AppendSleb128(stackExpr, int64(soff))
-		}
-		if loggingEnabled {
-			state.Logf("  [%d, <end>): stackOffset=%d\n", afterPrologVal, soff)
-		}
-
-		rval.LocationLists[pidx] = append(rval.LocationLists[pidx], ssa.LocListEntry{
-			StartBlock: f.Entry.ID,
-			StartValue: afterPrologVal,
-			EndBlock:   f.Entry.ID,
-			EndValue:   ssa.FuncEnd.ID,
-			Expr:       stackExpr,
-		})
-
-		pidx++
-	}
+        pidx++
+    }
 }

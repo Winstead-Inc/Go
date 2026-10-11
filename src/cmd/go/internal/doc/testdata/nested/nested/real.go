@@ -1,4 +1,1 @@
-package nested
-
-type Foo struct {
-}
+package nested type Foo struct {}

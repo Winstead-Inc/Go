@@ -180,8 +180,9 @@ linux_386)
 	mktypes="GOARCH=$GOARCH go tool cgo -godefs"
 	;;
 linux_amd64)
-	unistd_h=$(ls -1 /usr/include/asm/unistd_64.h /usr/include/x86_64-linux-gnu/asm/unistd_64.h 2>/dev/null | head -1)
-	if [ "$unistd_h" = "" ]; then
+	unistd_h=$(ls -1 /usr/include/asm/unistd_64.h /usr/include/x86_64-linux-gnu/asm/unistd_64.h 2> /dev/null | head -1)
+	if [ "$unistd_h" = "" ];
+then
 		echo >&2 cannot find unistd_64.h
 		exit 1
 	fi
@@ -197,8 +198,9 @@ linux_arm)
 	mktypes="GOARCH=$GOARCH go tool cgo -godefs"
 	;;
 linux_arm64)
-	unistd_h=$(ls -1 /usr/include/asm/unistd.h /usr/include/asm-generic/unistd.h 2>/dev/null | head -1)
-	if [ "$unistd_h" = "" ]; then
+	unistd_h=$(ls -1 /usr/include/asm/unistd.h /usr/include/asm-generic/unistd.h 2> /dev/null | head -1)
+	if [ "$unistd_h" = "" ];
+then
 		echo >&2 cannot find unistd_64.h
 		exit 1
 	fi
@@ -209,8 +211,9 @@ linux_arm64)
 	;;
 linux_loong64)
         GOOSARCH_in=syscall_linux_loong64.go
-        unistd_h=$(ls -1 /usr/include/asm/unistd.h /usr/include/asm-generic/unistd.h 2>/dev/null | head -1)
-        if [ "$unistd_h" = "" ]; then
+        unistd_h=$(ls -1 /usr/include/asm/unistd.h /usr/include/asm-generic/unistd.h 2> /dev/null | head -1)
+        if [ "$unistd_h" = "" ];
+then
                 echo >&2 cannot find unistd.h
                 exit 1
         fi
@@ -262,8 +265,9 @@ linux_ppc64le)
 	mktypes="GOARCH=$GOARCH go tool cgo -godefs"
 	;;
 linux_riscv64)
-	unistd_h=$(ls -1 /usr/include/asm/unistd.h /usr/include/asm-generic/unistd.h 2>/dev/null | head -1)
-	if [ "$unistd_h" = "" ]; then
+	unistd_h=$(ls -1 /usr/include/asm/unistd.h /usr/include/asm-generic/unistd.h 2> /dev/null | head -1)
+	if [ "$unistd_h" = "" ];
+then
 		echo >&2 cannot find unistd_64.h
 		exit 1
 	fi
@@ -390,22 +394,27 @@ windows_*)
 	exit 1
 	;;
 esac
-
 (
-	if [ -n "$mkerrors" ]; then echo "$mkerrors |gofmt >$zerrors"; fi
+	if [ -n "$mkerrors" ];
+    then echo "$mkerrors |gofmt >$zerrors"; fi
 	syscall_goos="syscall_$GOOS.go"
  	case "$GOOS" in
 	darwin | dragonfly | freebsd | netbsd | openbsd)
 		syscall_goos="syscall_bsd.go $syscall_goos"
  		;;
  	esac
-	if [ -n "$mksyscall" ]; then echo "$mksyscall -tags $GOOS,$GOARCH $syscall_goos $GOOSARCH_in |gofmt >zsyscall_$GOOSARCH.go"; fi
-	if [ -n "$mksysctl" ]; then echo "$mksysctl |gofmt >$zsysctl"; fi
-	if [ -n "$mksysnum" ]; then echo "$mksysnum |gofmt >zsysnum_$GOOSARCH.go"; fi
-	if [ -n "$mktypes" ]; then
+	if [ -n "$mksyscall" ];
+then echo "$mksyscall -tags $GOOS,$GOARCH $syscall_goos $GOOSARCH_in |gofmt >zsyscall_$GOOSARCH.go"; fi
+	if [ -n "$mksysctl" ];
+then echo "$mksysctl |gofmt >$zsysctl"; fi
+	if [ -n "$mksysnum" ];
+then echo "$mksysnum |gofmt >zsysnum_$GOOSARCH.go"; fi
+	if [ -n "$mktypes" ];
+then
 		# ztypes_$GOOSARCH.go could be erased before "go run mkpost.go" is called.
 		# Therefore, "go run" tries to recompile syscall package but ztypes is empty and it fails.
 		echo "$mktypes types_$GOOS.go |go run mkpost.go >ztypes_$GOOSARCH.go.NEW && mv ztypes_$GOOSARCH.go.NEW ztypes_$GOOSARCH.go";
 	fi
-	if [ -n "$mkasm" ]; then echo "$mkasm $GOOS $GOARCH"; fi
+	if [ -n "$mkasm" ];
+then echo "$mkasm $GOOS $GOARCH"; fi
 ) | $run

@@ -2,14 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-import (
-	target "./a"
-	workflow "./b"
-	_ "reflect"
-)
-
-var _ = workflow.Const(target.P)
-
-func main() {}
+package main import(target"./a" workflow"./b" _"reflect") var _ = workflow.Const(target.P) func main() {}

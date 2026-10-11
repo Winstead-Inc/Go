@@ -1,8 +1,2 @@
-package main
-
-/*
- */
-import "C"
-
-func main() {
-}
+package main /*
+ */ import"C" func main() {}

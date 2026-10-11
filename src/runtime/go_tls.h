@@ -1,7 +1,6 @@
 // Copyright 2014 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 #ifdef GOOS_windows
 // Offset of the TEB's ThreadLocalStoragePointer field, which points to the
 // array of module TLS blocks indexed by _tls_index.
@@ -11,11 +10,9 @@
 #define TEB_ThreadLocalStoragePointer 0x58
 #endif
 #endif
-
 #ifdef GOARCH_arm
 #define LR R14
 #endif
-
 #ifdef GOARCH_amd64
 #ifdef GOOS_windows
 // get_tls loads the address of the current thread's g slot into r.
@@ -31,7 +28,6 @@
 #endif
 #define	g(r)	0(r)(TLS*1)
 #endif
-
 #ifdef GOARCH_386
 #ifdef GOOS_windows
 // get_tls2 lets callers preserve AX or load the TLS address into AX.

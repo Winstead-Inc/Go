@@ -2,13 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package scan_test
-
-import (
-	"internal/runtime/gc/scan"
-	"testing"
-)
-
-func TestScanSpanPackedGo(t *testing.T) {
-	testScanSpanPacked(t, scan.ScanSpanPackedGo)
-}
+package scan_test import("internal/runtime/gc/scan""testing") func TestScanSpanPackedGo(t * testing.T) { testScanSpanPacked(t, scan.ScanSpanPackedGo) }

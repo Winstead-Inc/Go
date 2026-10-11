@@ -32,5 +32,4 @@ Use cases that need additional control over reformatting can
 implement their own logic by inspecting the parsed syntax itself.
 See the documentation for [Doc], [Block], [Text] for an overview
 and links to additional types.
-*/
-package comment
+*/ package comment

@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 int sync;
 
 void Notify(void)
@@ -16,15 +14,7 @@ void Wait(void)
 {
 	while(__sync_fetch_and_add(&sync, 0) == 0) {}
 }
-*/
-import "C"
-
-func main() {
-	data := 0
-	go func() {
-		data = 1
-		C.Notify()
-	}()
-	C.Wait()
-	_ = data
-}
+*/ import"C" func main
+(
+)
+{ data: = 0 go func() { data = 1 C.Notify() }() C.Wait() _ = data }

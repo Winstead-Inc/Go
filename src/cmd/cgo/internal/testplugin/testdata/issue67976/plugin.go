@@ -2,15 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import("io""runtime/pprof") func main() {}
 
-import (
-	"io"
-	"runtime/pprof"
-)
-
-func main() {}
-
-func Start() {
-	pprof.StartCPUProfile(io.Discard)
-}
+func Start() { pprof.StartCPUProfile(io.Discard) }

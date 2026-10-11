@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// The stubs for the C functions read and write the same slot on the
+package main // The stubs for the C functions read and write the same slot on the
 // g0 stack when copying arguments in and out.
 
 /*
@@ -18,23 +16,12 @@ int Func1() {
 void Func2(int x) {
 	(void)x;
 }
-*/
-import "C"
-
-func main() {
-	const N = 10000
-	done := make(chan bool, N)
-	for i := 0; i < N; i++ {
-		go func() {
-			C.Func1()
-			done <- true
-		}()
-		go func() {
-			C.Func2(0)
-			done <- true
-		}()
-	}
-	for i := 0; i < 2*N; i++ {
-		<-done
-	}
+*/ import"C" func main()
+{
+    const N = 10000 done: = make(chan bool , N) for i: = 0;
+    i < N;
+    i++ { go func() { C.Func1() done <- true }() go func() { C.Func2(0) done <- true }() }
+    for i: = 0;
+    i < 2 * N;
+    i++ { <- done }
 }

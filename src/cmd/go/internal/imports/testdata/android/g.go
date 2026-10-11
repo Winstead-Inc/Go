@@ -1,6 +1,4 @@
 //go:build !android
 // +build !android
 
-package android
-
-import _ "g"
+package android import _"g"

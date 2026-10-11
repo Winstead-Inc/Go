@@ -2,7 +2,7 @@
 # Average (unsigned byte, unsigned word)
 # Instructions: VPAVGB, VPAVGW
 - go: Average
-  asm: "VPAVG[BW]" # Matches VPAVGB (byte) and VPAVGW (word)
+  asm: "VPAVG[BW]"# Matches VPAVGB (byte) and VPAVGW (word)
   in:
   - &uint_t # $t will be Uint8xN for VPAVGB, Uint16xN for VPAVGW
     go: $t
@@ -14,7 +14,7 @@
 # Absolute Value (signed byte, word, dword, qword)
 # Instructions: VPABSB, VPABSW, VPABSD, VPABSQ
 - go: Abs
-  asm: "VPABS[BWDQ]" # Matches VPABSB, VPABSW, VPABSD, VPABSQ
+  asm: "VPABS[BWDQ]"# Matches VPABSB, VPABSW, VPABSD, VPABSQ
   in:
   - &int_t # $t will be Int8xN, Int16xN, Int32xN, Int64xN
     go: $t
@@ -25,7 +25,7 @@
 # Sign Operation (signed byte, word, dword)
 # Instructions: VPSIGNB, VPSIGNW, VPSIGND
 - go: MulSign
-  asm: "VPSIGN[BWD]" # Matches VPSIGNB, VPSIGNW, VPSIGND
+  asm: "VPSIGN[BWD]"# Matches VPSIGNB, VPSIGNW, VPSIGND
   in:
   - *int_t # value to multiply by sign
   - *int_t # value from which to take the sign

@@ -2,16 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-import (
-	"go/ast"
-	"go/parser"
-	"go/token"
-	"log"
-)
-
-const src = `package p
+package p import("go/ast""go/parser""go/token""log") const src = `package p
 
 import "fmt"
 
@@ -34,15 +25,11 @@ func (t *T) M(n int) (r int) {
 	}
 	return
 }
-`
-
-// Walk parses src and walks the syntax tree. ast.Walk converts each
+` // Walk parses src and walks the syntax tree. ast.Walk converts each
 // node to ast.Node, which looks up the itab in the itab table, and
 // then compares that itab with the itab of the host in a type switch.
-func Walk() {
-	f, err := parser.ParseFile(token.NewFileSet(), "src.go", src, parser.SkipObjectResolution)
-	if err != nil {
-		log.Fatal(err)
-	}
-	ast.Inspect(f, func(ast.Node) bool { return true })
+func Walk()
+{
+    f, err: = parser.ParseFile(token.NewFileSet(),"src.go", src, parser.SkipObjectResolution) if err != nil { log.Fatal(err) }
+    ast.Inspect(f, func(ast.Node) bool { return true })
 }

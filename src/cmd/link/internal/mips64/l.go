@@ -28,10 +28,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package mips64
-
-// Writing object files.
-
+package mips64 // Writing object files.
 // cmd/9l/l.h from Vita Nuova.
 //
 //	Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
@@ -61,14 +58,11 @@ package mips64
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-const (
-	maxAlign  = 32 // max data alignment
-	minAlign  = 1  // min data alignment
-	funcAlign = 8
+const 
+(
+    maxAlign = 32 // max data alignment
+    minAlign = 1 // min data alignment
+    funcAlign = 8
 )
 
-/* Used by ../internal/ld/dwarf.go */
-const (
-	dwarfRegSP = 29
-	dwarfRegLR = 31
-)
+/* Used by ../internal/ld/dwarf.go */ const (dwarfRegSP = 29 dwarfRegLR = 31)

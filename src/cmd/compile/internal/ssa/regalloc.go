@@ -1,7 +1,6 @@
 // Copyright 2015 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Register allocation.
 //
 // We use a version of a linear scan register allocator. We treat the
@@ -23,7 +22,6 @@
 // predecessor).  This makes it easy to add fixup code on merge edges -
 // the source of a merge edge has only one successor, so we can add
 // fixup code to the end of that block.
-
 // Spilling
 //
 // During the normal course of the allocator, we might throw a still-live
@@ -80,15 +78,12 @@
 // The stack allocator knows that StoreReg args of stack-allocated phis
 // must be allocated to the same stack slot as the phi that uses them.
 // x is now a spilled value and a restore must appear before its first use.
-
 // TODO
-
 // Use an affinity graph to mark two values which should use the
 // same register. This affinity graph will be used to prefer certain
 // registers for allocation. This affinity helps eliminate moves that
 // are required for phi implementations and helps generate allocations
 // for 2-register architectures.
-
 // Note: regalloc generates a not-quite-SSA output. If we have:
 //
 //             b1: x = ... : AX
@@ -111,136 +106,101 @@
 // will have no use (so don't run deadcode after regalloc!).
 // TODO: maybe we should introduce these extra phis?
 
-package ssa
-
-import (
-	"cmd/compile/internal/ssa/block"
-	"cmd/compile/internal/ssa/ssaop"
-	"cmd/internal/src"
+package ssa import("cmd/compile/internal/ssa/block""cmd/compile/internal/ssa/ssaop""cmd/internal/src") const (moveSpills = iota LogSpills RegDebug StackDebug) func RegMaskAt
+(
+    i ssaop.Register
 )
-
-const (
-	moveSpills = iota
-	LogSpills
-	RegDebug
-	StackDebug
-)
-
-func RegMaskAt(i ssaop.Register) ssaop.RegMask {
-	if i < 64 {
-		return ssaop.RegMask{V1: 1 << i}
-	}
-	return ssaop.RegMask{V2: 1 << (i - 64)}
+ssaop.RegMask
+{
+    if i < 64 { return ssaop.RegMask { V1: 1 << i } }
+    return ssaop.RegMask { V2: 1 << (i - 64) }
 }
 
-type Use struct {
-	// distance from start of the block to a use of a value
-	//   Dist == 0                 used by first instruction in block
-	//   Dist == len(b.Values)-1   used by last instruction in block
-	//   Dist == len(b.Values)     used by block's control value
-	//   Dist  > len(b.Values)     used by a subsequent block
-	Dist int32
-	Pos  src.XPos // source position of the use
-	Next *Use     // linked list of uses of a value in nondecreasing dist order
+type Use struct 
+{
+    // distance from start of the block to a use of a value
+    //   Dist == 0                 used by first instruction in block
+    //   Dist == len(b.Values)-1   used by last instruction in block
+    //   Dist == len(b.Values)     used by block's control value
+    //   Dist  > len(b.Values)     used by a subsequent block
+    Dist int32 Pos src.XPos // source position of the use
+    Next * Use // linked list of uses of a value in nondecreasing dist order
 }
-
 // A ValState records the register allocation state for a (pre-regalloc) value.
-type ValState struct {
-	Regs              ssaop.RegMask // the set of registers holding a Value (usually just one)
-	Uses              *Use          // list of uses in this block
-	Spill             *Value        // spilled copy of the Value (if any)
-	RestoreMin        int32         // minimum of all restores' blocks' sdom.entry
-	RestoreMax        int32         // maximum of all restores' blocks' sdom.exit
-	NeedReg           bool          // cached value of !v.Type.IsMemory() && !v.Type.IsVoid() && !.v.Type.IsFlags()
-	Rematerializeable bool          // cached value of v.rematerializeable()
+type ValState struct 
+{
+    Regs ssaop.RegMask // the set of registers holding a Value (usually just one)
+    Uses * Use // list of uses in this block
+    Spill * Value // spilled copy of the Value (if any)
+    RestoreMin int32 // minimum of all restores' blocks' sdom.entry
+    RestoreMax int32 // maximum of all restores' blocks' sdom.exit
+    NeedReg bool // cached value of !v.Type.IsMemory() && !v.Type.IsVoid() && !.v.Type.IsFlags()
+    Rematerializeable bool // cached value of v.rematerializeable()
 }
-
 // NeedRegister reports whether v needs a register.
-func (v *Value) NeedRegister() bool {
-	return !v.Type.IsMemory() && !v.Type.IsVoid() && !v.Type.IsFlags() && !v.Type.IsTuple()
-}
-
+func(v * Value) NeedRegister() bool { return ! v.Type.IsMemory() && ! v.Type.IsVoid() && ! v.Type.IsFlags() && ! v.Type.IsTuple() }
 // Rematerializeable reports whether the register allocator should recompute
 // a value instead of spilling/restoring it.
-func (v *Value) Rematerializeable() bool {
-	if !ssaop.OpcodeTable[v.Op].Rematerializeable {
-		return false
-	}
-	for _, a := range v.Args {
-		// Fixed-register allocations (SP, SB, etc.) are always available.
-		// Any other argument of an opcode makes it not rematerializeable.
-		if !ssaop.OpcodeTable[a.Op].FixedReg {
-			return false
-		}
-	}
-	return true
+func(v * Value) Rematerializeable() bool
+{
+    if ! ssaop.OpcodeTable[v.Op].Rematerializeable { return false }
+    for _, a: = range v.Args
+    {
+        // Fixed-register allocations (SP, SB, etc.) are always available.
+        // Any other argument of an opcode makes it not rematerializeable.
+        if ! ssaop.OpcodeTable[a.Op].FixedReg { return false }
+    }
+    return true
 }
-
 // ComputeUnavoidableCalls computes the containsUnavoidableCall fields in the loop nest.
-func (loopnest *LoopNest) ComputeUnavoidableCalls() {
-	f := loopnest.F
-
-	hasCall := f.Cache.AllocBoolSlice(f.NumBlocks())
-	defer f.Cache.FreeBoolSlice(hasCall)
-	for _, b := range f.Blocks {
-		if b.containsCall() {
-			hasCall[b.ID] = true
-		}
-	}
-	found := f.Cache.AllocSparseSet(f.NumBlocks())
-	defer f.Cache.FreeSparseSet(found)
-	// Run dfs to find path through the loop that avoids all calls.
-	// Such path either escapes the loop or returns back to the header.
-	// It isn't enough to have exit not dominated by any call, for example:
-	// ... some loop
-	// call1    call2
-	//   \       /
-	//     block
-	// ...
-	// block is not dominated by any single call, but we don't have call-free path to it.
-loopLoop:
-	for _, l := range loopnest.Loops {
-		found.Clear()
-		tovisit := make([]*Block, 0, 8)
-		tovisit = append(tovisit, l.Header)
-		for len(tovisit) > 0 {
-			cur := tovisit[len(tovisit)-1]
-			tovisit = tovisit[:len(tovisit)-1]
-			if hasCall[cur.ID] {
-				continue
-			}
-			for _, s := range cur.Succs {
-				nb := s.Block()
-				if nb == l.Header {
-					// Found a call-free path around the loop.
-					continue loopLoop
-				}
-				if found.Contains(nb.ID) {
-					// Already found via another path.
-					continue
-				}
-				nl := loopnest.B2L[nb.ID]
-				if nl == nil || (nl.Depth <= l.Depth && nl != l) {
-					// Left the loop.
-					continue
-				}
-				tovisit = append(tovisit, nb)
-				found.Add(nb.ID)
-			}
-		}
-		// No call-free path was found.
-		l.ContainsUnavoidableCall = true
-	}
+func(loopnest * LoopNest) ComputeUnavoidableCalls()
+{
+    f: = loopnest.F hasCall: = f.Cache.AllocBoolSlice(f.NumBlocks()) defer f.Cache.FreeBoolSlice(hasCall) for _, b: = range f.Blocks
+    {
+        if b.containsCall() { hasCall[b.ID] = true }
+    }
+    found: = f.Cache.AllocSparseSet(f.NumBlocks()) defer f.Cache.FreeSparseSet(found) // Run dfs to find path through the loop that avoids all calls.
+    // Such path either escapes the loop or returns back to the header.
+    // It isn't enough to have exit not dominated by any call, for example:
+    // ... some loop
+    // call1    call2
+    //   \       /
+    //     block
+    // ...
+    // block is not dominated by any single call, but we don't have call-free path to it.
+    loopLoop: for _, l: = range loopnest.Loops
+    {
+        found.Clear() tovisit: = make([] * Block, 0, 8) tovisit = append(tovisit, l.Header) for len(tovisit) > 0
+        {
+            cur: = tovisit[len(tovisit) - 1] tovisit = tovisit[: len(tovisit) - 1] if hasCall[cur.ID] { continue }
+            for _, s: = range cur.Succs
+            {
+                nb: = s.Block() if nb == l.Header
+                {
+                    // Found a call-free path around the loop.
+                    continue loopLoop
+                }
+                if found.Contains(nb.ID)
+                {
+                    // Already found via another path.
+                    continue
+                }
+                nl: = loopnest.B2L[nb.ID] if nl == nil || (nl.Depth <= l.Depth && nl != l)
+                {
+                    // Left the loop.
+                    continue
+                }
+                tovisit = append(tovisit, nb) found.Add(nb.ID)
+            }
+        }
+        // No call-free path was found.
+        l.ContainsUnavoidableCall = true
+    }
 }
 
-func (b *Block) containsCall() bool {
-	if b.Kind == block.BlockDefer {
-		return true
-	}
-	for _, v := range b.Values {
-		if ssaop.OpcodeTable[v.Op].Call {
-			return true
-		}
-	}
-	return false
+func(b * Block) containsCall() bool
+{
+    if b.Kind == block.BlockDefer { return true }
+    for _, v: = range b.Values { if ssaop.OpcodeTable[v.Op].Call { return true } }
+    return false
 }

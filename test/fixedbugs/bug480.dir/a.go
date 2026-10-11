@@ -2,16 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type S interface { F() T }
 
-type S interface{
-	F() T
-}
+type T struct { S }
 
-type T struct {
-	S
-}
-
-type U struct {
-	error
-}
+type U struct { error }

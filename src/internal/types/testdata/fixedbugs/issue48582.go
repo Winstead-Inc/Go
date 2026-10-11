@@ -2,28 +2,20 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type N /* ERROR "invalid recursive type" */ interface { int | N }
 
-type N /* ERROR "invalid recursive type" */ interface {
-	int | N
+type A /* ERROR "invalid recursive type" */ interface { int | B }
+
+type B interface { int | A }
+
+type S /* ERROR "invalid recursive type" */ struct 
+{
+    I // ERROR "interface contains type constraints"
 }
 
-type A /* ERROR "invalid recursive type" */ interface {
-	int | B
-}
+type I interface { int | S }
 
-type B interface {
-	int | A
-}
-
-type S /* ERROR "invalid recursive type" */ struct {
-	I // ERROR "interface contains type constraints"
-}
-
-type I interface {
-	int | S
-}
-
-type P interface {
-	*P // ERROR "interface contains type constraints"
+type P interface
+{
+    * P // ERROR "interface contains type constraints"
 }

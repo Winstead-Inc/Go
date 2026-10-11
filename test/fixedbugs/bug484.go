@@ -1,9 +1,7 @@
 // run
-
 // Copyright 2014 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // The liveness code used to say that, in func g, s was live
 // starting at its declaration, because it appears to have its
 // address taken by the closure (different s, but the parser
@@ -19,60 +17,25 @@
 // machine code. This is conservative but keeps the two consistent,
 // which is the most important thing.
 
-package main
-
-import "runtime"
-
+package main import"runtime" //go:noinline
+func f() interface {}
+{ runtime.GC() return nil }
 //go:noinline
-func f() interface{} {
-	runtime.GC()
-	return nil
-}
-
+func g() { var s interface {} _ = func() { s: = f() _ = s } s = f() useiface(s) useiface(s) }
 //go:noinline
-func g() {
-	var s interface{}
-	_ = func() {
-		s := f()
-		_ = s
-	}
-	s = f()
-	useiface(s)
-	useiface(s)
-}
-
+func useiface(x interface {}) {}
 //go:noinline
-func useiface(x interface{}) {
-}
-
+func h() { var x[16] uintptr for i: = range x { x[i] = 1 } useint(x[0]) useint(x[1]) useint(x[2]) useint(x[3]) }
 //go:noinline
-func h() {
-	var x [16]uintptr
-	for i := range x {
-		x[i] = 1
-	}
+func useint(x uintptr) {}
 
-	useint(x[0])
-	useint(x[1])
-	useint(x[2])
-	useint(x[3])
+func main()
+{
+    // scribble non-zero values on stack
+    h() // call function that used to let the garbage collector
+    // see uninitialized stack values; it will see the
+    // nonzero values.
+    g()
 }
 
-//go:noinline
-func useint(x uintptr) {
-}
-
-func main() {
-	// scribble non-zero values on stack
-	h()
-	// call function that used to let the garbage collector
-	// see uninitialized stack values; it will see the
-	// nonzero values.
-	g()
-}
-
-func big(x int) {
-	if x >= 0 {
-		big(x - 1)
-	}
-}
+func big(x int) { if x >= 0 { big(x - 1) } }

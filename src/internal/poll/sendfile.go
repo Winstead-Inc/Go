@@ -2,6 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package poll
-
-var TestHookDidSendFile = func(dstFD *FD, src uintptr, written int64, err error, handled bool) {}
+package poll var TestHookDidSendFile = func(dstFD * FD, src uintptr, written int64, err error, handled bool) {}

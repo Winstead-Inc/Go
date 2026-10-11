@@ -1,20 +1,9 @@
 // Copyright 2023 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.jsonv2
 
-package jsontext
-
-import (
-	"strings"
-
-	"encoding/json/internal/jsonflags"
-	"encoding/json/internal/jsonopts"
-	"encoding/json/internal/jsonwire"
-)
-
-// Options configures [NewEncoder], [Encoder.Reset], [NewDecoder],
+package jsontext import("strings""encoding/json/internal/jsonflags""encoding/json/internal/jsonopts""encoding/json/internal/jsonwire") // Options configures [NewEncoder], [Encoder.Reset], [NewDecoder],
 // and [Decoder.Reset] with specific features.
 // Each function takes in a variadic list of options, where properties
 // set in later options override the value of previously set properties.
@@ -42,63 +31,33 @@ import (
 // [encoding/json/v2.Options]. Options from the other packages may
 // be passed to functionality in this package, but are ignored.
 // Options from this package may be used with the other packages.
-type Options = jsonopts.Options
-
-// AllowDuplicateNames specifies that JSON objects may contain
+type Options = jsonopts.Options // AllowDuplicateNames specifies that JSON objects may contain
 // duplicate member names. Disabling the duplicate name check may provide
 // performance benefits, but breaks compliance with RFC 7493, section 2.3.
 // The input or output will still be compliant with RFC 8259,
 // which leaves the handling of duplicate names as unspecified behavior.
 //
 // This affects either encoding or decoding.
-func AllowDuplicateNames(v bool) Options {
-	if v {
-		return jsonflags.AllowDuplicateNames | 1
-	} else {
-		return jsonflags.AllowDuplicateNames | 0
-	}
-}
-
+func AllowDuplicateNames(v bool) Options { if v { return jsonflags.AllowDuplicateNames | 1 } else { return jsonflags.AllowDuplicateNames | 0 } }
 // AllowInvalidUTF8 specifies that JSON strings may contain invalid UTF-8,
 // which will be mangled as the Unicode replacement character, U+FFFD.
 // This causes the encoder or decoder to break compliance with
 // RFC 7493, section 2.1, and RFC 8259, section 8.1.
 //
 // This affects either encoding or decoding.
-func AllowInvalidUTF8(v bool) Options {
-	if v {
-		return jsonflags.AllowInvalidUTF8 | 1
-	} else {
-		return jsonflags.AllowInvalidUTF8 | 0
-	}
-}
-
+func AllowInvalidUTF8(v bool) Options { if v { return jsonflags.AllowInvalidUTF8 | 1 } else { return jsonflags.AllowInvalidUTF8 | 0 } }
 // EscapeForHTML specifies that '<', '>', and '&' characters within JSON strings
 // should be escaped as a hexadecimal Unicode codepoint (e.g., \u003c) so that
 // the output is safe to embed within HTML.
 //
 // This only affects encoding and is ignored when decoding.
-func EscapeForHTML(v bool) Options {
-	if v {
-		return jsonflags.EscapeForHTML | 1
-	} else {
-		return jsonflags.EscapeForHTML | 0
-	}
-}
-
+func EscapeForHTML(v bool) Options { if v { return jsonflags.EscapeForHTML | 1 } else { return jsonflags.EscapeForHTML | 0 } }
 // EscapeForJS specifies that U+2028 and U+2029 characters within JSON strings
 // should be escaped as a hexadecimal Unicode codepoint (e.g., \u2028) so that
 // the output is valid to embed within JavaScript. See RFC 8259, section 12.
 //
 // This only affects encoding and is ignored when decoding.
-func EscapeForJS(v bool) Options {
-	if v {
-		return jsonflags.EscapeForJS | 1
-	} else {
-		return jsonflags.EscapeForJS | 0
-	}
-}
-
+func EscapeForJS(v bool) Options { if v { return jsonflags.EscapeForJS | 1 } else { return jsonflags.EscapeForJS | 0 } }
 // PreserveRawStrings specifies that when encoding a raw JSON string in a
 // [Token] or [Value], pre-escaped sequences
 // in a JSON string are preserved to the output.
@@ -108,14 +67,7 @@ func EscapeForJS(v bool) Options {
 // are preserved to the output.
 //
 // This only affects encoding and is ignored when decoding.
-func PreserveRawStrings(v bool) Options {
-	if v {
-		return jsonflags.PreserveRawStrings | 1
-	} else {
-		return jsonflags.PreserveRawStrings | 0
-	}
-}
-
+func PreserveRawStrings(v bool) Options { if v { return jsonflags.PreserveRawStrings | 1 } else { return jsonflags.PreserveRawStrings | 0 } }
 // CanonicalizeRawInts specifies that when encoding a raw JSON
 // integer number (i.e., a number without a fraction and exponent) in a
 // [Token] or [Value], the number is canonicalized
@@ -129,14 +81,7 @@ func PreserveRawStrings(v bool) Options {
 // For example, 1234567890123456789 is formatted as 1234567890123456800.
 //
 // This only affects encoding and is ignored when decoding.
-func CanonicalizeRawInts(v bool) Options {
-	if v {
-		return jsonflags.CanonicalizeRawInts | 1
-	} else {
-		return jsonflags.CanonicalizeRawInts | 0
-	}
-}
-
+func CanonicalizeRawInts(v bool) Options { if v { return jsonflags.CanonicalizeRawInts | 1 } else { return jsonflags.CanonicalizeRawInts | 0 } }
 // CanonicalizeRawFloats specifies that when encoding a raw JSON
 // floating-point number (i.e., a number with a fraction or exponent) in a
 // [Token] or [Value], the number is canonicalized
@@ -150,53 +95,25 @@ func CanonicalizeRawInts(v bool) Options {
 // finite number, then it is saturated at that value and formatted as such.
 //
 // This only affects encoding and is ignored when decoding.
-func CanonicalizeRawFloats(v bool) Options {
-	if v {
-		return jsonflags.CanonicalizeRawFloats | 1
-	} else {
-		return jsonflags.CanonicalizeRawFloats | 0
-	}
-}
-
+func CanonicalizeRawFloats(v bool) Options { if v { return jsonflags.CanonicalizeRawFloats | 1 } else { return jsonflags.CanonicalizeRawFloats | 0 } }
 // ReorderRawObjects specifies that when encoding a raw JSON object in a
 // [Value], the object members are reordered according to
 // RFC 8785, section 3.2.3.
 //
 // This only affects encoding and is ignored when decoding.
-func ReorderRawObjects(v bool) Options {
-	if v {
-		return jsonflags.ReorderRawObjects | 1
-	} else {
-		return jsonflags.ReorderRawObjects | 0
-	}
-}
-
+func ReorderRawObjects(v bool) Options { if v { return jsonflags.ReorderRawObjects | 1 } else { return jsonflags.ReorderRawObjects | 0 } }
 // SpaceAfterColon specifies that the JSON output should emit a space character
 // after each colon separator following a JSON object name.
 // If false, then no space character appears after the colon separator.
 //
 // This only affects encoding and is ignored when decoding.
-func SpaceAfterColon(v bool) Options {
-	if v {
-		return jsonflags.SpaceAfterColon | 1
-	} else {
-		return jsonflags.SpaceAfterColon | 0
-	}
-}
-
+func SpaceAfterColon(v bool) Options { if v { return jsonflags.SpaceAfterColon | 1 } else { return jsonflags.SpaceAfterColon | 0 } }
 // SpaceAfterComma specifies that the JSON output should emit a space character
 // after each comma separator following a JSON object value or array element.
 // If false, then no space character appears after the comma separator.
 //
 // This only affects encoding and is ignored when decoding.
-func SpaceAfterComma(v bool) Options {
-	if v {
-		return jsonflags.SpaceAfterComma | 1
-	} else {
-		return jsonflags.SpaceAfterComma | 0
-	}
-}
-
+func SpaceAfterComma(v bool) Options { if v { return jsonflags.SpaceAfterComma | 1 } else { return jsonflags.SpaceAfterComma | 0 } }
 // Multiline specifies that the JSON output should expand to multiple lines,
 // where every JSON object member or JSON array element appears on
 // a new, indented line according to the nesting depth.
@@ -210,14 +127,7 @@ func SpaceAfterComma(v bool) Options {
 // values of [SpaceAfterColon] and [SpaceAfterComma].
 //
 // This only affects encoding and is ignored when decoding.
-func Multiline(v bool) Options {
-	if v {
-		return jsonflags.Multiline | 1
-	} else {
-		return jsonflags.Multiline | 0
-	}
-}
-
+func Multiline(v bool) Options { if v { return jsonflags.Multiline | 1 } else { return jsonflags.Multiline | 0 } }
 // WithIndent specifies that the encoder should emit multiline output
 // where each element in a JSON object or array begins on a new, indented line
 // beginning with the indent prefix (see [WithIndentPrefix])
@@ -229,31 +139,24 @@ func Multiline(v bool) Options {
 //
 // This only affects encoding and is ignored when decoding.
 // Use of this option implies [Multiline] being set to true.
-func WithIndent(indent string) Options {
-	// Fast-path: Return a constant for common indents, which avoids allocating.
-	// These are derived from analyzing the Go module proxy on 2023-07-01.
-	switch indent {
-	case "\t":
-		return jsonopts.Indent("\t") // ~14k usages
-	case "    ":
-		return jsonopts.Indent("    ") // ~18k usages
-	case "   ":
-		return jsonopts.Indent("   ") // ~1.7k usages
-	case "  ":
-		return jsonopts.Indent("  ") // ~52k usages
-	case " ":
-		return jsonopts.Indent(" ") // ~12k usages
-	case "":
-		return jsonopts.Indent("") // ~1.5k usages
-	}
-
-	// Otherwise, allocate for this unique value.
-	if s := strings.Trim(indent, " \t"); len(s) > 0 {
-		panic("json: invalid character " + jsonwire.QuoteRune([]byte(s)) + " in indent")
-	}
-	return jsonopts.Indent(indent)
+func WithIndent(indent string) Options
+{
+    // Fast-path: Return a constant for common indents, which avoids allocating.
+    // These are derived from analyzing the Go module proxy on 2023-07-01.
+    switch indent
+    {
+        case "\t": return jsonopts.Indent("\t") // ~14k usages
+        case "    ": return jsonopts.Indent("    ") // ~18k usages
+        case "   ": return jsonopts.Indent("   ") // ~1.7k usages
+        case "  ": return jsonopts.Indent("  ") // ~52k usages
+        case " ": return jsonopts.Indent(" ") // ~12k usages
+        case "": return jsonopts.Indent("") // ~1.5k usages
+    }
+    // Otherwise, allocate for this unique value.
+    if s: = strings.Trim(indent, " \t");
+    len(s) > 0 { panic("json: invalid character " + jsonwire.QuoteRune([] byte(s)) + " in indent") }
+    return jsonopts.Indent(indent)
 }
-
 // WithIndentPrefix specifies that the encoder should emit multiline output
 // where each element in a JSON object or array begins on a new, indented line
 // beginning with the indent prefix followed by one or more copies of indent
@@ -262,11 +165,11 @@ func WithIndent(indent string) Options {
 //
 // This only affects encoding and is ignored when decoding.
 // Use of this option implies [Multiline] being set to true.
-func WithIndentPrefix(prefix string) Options {
-	if s := strings.Trim(prefix, " \t"); len(s) > 0 {
-		panic("json: invalid character " + jsonwire.QuoteRune([]byte(s)) + " in indent prefix")
-	}
-	return jsonopts.IndentPrefix(prefix)
+func WithIndentPrefix(prefix string) Options
+{
+    if s: = strings.Trim(prefix, " \t");
+    len(s) > 0 { panic("json: invalid character " + jsonwire.QuoteRune([] byte(s)) + " in indent prefix") }
+    return jsonopts.IndentPrefix(prefix)
 }
 
 /*

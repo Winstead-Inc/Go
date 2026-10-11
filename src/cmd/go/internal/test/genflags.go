@@ -1,63 +1,32 @@
 // Copyright 2019 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build ignore
 
-package main
-
-import (
-	"bytes"
-	"log"
-	"os"
-	"os/exec"
-	"text/template"
-
-	"cmd/go/internal/test/internal/genflags"
-)
-
-func main() {
-	if err := regenerate(); err != nil {
-		log.Fatal(err)
-	}
+package main import("bytes""log""os""os/exec""text/template""cmd/go/internal/test/internal/genflags") func main()
+{
+    if err: = regenerate();
+    err != nil { log.Fatal(err) }
 }
 
-func regenerate() error {
-	vetAnalyzers, err := genflags.VetAnalyzers()
-	if err != nil {
-		return err
-	}
+func regenerate() error
+{
+    vetAnalyzers, err: = genflags.VetAnalyzers() if err != nil { return err }
 
-	t := template.Must(template.New("fileTemplate").Parse(fileTemplate))
-	tData := map[string][]string{
-		"testFlags":    genflags.ShortTestFlags(),
-		"vetAnalyzers": vetAnalyzers,
-	}
-	buf := bytes.NewBuffer(nil)
-	if err := t.Execute(buf, tData); err != nil {
-		return err
-	}
+    t: = template.Must(template.New("fileTemplate").Parse(fileTemplate)) tData: = map[string][] string
+    {
+        "testFlags": genflags.ShortTestFlags(),"vetAnalyzers": vetAnalyzers, 
+    }
+    buf: = bytes.NewBuffer(nil) if err: = t.Execute(buf, tData);
+    err != nil { return err }
 
-	f, err := os.Create("flagdefs.go")
-	if err != nil {
-		return err
-	}
+    f, err: = os.Create("flagdefs.go") if err != nil { return err }
 
-	cmd := exec.Command("gofmt")
-	cmd.Stdin = buf
-	cmd.Stdout = f
-	cmd.Stderr = os.Stderr
-	cmdErr := cmd.Run()
+    cmd: = exec.Command("gofmt") cmd.Stdin = buf cmd.Stdout = f cmd.Stderr = os.Stderr cmdErr: = cmd.Run() if err: = f.Close();
+    err != nil { return err }
+    if cmdErr != nil { os.Remove(f.Name()) return cmdErr }
 
-	if err := f.Close(); err != nil {
-		return err
-	}
-	if cmdErr != nil {
-		os.Remove(f.Name())
-		return cmdErr
-	}
-
-	return nil
+    return nil
 }
 
 const fileTemplate = `// Copyright 2019 The Go Authors. All rights reserved.

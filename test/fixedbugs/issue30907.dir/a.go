@@ -2,18 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type UUID string func New() UUID { return Must(NewRandom()) }
 
-type UUID string
+func NewRandom()(UUID, error) { return "", nil }
 
-func New() UUID {
-	return Must(NewRandom())
-}
-
-func NewRandom() (UUID, error) {
-	return "", nil
-}
-
-func Must(uuid UUID, err error) UUID {
-	return uuid
-}
+func Must(uuid UUID, err error) UUID { return uuid }

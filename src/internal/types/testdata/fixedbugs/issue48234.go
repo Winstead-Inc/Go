@@ -2,9 +2,5 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-var _ = interface{
-	m()
-	m /* ERROR "duplicate method" */ ()
-}(nil)
+package p var _ = interface { m() m/* ERROR "duplicate method" */() }
+(nil)

@@ -2,11 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
-
-type T int
-
-func (a *T) Foo() [1]string {
-	var r [1]string
-	return r
-}
+package a type T int func(a * T) Foo()[1] string { var r[1] string return r }

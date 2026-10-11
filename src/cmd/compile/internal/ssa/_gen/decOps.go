@@ -2,17 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main var decOps = [] opData {}
 
-var decOps = []opData{}
+var decBlocks = [] blockData {}
 
-var decBlocks = []blockData{}
-
-func init() {
-	archs = append(archs, arch{
-		name:    "dec",
-		ops:     decOps,
-		blocks:  decBlocks,
-		generic: true,
-	})
-}
+func init() { archs = append(archs, arch { name: "dec", ops: decOps, blocks: decBlocks, generic: true, }) }

@@ -2,14 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"./a" var B = [2] string { "world", "hello" }
 
-import "./a"
-
-var B = [2]string{"world", "hello"}
-
-func main() {
-	if a.A[0] != B[1] {
-		panic("bad hello")
-	}
-}
+func main() { if a.A[0] != B[1] { panic("bad hello") } }

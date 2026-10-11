@@ -2,41 +2,24 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package syscall
-
-import "unsafe"
-
-const (
-	_SYS_setgroups  = SYS_SETGROUPS32
-	_SYS_clone3     = 435
-	_SYS_faccessat2 = 439
-	_SYS_fchmodat2  = 452
+package syscall import"unsafe" const (_SYS_setgroups = SYS_SETGROUPS32 _SYS_clone3 = 435 _SYS_faccessat2 = 439 _SYS_fchmodat2 = 452) func setTimespec
+(
+    sec, nsec int64
 )
+Timespec { return Timespec { Sec: int32(sec), Nsec: int32(nsec) } }
 
-func setTimespec(sec, nsec int64) Timespec {
-	return Timespec{Sec: int32(sec), Nsec: int32(nsec)}
-}
-
-func setTimeval(sec, usec int64) Timeval {
-	return Timeval{Sec: int32(sec), Usec: int32(usec)}
-}
-
+func setTimeval(sec, usec int64) Timeval { return Timeval { Sec: int32(sec), Usec: int32(usec) } }
 // Underlying system call writes to newoffset via pointer.
 // Implemented in assembly to avoid allocation.
 //
 // Accessed via assembly in x/sys/unix.
 //
 //go:linkname seek
-func seek(fd int, offset int64, whence int) (newoffset int64, err Errno)
-
-func Seek(fd int, offset int64, whence int) (newoffset int64, err error) {
-	newoffset, errno := seek(fd, offset, whence)
-	if errno != 0 {
-		return 0, errno
-	}
-	return newoffset, nil
+func seek(fd int , offset int64, whence int)(newoffset int64, err Errno) func Seek(fd int , offset int64, whence int)(newoffset int64, err error)
+{
+    newoffset, errno: = seek(fd, offset, whence) if errno != 0 { return 0, errno }
+    return newoffset, nil
 }
-
 //sys	accept4(s int, rsa *RawSockaddrAny, addrlen *_Socklen, flags int) (fd int, err error)
 //sys	bind(s int, addr unsafe.Pointer, addrlen _Socklen) (err error)
 //sys	connect(s int, addr unsafe.Pointer, addrlen _Socklen) (err error)
@@ -51,7 +34,6 @@ func Seek(fd int, offset int64, whence int) (newoffset int64, err error) {
 //sysnb	socketpair(domain int, typ int, flags int, fd *[2]int32) (err error)
 //sys	recvmsg(s int, msg *Msghdr, flags int) (n int, err error)
 //sys	sendmsg(s int, msg *Msghdr, flags int) (n int, err error)
-
 // 64-bit file system and 32-bit uid calls
 // (16-bit uid calls are not always supported in newer kernels)
 //sys	Dup2(oldfd int, newfd int) (err error)
@@ -73,73 +55,49 @@ func Seek(fd int, offset int64, whence int) (newoffset int64, err error) {
 //sys	Shutdown(fd int, how int) (err error)
 //sys	Splice(rfd int, roff *int64, wfd int, woff *int64, len int, flags int) (n int, err error)
 //sys	Ustat(dev int, ubuf *Ustat_t) (err error)
-
 //sys	futimesat(dirfd int, path string, times *[2]Timeval) (err error)
 //sysnb	Gettimeofday(tv *Timeval) (err error)
 //sysnb	Time(t *Time_t) (tt Time_t, err error)
 //sys	Utime(path string, buf *Utimbuf) (err error)
 //sys	utimes(path string, times *[2]Timeval) (err error)
-
 //sys   pread(fd int, p []byte, offset int64) (n int, err error) = SYS_PREAD64
 //sys   pwrite(fd int, p []byte, offset int64) (n int, err error) = SYS_PWRITE64
 //sys	Truncate(path string, length int64) (err error) = SYS_TRUNCATE64
 //sys	Ftruncate(fd int, length int64) (err error) = SYS_FTRUNCATE64
-
 //sys	mmap2(addr uintptr, length uintptr, prot int, flags int, fd int, pageOffset uintptr) (xaddr uintptr, err error)
 //sys	EpollWait(epfd int, events []EpollEvent, msec int) (n int, err error)
 
-func Stat(path string, stat *Stat_t) (err error) {
-	return fstatat(_AT_FDCWD, path, stat, 0)
+func Stat(path string, stat * Stat_t)(err error) { return fstatat(_AT_FDCWD, path, stat, 0) }
+
+func Lchown(path string, uid int , gid int)(err error) { return Fchownat(_AT_FDCWD, path, uid, gid, _AT_SYMLINK_NOFOLLOW) }
+
+func Lstat(path string, stat * Stat_t)(err error) { return fstatat(_AT_FDCWD, path, stat, _AT_SYMLINK_NOFOLLOW) }
+
+func Fstatfs(fd int , buf * Statfs_t)(err error)
+{
+    _, _, e: = Syscall(SYS_FSTATFS64, uintptr(fd), unsafe.Sizeof( * buf), uintptr(unsafe.Pointer(buf))) if e != 0 { err = e }
+    return 
 }
 
-func Lchown(path string, uid int, gid int) (err error) {
-	return Fchownat(_AT_FDCWD, path, uid, gid, _AT_SYMLINK_NOFOLLOW)
+func Statfs(path string, buf * Statfs_t)(err error)
+{
+    pathp, err: = BytePtrFromString(path) if err != nil { return err }
+    _, _, e: = Syscall(SYS_STATFS64, uintptr(unsafe.Pointer(pathp)), unsafe.Sizeof( * buf), uintptr(unsafe.Pointer(buf))) if e != 0 { err = e }
+    return 
 }
 
-func Lstat(path string, stat *Stat_t) (err error) {
-	return fstatat(_AT_FDCWD, path, stat, _AT_SYMLINK_NOFOLLOW)
+func mmap(addr uintptr, length uintptr, prot int , flags int , fd int , offset int64)(xaddr uintptr, err error)
+{
+    page: = uintptr(offset / 4096) if offset != int64(page) * 4096 { return 0, EINVAL }
+    return mmap2(addr, length, prot, flags, fd, page)
 }
 
-func Fstatfs(fd int, buf *Statfs_t) (err error) {
-	_, _, e := Syscall(SYS_FSTATFS64, uintptr(fd), unsafe.Sizeof(*buf), uintptr(unsafe.Pointer(buf)))
-	if e != 0 {
-		err = e
-	}
-	return
-}
+func(r * PtraceRegs) PC() uint64 { return uint64(r.Uregs[15]) }
 
-func Statfs(path string, buf *Statfs_t) (err error) {
-	pathp, err := BytePtrFromString(path)
-	if err != nil {
-		return err
-	}
-	_, _, e := Syscall(SYS_STATFS64, uintptr(unsafe.Pointer(pathp)), unsafe.Sizeof(*buf), uintptr(unsafe.Pointer(buf)))
-	if e != 0 {
-		err = e
-	}
-	return
-}
+func(r * PtraceRegs) SetPC(pc uint64) { r.Uregs[15] = uint32(pc) }
 
-func mmap(addr uintptr, length uintptr, prot int, flags int, fd int, offset int64) (xaddr uintptr, err error) {
-	page := uintptr(offset / 4096)
-	if offset != int64(page)*4096 {
-		return 0, EINVAL
-	}
-	return mmap2(addr, length, prot, flags, fd, page)
-}
+func(iov * Iovec) SetLen(length int) { iov.Len = uint32(length) }
 
-func (r *PtraceRegs) PC() uint64 { return uint64(r.Uregs[15]) }
+func(msghdr * Msghdr) SetControllen(length int) { msghdr.Controllen = uint32(length) }
 
-func (r *PtraceRegs) SetPC(pc uint64) { r.Uregs[15] = uint32(pc) }
-
-func (iov *Iovec) SetLen(length int) {
-	iov.Len = uint32(length)
-}
-
-func (msghdr *Msghdr) SetControllen(length int) {
-	msghdr.Controllen = uint32(length)
-}
-
-func (cmsg *Cmsghdr) SetLen(length int) {
-	cmsg.Len = uint32(length)
-}
+func(cmsg * Cmsghdr) SetLen(length int) { cmsg.Len = uint32(length) }

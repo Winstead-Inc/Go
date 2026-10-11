@@ -1,7 +1,6 @@
 // Copyright 2022 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Macros for transitioning from the host ABI to Go ABI0.
 //
 // These macros save and restore the callee-saved registers
@@ -14,7 +13,6 @@
 // of ((offset)+0*8)(R3) ~ ((offset)+7*8)(R3).
 //
 // Note: g is R22
-
 #define SAVE_R22_TO_R31(offset)	\
 	MOVV	g,   ((offset)+(0*8))(R3)	\
 	MOVV	R23, ((offset)+(1*8))(R3)	\
@@ -26,7 +24,6 @@
 	MOVV	R29, ((offset)+(7*8))(R3)	\
 	MOVV	R30, ((offset)+(8*8))(R3)	\
 	MOVV	R31, ((offset)+(9*8))(R3)
-
 #define SAVE_F24_TO_F31(offset)	\
 	MOVD	F24, ((offset)+(0*8))(R3)	\
 	MOVD	F25, ((offset)+(1*8))(R3)	\
@@ -36,7 +33,6 @@
 	MOVD	F29, ((offset)+(5*8))(R3)	\
 	MOVD	F30, ((offset)+(6*8))(R3)	\
 	MOVD	F31, ((offset)+(7*8))(R3)
-
 #define RESTORE_R22_TO_R31(offset)	\
 	MOVV	((offset)+(0*8))(R3),  g	\
 	MOVV	((offset)+(1*8))(R3), R23	\
@@ -48,7 +44,6 @@
 	MOVV	((offset)+(7*8))(R3), R29	\
 	MOVV	((offset)+(8*8))(R3), R30	\
 	MOVV	((offset)+(9*8))(R3), R31
-
 #define RESTORE_F24_TO_F31(offset)	\
 	MOVD	((offset)+(0*8))(R3), F24	\
 	MOVD	((offset)+(1*8))(R3), F25	\

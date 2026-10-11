@@ -1,17 +1,10 @@
 // compile
-
 // Copyright 2018 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p func f() { _ = [] byte { 1 << 30: 1 } }
 
-func f() {
-	_ = []byte{1 << 30: 1}
-}
+func g() { sink = [] byte { 1 << 30: 1 } }
 
-func g() {
-	sink = []byte{1 << 30: 1}
-}
-
-var sink []byte
+var sink[] byte

@@ -2,50 +2,31 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package crypto_test
-
-import (
-	"bytes"
-	"crypto"
-	"crypto/rand"
-	"crypto/rsa"
-	"crypto/sha256"
-	"crypto/x509"
-	"encoding/pem"
-	"errors"
-	"fmt"
-	"internal/testenv"
-	"io"
-	"io/fs"
-	"os"
-	"path/filepath"
-	"regexp"
-	"strings"
-	"testing"
+package crypto_test import
+(
+    "bytes""crypto""crypto/rand""crypto/rsa""crypto/sha256""crypto/x509""encoding/pem""errors""fmt""internal/testenv""io""io/fs""os""path/filepath""regexp""strings""testing"
 )
 
-type messageSignerOnly struct {
-	k *rsa.PrivateKey
+type messageSignerOnly struct { k * rsa.PrivateKey }
+
+func(s * messageSignerOnly) Public() crypto.PublicKey { return s.k.Public() }
+
+func(s * messageSignerOnly) Sign(_ io.Reader, _[] byte, _ crypto.SignerOpts)([] byte, error) { return nil, errors.New("unimplemented") }
+
+func(s * messageSignerOnly) SignMessage(rand io.Reader, msg[] byte, opts crypto.SignerOpts)([] byte, error)
+{
+    h: = opts.HashFunc().New() h.Write(msg) digest: = h.Sum(nil) return s.k.Sign(rand, digest, opts)
 }
 
-func (s *messageSignerOnly) Public() crypto.PublicKey {
-	return s.k.Public()
-}
-
-func (s *messageSignerOnly) Sign(_ io.Reader, _ []byte, _ crypto.SignerOpts) ([]byte, error) {
-	return nil, errors.New("unimplemented")
-}
-
-func (s *messageSignerOnly) SignMessage(rand io.Reader, msg []byte, opts crypto.SignerOpts) ([]byte, error) {
-	h := opts.HashFunc().New()
-	h.Write(msg)
-	digest := h.Sum(nil)
-	return s.k.Sign(rand, digest, opts)
-}
-
-func TestSignMessage(t *testing.T) {
-	block, _ := pem.Decode([]byte(strings.ReplaceAll(
-		`-----BEGIN RSA TESTING KEY-----
+func TestSignMessage(t * testing.T)
+{
+    block, _: = pem.Decode
+    (
+[] byte
+        (
+            strings.ReplaceAll
+            (
+                `-----BEGIN RSA TESTING KEY-----
 MIIEowIBAAKCAQEAsPnoGUOnrpiSqt4XynxA+HRP7S+BSObI6qJ7fQAVSPtRkqso
 tWxQYLEYzNEx5ZSHTGypibVsJylvCfuToDTfMul8b/CZjP2Ob0LdpYrNH6l5hvFE
 89FU1nZQF15oVLOpUgA7wGiHuEVawrGfey92UE68mOyUVXGweJIVDdxqdMoPvNNU
@@ -71,114 +52,91 @@ AsrZt4zeXNwsH7QXHEJCFnCmqw9QzEoZTrNtHJHpNboBuVnYcoueZEJrP8OnUG3r
 UjmopwKBgAqB2KYYMUqAOvYcBnEfLDmyZv9BTVNHbR2lKkMYqv5LlvDaBxVfilE0
 2riO4p6BaAdvzXjKeRrGNEKoHNBpOSfYCOM16NjL8hIZB1CaV3WbT5oY+jp7Mzd5
 7d56RZOE+ERK2uz/7JX9VSsM/LbH9pJibd4e8mikDS9ntciqOH/3
------END RSA TESTING KEY-----`, "TESTING KEY", "PRIVATE KEY")))
-	k, _ := x509.ParsePKCS1PrivateKey(block.Bytes)
+-----END RSA TESTING KEY-----`, "TESTING KEY", "PRIVATE KEY"
+            )
+        )
+    )
+    k, _: = x509.ParsePKCS1PrivateKey(block.Bytes) msg: = [] byte("hello :)") h: = crypto.SHA256.New() h.Write(msg) digest: = h.Sum(nil) sig, err: = crypto.SignMessage
+    (
+        k, rand.Reader, msg, & rsa.PSSOptions { Hash: crypto.SHA256 }
+    )
+    if err != nil { t.Fatalf("SignMessage failed with Signer: %s", err) }
+    if err: = rsa.VerifyPSS( & k.PublicKey, crypto.SHA256, digest, sig, nil);
+    err != nil { t.Errorf("VerifyPSS failed for Signer signature: %s", err) }
 
-	msg := []byte("hello :)")
-
-	h := crypto.SHA256.New()
-	h.Write(msg)
-	digest := h.Sum(nil)
-
-	sig, err := crypto.SignMessage(k, rand.Reader, msg, &rsa.PSSOptions{Hash: crypto.SHA256})
-	if err != nil {
-		t.Fatalf("SignMessage failed with Signer: %s", err)
-	}
-	if err := rsa.VerifyPSS(&k.PublicKey, crypto.SHA256, digest, sig, nil); err != nil {
-		t.Errorf("VerifyPSS failed for Signer signature: %s", err)
-	}
-
-	sig, err = crypto.SignMessage(&messageSignerOnly{k}, rand.Reader, msg, &rsa.PSSOptions{Hash: crypto.SHA256})
-	if err != nil {
-		t.Fatalf("SignMessage failed with MessageSigner: %s", err)
-	}
-	if err := rsa.VerifyPSS(&k.PublicKey, crypto.SHA256, digest, sig, nil); err != nil {
-		t.Errorf("VerifyPSS failed for MessageSigner signature: %s", err)
-	}
+    sig, err = crypto.SignMessage( & messageSignerOnly { k }, rand.Reader, msg, & rsa.PSSOptions { Hash: crypto.SHA256 }) if err != nil
+    {
+        t.Fatalf("SignMessage failed with MessageSigner: %s", err)
+    }
+    if err: = rsa.VerifyPSS( & k.PublicKey, crypto.SHA256, digest, sig, nil);
+    err != nil { t.Errorf("VerifyPSS failed for MessageSigner signature: %s", err) }
 }
 
-func TestDisallowedAssemblyInstructions(t *testing.T) {
-	// This test enforces the cryptography assembly policy rule that we do not
-	// use BYTE or WORD instructions, since these instructions can obscure what
-	// the assembly is actually doing. If we do not support specific
-	// instructions in the assembler, we should not be using them until we do.
-	//
-	// Instead of using the output of the 'go tool asm' tool, we take the simple
-	// approach and just search the text of .s files for usage of BYTE and WORD.
-	// We do this because the assembler itself will sometimes insert WORD
-	// instructions for things like function preambles etc.
+func TestDisallowedAssemblyInstructions(t * testing.T)
+{
+    // This test enforces the cryptography assembly policy rule that we do not
+    // use BYTE or WORD instructions, since these instructions can obscure what
+    // the assembly is actually doing. If we do not support specific
+    // instructions in the assembler, we should not be using them until we do.
+    //
+    // Instead of using the output of the 'go tool asm' tool, we take the simple
+    // approach and just search the text of .s files for usage of BYTE and WORD.
+    // We do this because the assembler itself will sometimes insert WORD
+    // instructions for things like function preambles etc.
 
-	boringSigPath := filepath.Join("internal", "boring", "sig")
+    boringSigPath: = filepath.Join("internal", "boring", "sig") matcher, err: = regexp.Compile(`(^|;)\s(BYTE|WORD)\s`) if err != nil { t.Fatal(err) }
+    if err: = filepath.WalkDir
+    (
+        filepath.Join(testenv.GOROOT(t),"src/crypto"), func(path string, d fs.DirEntry, err error) error
+        {
+            if err != nil { t.Fatal(err) }
+            if d.IsDir() || ! strings.HasSuffix(path, ".s") { return nil }
+            if strings.Contains(path, boringSigPath) { return nil }
 
-	matcher, err := regexp.Compile(`(^|;)\s(BYTE|WORD)\s`)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if err := filepath.WalkDir(filepath.Join(testenv.GOROOT(t), "src/crypto"), func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			t.Fatal(err)
-		}
-		if d.IsDir() || !strings.HasSuffix(path, ".s") {
-			return nil
-		}
-		if strings.Contains(path, boringSigPath) {
-			return nil
-		}
+            f, err: = os.ReadFile(path) if err != nil { t.Fatal(err) }
 
-		f, err := os.ReadFile(path)
-		if err != nil {
-			t.Fatal(err)
-		}
+            i: = 1 for line: = range bytes.Lines(f)
+            {
+                if matcher.Match(line) { t.Errorf("%s:%d assembly contains BYTE or WORD instruction (%q)", path, i, string(line)) }
+                i++
+            }
 
-		i := 1
-		for line := range bytes.Lines(f) {
-			if matcher.Match(line) {
-				t.Errorf("%s:%d assembly contains BYTE or WORD instruction (%q)", path, i, string(line))
-			}
-			i++
-		}
-
-		return nil
-	}); err != nil {
-		t.Fatal(err)
-	}
+            return nil
+        }
+    );
+    err != nil { t.Fatal(err) }
 }
 
-func TestRegisterHashLimits(t *testing.T) {
-	// maxHash is not exported, so we just use its value. If maxHash ever changes
-	// this will need to be updated.
-	for _, h := range []crypto.Hash{0, 21, crypto.MLDSAMu} {
-		t.Run(fmt.Sprintf("h=%d", h), func(t *testing.T) {
-			defer func() {
-				if r := recover(); r == nil {
-					t.Errorf("RegisterHash did not panic for %v", h)
-				}
-			}()
-			crypto.RegisterHash(h, sha256.New)
-		})
-	}
+func TestRegisterHashLimits(t * testing.T)
+{
+    // maxHash is not exported, so we just use its value. If maxHash ever changes
+    // this will need to be updated.
+    for _, h: = range[] crypto.Hash { 0, 21, crypto.MLDSAMu }
+    {
+        t.Run
+        (
+            fmt.Sprintf("h=%d", h), func(t * testing.T)
+            {
+                defer func() { if r: = recover(); r == nil { t.Errorf("RegisterHash did not panic for %v", h) } }
+() crypto.RegisterHash(h, sha256.New)
+            }
+        )
+    }
 }
 
-func TestMLDSAMu(t *testing.T) {
-	h := crypto.MLDSAMu
-	if got := h.Size(); got != 64 {
-		t.Errorf("MLDSAMu.Size() = %d, want 64", got)
-	}
-	if got := h.String(); got != "ML-DSA μ message representative" {
-		t.Errorf("MLDSAMu.String() = %q", got)
-	}
-	if h.Available() {
-		t.Errorf("MLDSAMu.Available() = true, want false")
-	}
-	if got := h.HashFunc(); got != h {
-		t.Errorf("MLDSAMu.HashFunc() = %v, want itself", got)
-	}
-	func() {
-		defer func() {
-			if r := recover(); r == nil {
-				t.Errorf("MLDSAMu.New() did not panic")
-			}
-		}()
-		_ = h.New()
-	}()
+func TestMLDSAMu(t * testing.T)
+{
+    h: = crypto.MLDSAMu if got: = h.Size();
+    got != 64 { t.Errorf("MLDSAMu.Size() = %d, want 64", got) }
+    if got: = h.String();
+    got != "ML-DSA μ message representative" { t.Errorf("MLDSAMu.String() = %q", got) }
+    if h.Available() { t.Errorf("MLDSAMu.Available() = true, want false") }
+    if got: = h.HashFunc();
+    got != h { t.Errorf("MLDSAMu.HashFunc() = %v, want itself", got) }
+    func()
+    {
+        defer func() { if r: = recover(); r == nil { t.Errorf("MLDSAMu.New() did not panic") } }
+() _ = h.New()
+    }
+()
 }

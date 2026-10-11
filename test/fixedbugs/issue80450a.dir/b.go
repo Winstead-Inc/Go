@@ -2,22 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package workflow
+package workflow import"reflect" type Value interface { value() reflect.Value }
 
-import "reflect"
+func Const[T any](value T) Value { return & constant[T] { value } }
 
-type Value interface {
-	value() reflect.Value
-}
+type constant[T any] struct { v T }
 
-func Const[T any](value T) Value {
-	return &constant[T]{value}
-}
-
-type constant[T any] struct {
-	v T
-}
-
-func (c *constant[T]) value() reflect.Value {
-	return reflect.ValueOf(c.v)
-}
+func(c * constant[T]) value() reflect.Value { return reflect.ValueOf(c.v) }

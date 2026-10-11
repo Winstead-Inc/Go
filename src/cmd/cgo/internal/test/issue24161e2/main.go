@@ -1,12 +1,9 @@
 // Copyright 2018 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build darwin
 
-package issue24161e2
-
-/*
+package issue24161e2 /*
 #cgo CFLAGS: -x objective-c
 #cgo LDFLAGS: -framework CoreFoundation -framework Security
 #include <TargetConditionals.h>
@@ -18,23 +15,13 @@ package issue24161e2
   #define kSecKeyAlgorithmECDSASignatureDigestX962SHA1 foo()
   static SecKeyAlgorithm foo(void){return NULL;}
 #endif
-*/
-import "C"
-import (
-	"fmt"
-	"testing"
+*/ import"C" import
+(
+    "fmt""testing"
 )
 
-var _ C.CFStringRef
+var _ C.CFStringRef func f1() { C.SecKeyCreateSignature(0, C.kSecKeyAlgorithmECDSASignatureDigestX962SHA1, 0, nil) }
 
-func f1() {
-	C.SecKeyCreateSignature(0, C.kSecKeyAlgorithmECDSASignatureDigestX962SHA1, 0, nil)
-}
+func f2(e C.CFErrorRef) { if desc: = C.CFErrorCopyDescription(e); desc != 0 { fmt.Println(desc) } }
 
-func f2(e C.CFErrorRef) {
-	if desc := C.CFErrorCopyDescription(e); desc != 0 {
-		fmt.Println(desc)
-	}
-}
-
-func Test(t *testing.T) {}
+func Test(t * testing.T) {}

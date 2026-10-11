@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type A[P int] = struct {}
 
-type A[P int] = struct{}
-
-var _ A[string /* ERROR "string does not satisfy int (string missing in int)" */]
+var _ A[string/* ERROR "string does not satisfy int (string missing in int)" */]

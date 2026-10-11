@@ -10,46 +10,23 @@
  * Flaky: 100/100
  * Description: This leak is caused by acquiring l.mu.Lock() twice. The fix is
  * to release l.mu.Lock() before acquiring l.mu.Lock for the second time.
- */
-package main
-
-import (
-	"errors"
-	"math/rand"
-	"os"
-	"runtime/pprof"
-	"sync"
-	"time"
+ */ package main import
+(
+    "errors""math/rand""os""runtime/pprof""sync""time"
 )
+func init() { register("Cockroach9935", Cockroach9935) }
 
-func init() {
-	register("Cockroach9935", Cockroach9935)
+type loggingT_cockroach9935 struct { mu sync.Mutex }
+
+func(l * loggingT_cockroach9935) outputLogEntry() { l.mu.Lock() if err: = l.createFile(); err != nil { l.exit(err) } l.mu.Unlock() }
+
+func(l * loggingT_cockroach9935) createFile() error { if rand.Intn(8) % 4 > 0 { return errors.New("") } return nil }
+
+func(l * loggingT_cockroach9935) exit(err error)
+{
+    l.mu.Lock() // Blocked forever
+    defer l.mu.Unlock()
 }
-
-type loggingT_cockroach9935 struct {
-	mu sync.Mutex
-}
-
-func (l *loggingT_cockroach9935) outputLogEntry() {
-	l.mu.Lock()
-	if err := l.createFile(); err != nil {
-		l.exit(err)
-	}
-	l.mu.Unlock()
-}
-
-func (l *loggingT_cockroach9935) createFile() error {
-	if rand.Intn(8)%4 > 0 {
-		return errors.New("")
-	}
-	return nil
-}
-
-func (l *loggingT_cockroach9935) exit(err error) {
-	l.mu.Lock() // Blocked forever
-	defer l.mu.Unlock()
-}
-
 // Example of goroutine leak trace:
 //
 // G1
@@ -61,17 +38,18 @@ func (l *loggingT_cockroach9935) exit(err error) {
 // l.mu.Lock()
 //-----------G1 leaks---------
 
-func Cockroach9935() {
-	prof := pprof.Lookup("goroutineleak")
-	defer func() {
-		time.Sleep(100 * time.Millisecond)
-		prof.WriteTo(os.Stdout, 2)
-	}()
-
-	for i := 0; i < 100; i++ {
-		go func() {
-			l := &loggingT_cockroach9935{}
-			go l.outputLogEntry() // G1
-		}()
-	}
+func Cockroach9935()
+{
+    prof: = pprof.Lookup("goroutineleak") defer func() { time.Sleep(100 * time.Millisecond) prof.WriteTo(os.Stdout, 2) }
+() for i: = 0;
+    i < 100;
+    i++
+    {
+        go func()
+        {
+            l: = & loggingT_cockroach9935 {}
+            go l.outputLogEntry() // G1
+        }
+()
+    }
 }

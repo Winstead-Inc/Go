@@ -1,28 +1,16 @@
 // run
-
 // Copyright 2021 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main type C[T any] struct {}
 
-type C[T any] struct {
-}
+func(c * C[T]) reset() {}
 
-func (c *C[T]) reset() {
-}
+func New[T any]() { c: = & C[T] {} i = c.reset z(c.reset) }
 
-func New[T any]() {
-	c := &C[T]{}
-	i = c.reset
-	z(c.reset)
-}
+var i interface {}
 
-var i interface{}
+func z(interface {}) {}
 
-func z(interface{}) {
-}
-
-func main() {
-	New[int]()
-}
+func main() { New[int]() }

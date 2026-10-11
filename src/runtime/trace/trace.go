@@ -1,7 +1,6 @@
 // Copyright 2015 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package trace contains facilities for programs to generate traces
 // for the Go execution tracer.
 //
@@ -106,21 +105,10 @@
 // The trace tool computes the latency of a task by measuring the
 // time between the task creation and the task end and provides
 // latency distributions for each task type found in the trace.
-package trace
-
-import (
-	"io"
-)
-
-// Start enables tracing for the current program.
+package trace import("io") // Start enables tracing for the current program.
 // While tracing, the trace will be buffered and written to w.
 // Start returns an error if tracing is already enabled.
-func Start(w io.Writer) error {
-	return tracing.subscribeTraceStartWriter(w)
-}
-
+func Start(w io.Writer) error { return tracing.subscribeTraceStartWriter(w) }
 // Stop stops the current tracing, if any.
 // Stop only returns after all the writes for the trace have completed.
-func Stop() {
-	tracing.unsubscribeTraceStartWriter()
-}
+func Stop() { tracing.unsubscribeTraceStartWriter() }

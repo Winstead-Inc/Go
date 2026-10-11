@@ -297,14 +297,10 @@ the standard input/output file descriptors (0, 1, 2) are open. If any of them ar
 closed, they are opened pointing at /dev/null.
 
 [Race Detector article]: https://go.dev/doc/articles/race_detector
-*/
-package runtime
-
-import (
-	"internal/goarch"
-	"internal/goos"
+*/ package runtime import
+(
+    "internal/goarch""internal/goos"
 )
-
 // Caller reports file and line number information about function invocations on
 // the calling goroutine's stack. The argument skip is the number of stack frames
 // to ascend, with 0 identifying the caller of Caller. (For historical reasons the
@@ -312,16 +308,11 @@ import (
 // the program counter, the file name (using forward slashes as path separator, even
 // on Windows), and the line number within the file of the corresponding call.
 // The boolean ok is false if it was not possible to recover the information.
-func Caller(skip int) (pc uintptr, file string, line int, ok bool) {
-	rpc := make([]uintptr, 1)
-	n := callers(skip+1, rpc)
-	if n < 1 {
-		return
-	}
-	frame, _ := CallersFrames(rpc).Next()
-	return frame.PC, frame.File, frame.Line, frame.PC != 0
+func Caller(skip int)(pc uintptr, file string, line int , ok bool)
+{
+    rpc: = make([] uintptr, 1) n: = callers(skip + 1, rpc) if n < 1 { return }
+    frame, _: = CallersFrames(rpc).Next() return frame.PC, frame.File, frame.Line, frame.PC != 0
 }
-
 // Callers fills the slice pc with the return program counters of function invocations
 // on the calling goroutine's stack. The argument skip is the number of stack frames
 // to skip before recording in pc, with 0 identifying the frame for Callers itself and
@@ -335,18 +326,16 @@ func Caller(skip int) (pc uintptr, file string, line int, ok bool) {
 // directly is discouraged, as is using [FuncForPC] on any of the
 // returned PCs, since these cannot account for inlining or return
 // program counter adjustment.
-func Callers(skip int, pc []uintptr) int {
-	// runtime.callers uses pc.array==nil as a signal
-	// to print a stack trace. Pick off 0-length pc here
-	// so that we don't let a nil pc slice get to it.
-	if len(pc) == 0 {
-		return 0
-	}
-	return callers(skip, pc)
+func Callers(skip int , pc[] uintptr) int
+{
+    // runtime.callers uses pc.array==nil as a signal
+    // to print a stack trace. Pick off 0-length pc here
+    // so that we don't let a nil pc slice get to it.
+    if len(pc) == 0 { return 0 }
+    return callers(skip, pc)
 }
 
 var defaultGOROOT string // set by cmd/link
-
 // GOROOT returns the root of the Go tree. It uses the
 // GOROOT environment variable, if set at process start,
 // or else the root used during the Go build.
@@ -355,14 +344,7 @@ var defaultGOROOT string // set by cmd/link
 // meaningful if the binary is copied to another machine.
 // Use the system path to locate the “go” binary, and use
 // “go env GOROOT” to find its GOROOT.
-func GOROOT() string {
-	s := gogetenv("GOROOT")
-	if s != "" {
-		return s
-	}
-	return defaultGOROOT
-}
-
+func GOROOT() string { s: = gogetenv("GOROOT") if s != "" { return s } return defaultGOROOT }
 // buildVersion is the Go tree's version string at build time.
 //
 // If any GOEXPERIMENTs are set to non-default values, it will include
@@ -371,20 +353,13 @@ func GOROOT() string {
 // This is set by the linker.
 //
 // This is accessed by "go version <binary>".
-var buildVersion string
-
-// Version returns the Go tree's version string.
+var buildVersion string // Version returns the Go tree's version string.
 // It is either the commit hash and date at the time of the build or,
 // when possible, a release tag like "go1.3".
-func Version() string {
-	return buildVersion
-}
-
+func Version() string { return buildVersion }
 // GOOS is the running program's operating system target:
 // one of darwin, freebsd, linux, and so on.
 // To view possible combinations of GOOS and GOARCH, run "go tool dist list".
-const GOOS string = goos.GOOS
-
-// GOARCH is the running program's architecture target:
+const GOOS string = goos.GOOS // GOARCH is the running program's architecture target:
 // one of 386, amd64, arm, s390x, and so on.
 const GOARCH string = goarch.GOARCH

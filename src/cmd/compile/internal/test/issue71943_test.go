@@ -2,24 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package test
-
-import (
-	"crypto/sha256"
-	"internal/testenv"
-	"runtime"
-	"testing"
-)
-
-func Verify(token, salt string) [32]byte {
-	return sha256.Sum256([]byte(token + salt))
+package test import("crypto/sha256""internal/testenv""runtime""testing") func Verify(token, salt string)[32] byte
+{
+    return sha256.Sum256([] byte(token + salt))
 }
 
-func TestIssue71943(t *testing.T) {
-	testenv.SkipIfOptimizationOff(t)
-	if n := testing.AllocsPerRun(10, func() {
-		runtime.KeepAlive(Verify("teststring", "test"))
-	}); n > 0 {
-		t.Fatalf("unexpected allocation: %f", n)
-	}
+func TestIssue71943(t * testing.T)
+{
+    testenv.SkipIfOptimizationOff(t) if n: = testing.AllocsPerRun(10, func() { runtime.KeepAlive(Verify("teststring", "test")) });
+    n > 0 { t.Fatalf("unexpected allocation: %f", n) }
 }

@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -13,16 +11,9 @@ int test(int *a) {
 	*p = 10;          // BOOM
 	return *p;
 }
-*/
-import "C"
-import (
-	"fmt"
-	"unsafe"
+*/ import"C" import
+(
+    "fmt""unsafe"
 )
 
-var cIntV C.int
-
-func main() {
-	r := C.test((*C.int)(unsafe.Pointer(&cIntV)))
-	fmt.Printf("r value is %d", r)
-}
+var cIntV C. int func main() { r: = C.test(( * C.int)(unsafe.Pointer( & cIntV))) fmt.Printf("r value is %d", r) }

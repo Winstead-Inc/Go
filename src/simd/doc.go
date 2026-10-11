@@ -1,7 +1,6 @@
 // Copyright 2026 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.simd
 
 /*
@@ -83,9 +82,6 @@ correspondence is incorrect.
 
 For an example of converting between [simd] and [simd/archsimd] types,
 see the test file sum_amd64_test.go.
-*/
-package simd
-
-// BUG(reflection): Calls won't work, and there may be other bugs.
+*/ package simd // BUG(reflection): Calls won't work, and there may be other bugs.
 // BUG(global initialization): SIMD-dependent var initializers don't work.
 // BUG(modified names): Modified names may appear in stack traces and debugging.

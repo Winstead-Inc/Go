@@ -2,15 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package d
-
-import (
-	"./b"
-	"./c"
-)
-
-var GA b.Service
-
-func C() {
-	c.BRS(nil, nil, 22)
-}
+package d import("./b""./c") var GA b.Service func C() { c.BRS(nil, nil, 22) }

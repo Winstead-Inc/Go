@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package slice
-
-// This file implements a stack-allocation optimization
+package slice // This file implements a stack-allocation optimization
 // for the backing store of slices.
 //
 // Consider the code:
@@ -110,405 +108,316 @@ package slice
 // For those slice variables, we can allocate to the next size class above
 // the length, which saves memory and copying cost.
 
-import (
-	"cmd/compile/internal/base"
-	"cmd/compile/internal/escape"
-	"cmd/compile/internal/ir"
-	"cmd/compile/internal/reflectdata"
-)
-
-func Funcs(all []*ir.Func) {
-	if base.Flag.N != 0 {
-		return
-	}
-	for _, fn := range all {
-		analyze(fn)
-	}
-	for _, fn := range all {
-		if ir.MatchAstDump(fn, "slice") {
-			ir.AstDump(fn, "slice, "+ir.FuncName(fn))
-		}
-	}
+import("cmd/compile/internal/base""cmd/compile/internal/escape""cmd/compile/internal/ir""cmd/compile/internal/reflectdata") func Funcs(all[] * ir.Func)
+{
+    if base.Flag.N != 0 { return }
+    for _, fn: = range all { analyze(fn) }
+    for _, fn: = range all { if ir.MatchAstDump(fn, "slice") { ir.AstDump(fn, "slice, " + ir.FuncName(fn)) } }
 }
 
-func analyze(fn *ir.Func) {
-	type sliceInfo struct {
-		// Slice variable.
-		s *ir.Name
+func analyze(fn * ir.Func)
+{
+    type sliceInfo struct 
+    {
+        // Slice variable.
+        s * ir.Name // Count of uses that this pass understands.
+        okUses int32 // Count of all uses found.
+        allUses int32 // A place where the slice variable transitions from
+        // exclusive to nonexclusive.
+        // We could keep track of more than one, but one is enough for now.
+        // Currently, this can be either a return statement or
+        // an assignment.
+        // TODO: other possible transitions?
+        transition ir.Stmt // Each s = append(s, ...) instance we found.
+        appends[] * ir.CallExpr // Weight of the number of s = append(s, ...) instances we found.
+        // The optimizations we do are only really useful if there are at
+        // least weight 2. (Note: appends in loops have weight >= 2.)
+        appendWeight int // Loop depth at declaration point.
+        // Use for heuristics only, it is not guaranteed to be correct
+        // in the presence of gotos.
+        declDepth int // Whether we ever do cap(s), or other operations that use cap(s)
+        // (possibly implicitly), like s[i:j].
+        capUsed bool
+    }
+    // Every variable (*ir.Name) that we are tracking will have
+    // a non-nil *sliceInfo in its Opt field.
+    haveLocalSlice: = false maxStackSize: = int64(base.Debug.VariableMakeThreshold) var namedRets[] * ir.Name for _, s: = range fn.Dcl
+    {
+        if ! s.Type().IsSlice() { continue }
+        if s.Type().Elem().Size() > maxStackSize { continue }
+        if ! base.VariableMakeHash.MatchPos(s.Pos(), nil) { continue }
+        s.Opt = & sliceInfo { s: s }
+        // start tracking s
+        haveLocalSlice = true if s.Class == ir.PPARAMOUT { namedRets = append(namedRets, s) }
+    }
+    if ! haveLocalSlice { return }
+    // Keep track of loop depth while walking.
+    loopDepth: = 0 // tracking returns the info for the slice variable if n is a slice
+    // variable that we're still considering, or nil otherwise.
+    tracking: = func(n ir.Node) * sliceInfo
+    {
+        if n == nil || n.Op() != ir.ONAME { return nil }
+        s: = n.( * ir.Name) if s.Opt == nil { return nil }
+        return s.Opt.( * sliceInfo)
+    }
+    // addTransition(n, loc) records that s experiences an exclusive->nonexclusive
+    // transition somewhere within loc.
+    addTransition: = func(i * sliceInfo, loc ir.Stmt)
+    {
+        if i.transition != nil
+        {
+            // We only keep track of a single exclusive->nonexclusive transition
+            // for a slice variable. If we find more than one, give up.
+            // (More than one transition location would be fine, but we would
+            // start to get worried about introducing too much additional code.)
+            i.s.Opt = nil return 
+        }
+        if loopDepth > i.declDepth
+        {
+            // Conservatively, we disable this optimization when the
+            // transition is inside a loop. This can result in adding
+            // overhead unnecessarily in cases like:
+            // func f(n int, p *[]byte) {
+            //     var s []byte
+            //     for i := range n {
+            //         *p = s
+            //         s = append(s, 0)
+            //     }
+            // }
+            i.s.Opt = nil return 
+        }
+        i.transition = loc
+    }
+    // Examine an x = y assignment that occurs somewhere within statement stmt.
+    assign: = func(x, y ir.Node, stmt ir.Stmt)
+    {
+        if i: = tracking(x);
+        i != nil
+        {
+            // s = y. Check for understood patterns for y.
+            if y == nil || y.Op() == ir.ONIL
+            {
+                // s = nil is ok.
+                i.okUses++
+            }
+            else if y.Op() == ir.OSLICELIT
+            {
+                // s = []{...} is ok.
+                // Note: this reveals capacity. Should it?
+                i.okUses++ i.capUsed = true
+            }
+            else if y.Op() == ir.OSLICE
+            {
+                y: = y.( * ir.SliceExpr) if y.X == i.s
+                {
+                    // s = s[...:...] is ok
+                    i.okUses += 2 i.capUsed = true
+                }
+            }
+            else if y.Op() == ir.OAPPEND
+            {
+                y: = y.( * ir.CallExpr) if y.Args[0] == i.s
+                {
+                    // s = append(s, ...) is ok
+                    i.okUses += 2 i.appends = append(i.appends, y) i.appendWeight += 1 + (loopDepth - i.declDepth)
+                }
+                // TODO: s = append(nil, ...)?
+            }
+            // Note that technically s = make([]T, ...) preserves exclusivity, but
+            // we don't track that because we assume users who wrote that know
+            // better than the compiler does.
+            // TODO: figure out how to handle s = fn(..., s, ...)
+            // It would be nice to maintain exclusivity of s in this situation.
+            // But unfortunately, fn can return one of its other arguments, which
+            // may be a slice with a stack-allocated backing store other than s.
+            // (which may have preexisting references to its backing store).
+            //
+            // Maybe we could do it if s is the only argument?
+        }
 
-		// Count of uses that this pass understands.
-		okUses int32
-		// Count of all uses found.
-		allUses int32
+        if i: = tracking(y);
+        i != nil
+        {
+            // ... = s
+            // Treat this as an exclusive->nonexclusive transition.
+            i.okUses++ addTransition(i, stmt)
+        }
+    }
+    // do walks n and everything below it, recording what happens to the
+    // slice variables we are tracking. It counts every mention of such a
+    // variable in allUses, and the subset of those mentions that this pass
+    // understands to preserve exclusivity in okUses. A variable whose two
+    // counts end up equal is only ever used in ways we understand; any
+    // other variable is dropped at the end of the analysis. Uses that
+    // definitely destroy exclusivity, like &s[i], stop the tracking right
+    // away by clearing s.Opt, which makes tracking report the variable as
+    // no longer being considered.
+    //
+    // It is always used as an ir.DoChildren visitor and always returns
+    // false, so that the whole function body is walked.
+    var do func(ir.Node) bool do = func(n ir.Node) bool
+    {
+        if n == nil { return false }
+        switch n.Op()
+        {
+            case ir.ONAME: if i: = tracking(n);
+            i != nil
+            {
+                // A use of a slice variable. Count it.
+                i.allUses++
+            }
+            case ir.ODCL: n: = n.( * ir.Decl) if i: = tracking(n.X);
+            i != nil { i.okUses ++ i.declDepth = loopDepth }
+            case ir.OINDEX: n: = n.( * ir.IndexExpr) if i: = tracking(n.X);
+            i != nil
+            {
+                // s[i] is ok.
+                i.okUses++
+            }
+            case ir.OLEN: n: = n.( * ir.UnaryExpr) if i: = tracking(n.X);
+            i != nil
+            {
+                // len(s) is ok
+                i.okUses++
+            }
+            case ir.OCAP: n: = n.( * ir.UnaryExpr) if i: = tracking(n.X);
+            i != nil
+            {
+                // cap(s) is ok
+                i.okUses++ i.capUsed = true
+            }
+            case ir.OADDR: n: = n.( * ir.AddrExpr) // Walk down to the object whose interior we're taking the
+            // address of. Field selectors and array indexes don't leave
+            // that object, so &s[i], &s[i].f, and &s[i].f[j] all end up
+            // pointing into s's backing store.
+            // (We need this because s[i] is ok, but &s[i] is not.)
+            x: = n.X for x != nil
+            {
+                switch x.Op()
+                {
+                    case ir.ODOT: // &x.f points into x.
+                    x = x.( * ir.SelectorExpr).X continue case ir.OINDEX: idx: = x.( * ir.IndexExpr) if idx.X.Type().IsArray()
+                    {
+                        // &a[i] points into a.
+                        // Note: for a pointer to an array, or for a
+                        // slice, the address points into a different
+                        // object instead, so we stop here.
+                        x = idx.X continue
+                    }
+                    if i: = tracking(idx.X);
+                    i != nil
+                    {
+                        // &s[i] is definitely a nonexclusive transition.
+                        i.s.Opt = nil
+                    }
+                }
+                break
+            }
+            case ir.ORETURN: n: = n.( * ir.ReturnStmt) for _, x: = range n.Results
+            {
+                if i: = tracking(x);
+                i != nil
+                {
+                    i.okUses++ // We go exclusive->nonexclusive here
+                    addTransition(i, n)
+                }
+            }
+            if len(n.Results) == 0
+            {
+                // Uses of named result variables are implicit here.
+                for _, x: = range namedRets { if i: = tracking(x); i != nil { addTransition(i, n) } }
+            }
+            case ir.OCALLFUNC: n: = n.( * ir.CallExpr) for idx, arg: = range n.Args
+            {
+                if i: = tracking(arg);
+                i != nil
+                {
+                    if ! argLeak(n, idx)
+                    {
+                        // Passing s to a nonescaping arg is ok.
+                        i.okUses++ i.capUsed = true
+                    }
+                }
+            }
+            case ir.ORANGE: n: = n.( * ir.RangeStmt) if i: = tracking(n.X);
+            i != nil
+            {
+                i.okUses++ // Range over slice keeps a pointer to the backing store, see #79909.
+                addTransition(i, n)
+            }
+            case ir.OAS: n: = n.( * ir.AssignStmt) assign(n.X, n.Y, n) case ir.OAS2: n: = n.( * ir.AssignListStmt) for i: = range len(n.Lhs)
+            {
+                assign(n.Lhs[i], n.Rhs[i], n)
+            }
+            case ir.OCLOSURE: n: = n.( * ir.ClosureExpr) for _, v: = range n.Func.ClosureVars { do (v.Outer) }
+        }
+        if n.Op() == ir.OFOR || n.Op() == ir.ORANGE
+        {
+            // Note: loopDepth isn't really right for init portion
+            // of the for statement, but that's ok. Correctness
+            // does not depend on depth info.
+            loopDepth++ defer func() { loopDepth -- }
+()
+        }
+        // Check all the children.
+        ir.DoChildren(n, do) return false
+    }
+    // Run the analysis over the whole body.
+    for _, stmt: = range fn.Body { do (stmt) }
+    // Process accumulated info to find slice variables
+    // that we can allocate on the stack.
+    for _, s: = range fn.Dcl
+    {
+        if s.Opt == nil { continue }
+        i: = s.Opt.( * sliceInfo) s.Opt = nil if i.okUses != i.allUses
+        {
+            // Some use of i.s that don't understand lurks. Give up.
+            continue
+        }
+        // At this point, we've decided that we *can* do
+        // the optimization.
 
-		// A place where the slice variable transitions from
-		// exclusive to nonexclusive.
-		// We could keep track of more than one, but one is enough for now.
-		// Currently, this can be either a return statement or
-		// an assignment.
-		// TODO: other possible transitions?
-		transition ir.Stmt
-
-		// Each s = append(s, ...) instance we found.
-		appends []*ir.CallExpr
-
-		// Weight of the number of s = append(s, ...) instances we found.
-		// The optimizations we do are only really useful if there are at
-		// least weight 2. (Note: appends in loops have weight >= 2.)
-		appendWeight int
-
-		// Loop depth at declaration point.
-		// Use for heuristics only, it is not guaranteed to be correct
-		// in the presence of gotos.
-		declDepth int
-
-		// Whether we ever do cap(s), or other operations that use cap(s)
-		// (possibly implicitly), like s[i:j].
-		capUsed bool
-	}
-
-	// Every variable (*ir.Name) that we are tracking will have
-	// a non-nil *sliceInfo in its Opt field.
-	haveLocalSlice := false
-	maxStackSize := int64(base.Debug.VariableMakeThreshold)
-	var namedRets []*ir.Name
-	for _, s := range fn.Dcl {
-		if !s.Type().IsSlice() {
-			continue
-		}
-		if s.Type().Elem().Size() > maxStackSize {
-			continue
-		}
-		if !base.VariableMakeHash.MatchPos(s.Pos(), nil) {
-			continue
-		}
-		s.Opt = &sliceInfo{s: s} // start tracking s
-		haveLocalSlice = true
-		if s.Class == ir.PPARAMOUT {
-			namedRets = append(namedRets, s)
-		}
-	}
-	if !haveLocalSlice {
-		return
-	}
-
-	// Keep track of loop depth while walking.
-	loopDepth := 0
-
-	// tracking returns the info for the slice variable if n is a slice
-	// variable that we're still considering, or nil otherwise.
-	tracking := func(n ir.Node) *sliceInfo {
-		if n == nil || n.Op() != ir.ONAME {
-			return nil
-		}
-		s := n.(*ir.Name)
-		if s.Opt == nil {
-			return nil
-		}
-		return s.Opt.(*sliceInfo)
-	}
-
-	// addTransition(n, loc) records that s experiences an exclusive->nonexclusive
-	// transition somewhere within loc.
-	addTransition := func(i *sliceInfo, loc ir.Stmt) {
-		if i.transition != nil {
-			// We only keep track of a single exclusive->nonexclusive transition
-			// for a slice variable. If we find more than one, give up.
-			// (More than one transition location would be fine, but we would
-			// start to get worried about introducing too much additional code.)
-			i.s.Opt = nil
-			return
-		}
-		if loopDepth > i.declDepth {
-			// Conservatively, we disable this optimization when the
-			// transition is inside a loop. This can result in adding
-			// overhead unnecessarily in cases like:
-			// func f(n int, p *[]byte) {
-			//     var s []byte
-			//     for i := range n {
-			//         *p = s
-			//         s = append(s, 0)
-			//     }
-			// }
-			i.s.Opt = nil
-			return
-		}
-		i.transition = loc
-	}
-
-	// Examine an x = y assignment that occurs somewhere within statement stmt.
-	assign := func(x, y ir.Node, stmt ir.Stmt) {
-		if i := tracking(x); i != nil {
-			// s = y. Check for understood patterns for y.
-			if y == nil || y.Op() == ir.ONIL {
-				// s = nil is ok.
-				i.okUses++
-			} else if y.Op() == ir.OSLICELIT {
-				// s = []{...} is ok.
-				// Note: this reveals capacity. Should it?
-				i.okUses++
-				i.capUsed = true
-			} else if y.Op() == ir.OSLICE {
-				y := y.(*ir.SliceExpr)
-				if y.X == i.s {
-					// s = s[...:...] is ok
-					i.okUses += 2
-					i.capUsed = true
-				}
-			} else if y.Op() == ir.OAPPEND {
-				y := y.(*ir.CallExpr)
-				if y.Args[0] == i.s {
-					// s = append(s, ...) is ok
-					i.okUses += 2
-					i.appends = append(i.appends, y)
-					i.appendWeight += 1 + (loopDepth - i.declDepth)
-				}
-				// TODO: s = append(nil, ...)?
-			}
-			// Note that technically s = make([]T, ...) preserves exclusivity, but
-			// we don't track that because we assume users who wrote that know
-			// better than the compiler does.
-
-			// TODO: figure out how to handle s = fn(..., s, ...)
-			// It would be nice to maintain exclusivity of s in this situation.
-			// But unfortunately, fn can return one of its other arguments, which
-			// may be a slice with a stack-allocated backing store other than s.
-			// (which may have preexisting references to its backing store).
-			//
-			// Maybe we could do it if s is the only argument?
-		}
-
-		if i := tracking(y); i != nil {
-			// ... = s
-			// Treat this as an exclusive->nonexclusive transition.
-			i.okUses++
-			addTransition(i, stmt)
-		}
-	}
-
-	// do walks n and everything below it, recording what happens to the
-	// slice variables we are tracking. It counts every mention of such a
-	// variable in allUses, and the subset of those mentions that this pass
-	// understands to preserve exclusivity in okUses. A variable whose two
-	// counts end up equal is only ever used in ways we understand; any
-	// other variable is dropped at the end of the analysis. Uses that
-	// definitely destroy exclusivity, like &s[i], stop the tracking right
-	// away by clearing s.Opt, which makes tracking report the variable as
-	// no longer being considered.
-	//
-	// It is always used as an ir.DoChildren visitor and always returns
-	// false, so that the whole function body is walked.
-	var do func(ir.Node) bool
-	do = func(n ir.Node) bool {
-		if n == nil {
-			return false
-		}
-		switch n.Op() {
-		case ir.ONAME:
-			if i := tracking(n); i != nil {
-				// A use of a slice variable. Count it.
-				i.allUses++
-			}
-		case ir.ODCL:
-			n := n.(*ir.Decl)
-			if i := tracking(n.X); i != nil {
-				i.okUses++
-				i.declDepth = loopDepth
-			}
-		case ir.OINDEX:
-			n := n.(*ir.IndexExpr)
-			if i := tracking(n.X); i != nil {
-				// s[i] is ok.
-				i.okUses++
-			}
-		case ir.OLEN:
-			n := n.(*ir.UnaryExpr)
-			if i := tracking(n.X); i != nil {
-				// len(s) is ok
-				i.okUses++
-			}
-		case ir.OCAP:
-			n := n.(*ir.UnaryExpr)
-			if i := tracking(n.X); i != nil {
-				// cap(s) is ok
-				i.okUses++
-				i.capUsed = true
-			}
-		case ir.OADDR:
-			n := n.(*ir.AddrExpr)
-			// Walk down to the object whose interior we're taking the
-			// address of. Field selectors and array indexes don't leave
-			// that object, so &s[i], &s[i].f, and &s[i].f[j] all end up
-			// pointing into s's backing store.
-			// (We need this because s[i] is ok, but &s[i] is not.)
-			x := n.X
-			for x != nil {
-				switch x.Op() {
-				case ir.ODOT:
-					// &x.f points into x.
-					x = x.(*ir.SelectorExpr).X
-					continue
-				case ir.OINDEX:
-					idx := x.(*ir.IndexExpr)
-					if idx.X.Type().IsArray() {
-						// &a[i] points into a.
-						// Note: for a pointer to an array, or for a
-						// slice, the address points into a different
-						// object instead, so we stop here.
-						x = idx.X
-						continue
-					}
-					if i := tracking(idx.X); i != nil {
-						// &s[i] is definitely a nonexclusive transition.
-						i.s.Opt = nil
-					}
-				}
-				break
-			}
-		case ir.ORETURN:
-			n := n.(*ir.ReturnStmt)
-			for _, x := range n.Results {
-				if i := tracking(x); i != nil {
-					i.okUses++
-					// We go exclusive->nonexclusive here
-					addTransition(i, n)
-				}
-			}
-			if len(n.Results) == 0 {
-				// Uses of named result variables are implicit here.
-				for _, x := range namedRets {
-					if i := tracking(x); i != nil {
-						addTransition(i, n)
-					}
-				}
-			}
-		case ir.OCALLFUNC:
-			n := n.(*ir.CallExpr)
-			for idx, arg := range n.Args {
-				if i := tracking(arg); i != nil {
-					if !argLeak(n, idx) {
-						// Passing s to a nonescaping arg is ok.
-						i.okUses++
-						i.capUsed = true
-					}
-				}
-			}
-		case ir.ORANGE:
-			n := n.(*ir.RangeStmt)
-			if i := tracking(n.X); i != nil {
-				i.okUses++
-				// Range over slice keeps a pointer to the backing store, see #79909.
-				addTransition(i, n)
-			}
-		case ir.OAS:
-			n := n.(*ir.AssignStmt)
-			assign(n.X, n.Y, n)
-		case ir.OAS2:
-			n := n.(*ir.AssignListStmt)
-			for i := range len(n.Lhs) {
-				assign(n.Lhs[i], n.Rhs[i], n)
-			}
-		case ir.OCLOSURE:
-			n := n.(*ir.ClosureExpr)
-			for _, v := range n.Func.ClosureVars {
-				do(v.Outer)
-			}
-		}
-		if n.Op() == ir.OFOR || n.Op() == ir.ORANGE {
-			// Note: loopDepth isn't really right for init portion
-			// of the for statement, but that's ok. Correctness
-			// does not depend on depth info.
-			loopDepth++
-			defer func() { loopDepth-- }()
-		}
-		// Check all the children.
-		ir.DoChildren(n, do)
-		return false
-	}
-
-	// Run the analysis over the whole body.
-	for _, stmt := range fn.Body {
-		do(stmt)
-	}
-
-	// Process accumulated info to find slice variables
-	// that we can allocate on the stack.
-	for _, s := range fn.Dcl {
-		if s.Opt == nil {
-			continue
-		}
-		i := s.Opt.(*sliceInfo)
-		s.Opt = nil
-		if i.okUses != i.allUses {
-			// Some use of i.s that don't understand lurks. Give up.
-			continue
-		}
-
-		// At this point, we've decided that we *can* do
-		// the optimization.
-
-		if i.transition == nil {
-			// Exclusive for its whole lifetime. That means it
-			// didn't escape. We can already handle nonescaping
-			// slices without this pass.
-			continue
-		}
-		if i.appendWeight < 2 {
-			// This optimization only really helps if there is
-			// (dynamically) more than one append.
-			continue
-		}
-
-		// Commit point - at this point we've decided we *should*
-		// do the optimization.
-
-		// Insert a move2heap operation before the exclusive->nonexclusive
-		// transition.
-		move := ir.NewMoveToHeapExpr(i.transition.Pos(), i.s)
-		if i.capUsed {
-			move.PreserveCapacity = true
-		}
-		move.RType = reflectdata.AppendElemRType(fn, i.transition.Pos(), i.appends[0])
-		move.SetType(i.s.Type())
-		move.SetTypecheck(1)
-		as := ir.NewAssignStmt(i.transition.Pos(), i.s, move)
-		as.SetTypecheck(1)
-		i.transition.PtrInit().Prepend(as)
-		// Note: we prepend because we need to put the move2heap
-		// operation first, before any other init work, as the transition
-		// might occur in the init work.
-
-		// Now that we've inserted a move2heap operation before every
-		// exclusive -> nonexclusive transition, appends can now use
-		// stack backing stores.
-		// (This is the whole point of this pass, to enable stack
-		// allocation of append backing stores.)
-		for _, a := range i.appends {
-			a.SetEsc(ir.EscNone)
-			if i.capUsed {
-				a.UseBuf = true
-			}
-		}
-	}
+        if i.transition == nil
+        {
+            // Exclusive for its whole lifetime. That means it
+            // didn't escape. We can already handle nonescaping
+            // slices without this pass.
+            continue
+        }
+        if i.appendWeight < 2
+        {
+            // This optimization only really helps if there is
+            // (dynamically) more than one append.
+            continue
+        }
+        // Commit point - at this point we've decided we *should*
+        // do the optimization.
+        // Insert a move2heap operation before the exclusive->nonexclusive
+        // transition.
+        move: = ir.NewMoveToHeapExpr(i.transition.Pos(), i.s) if i.capUsed { move.PreserveCapacity = true }
+        move.RType = reflectdata.AppendElemRType(fn, i.transition.Pos(), i.appends[0]) move.SetType(i.s.Type()) move.SetTypecheck(1) as: = ir.NewAssignStmt
+        (
+            i.transition.Pos(), i.s, move
+        )
+        as.SetTypecheck(1) i.transition.PtrInit().Prepend(as) // Note: we prepend because we need to put the move2heap
+        // operation first, before any other init work, as the transition
+        // might occur in the init work.
+        // Now that we've inserted a move2heap operation before every
+        // exclusive -> nonexclusive transition, appends can now use
+        // stack backing stores.
+        // (This is the whole point of this pass, to enable stack
+        // allocation of append backing stores.)
+        for _, a: = range i.appends { a.SetEsc(ir.EscNone) if i.capUsed { a.UseBuf = true } }
+    }
 }
-
 // argLeak reports if the idx'th argument to the call n escapes anywhere
 // (to the heap, another argument, return value, etc.)
 // If unknown returns true.
-func argLeak(n *ir.CallExpr, idx int) bool {
-	if n.Op() != ir.OCALLFUNC {
-		return true
-	}
-	fn := ir.StaticCalleeName(ir.StaticValue(n.Fun))
-	if fn == nil {
-		return true
-	}
-	fntype := fn.Type()
-	if recv := fntype.Recv(); recv != nil {
-		if idx == 0 {
-			return escape.ParseLeaks(recv.Note).Any()
-		}
-		idx--
-	}
-	return escape.ParseLeaks(fntype.Params()[idx].Note).Any()
+func argLeak(n * ir.CallExpr, idx int) bool
+{
+    if n.Op() != ir.OCALLFUNC { return true }
+    fn: = ir.StaticCalleeName(ir.StaticValue(n.Fun)) if fn == nil { return true }
+    fntype: = fn.Type() if recv: = fntype.Recv();
+    recv != nil { if idx == 0 { return escape.ParseLeaks(recv.Note).Any() } idx -- }
+    return escape.ParseLeaks(fntype.Params()[idx].Note).Any()
 }

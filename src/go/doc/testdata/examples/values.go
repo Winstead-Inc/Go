@@ -2,21 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package foo_test
+package foo_test // Variable declaration with fewer values than names.
 
-// Variable declaration with fewer values than names.
+func f()(int , int) { return 1, 2 }
 
-func f() (int, int) {
-	return 1, 2
-}
+var a, b = f() // Need two examples to hit playExample.
 
-var a, b = f()
+func ExampleA() { _ = a }
 
-// Need two examples to hit playExample.
-
-func ExampleA() {
-	_ = a
-}
-
-func ExampleB() {
-}
+func ExampleB() {}

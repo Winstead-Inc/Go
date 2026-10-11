@@ -1,7 +1,6 @@
 // Copyright 2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Test that a PE rsrc section is handled correctly (issue 39658).
 //
 // rsrc.syso is created using binutils with:
@@ -13,6 +12,4 @@
 //   "This is a test.\0",
 // }
 
-package main
-
-func main() {}
+package main func main() {}

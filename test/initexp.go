@@ -1,12 +1,9 @@
 // errorcheck -t 10
-
 // Copyright 2021 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-// The init cycle diagnosis used to take exponential time
+package p // The init cycle diagnosis used to take exponential time
 // to traverse the call graph paths. This test case takes
 // at least two minutes on a modern laptop with the bug
 // and runs in a fraction of a second without it.

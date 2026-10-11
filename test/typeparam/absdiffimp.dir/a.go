@@ -2,40 +2,22 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
-
-type Numeric interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
-		~float32 | ~float64 |
-		~complex64 | ~complex128
+package a type Numeric interface
+{
+    ~ int | ~ int8 | ~ int16 | ~ int32 | ~ int64 | ~ uint | ~ uint8 | ~ uint16 | ~ uint32 | ~ uint64 | ~ uintptr | ~ float32 | ~ float64 | ~ complex64 | ~ complex128
 }
-
 // numericAbs matches numeric types with an Abs method.
-type numericAbs[T any] interface {
-	Numeric
-	Abs() T
-}
-
+type numericAbs[T any] interface { Numeric Abs() T }
 // AbsDifference computes the absolute value of the difference of
 // a and b, where the absolute value is determined by the Abs method.
-func absDifference[T numericAbs[T]](a, b T) T {
-	d := a - b
-	return d.Abs()
-}
-
+func absDifference[T numericAbs[T]](a, b T) T { d: = a - b return d.Abs() }
 // orderedNumeric matches numeric types that support the < operator.
-type orderedNumeric interface {
-	~int | ~int8 | ~int16 | ~int32 | ~int64 |
-		~uint | ~uint8 | ~uint16 | ~uint32 | ~uint64 | ~uintptr |
-		~float32 | ~float64
+type orderedNumeric interface
+{
+    ~ int | ~ int8 | ~ int16 | ~ int32 | ~ int64 | ~ uint | ~ uint8 | ~ uint16 | ~ uint32 | ~ uint64 | ~ uintptr | ~ float32 | ~ float64
 }
-
 // Complex matches the two complex types, which do not have a < operator.
-type Complex interface {
-	~complex64 | ~complex128
-}
-
+type Complex interface { ~ complex64 | ~ complex128 }
 // For now, a lone type parameter is not permitted as RHS in a type declaration (issue #45639).
 // // orderedAbs is a helper type that defines an Abs method for
 // // ordered numeric types.

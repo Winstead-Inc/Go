@@ -72,8 +72,7 @@ Actions
 Here is the list of actions. "Arguments" and "pipelines" are evaluations of
 data, defined in detail in the corresponding sections that follow.
 
-*/
-//	{{/* a comment */}}
+*/ //	{{/* a comment */}}
 //	{{- /* a comment with white space trimmed from preceding and following text */ -}}
 //		A comment; discarded. May contain newlines.
 //		Comments do not nest and must start and end at the
@@ -499,5 +498,4 @@ or to invoke a particular template explicitly by name,
 		log.Fatalf("execution failed: %s", err)
 	}
 
-*/
-package template
+*/ package template

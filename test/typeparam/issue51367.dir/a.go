@@ -2,13 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type A[T any] struct {}
 
-type A[T any] struct{}
+func(_ A[T]) Method() {}
 
-func (_ A[T]) Method() {}
-
-func DoSomething[P any]() {
-	a := A[*byte]{}
-	a.Method()
-}
+func DoSomething[P any]() { a: = A[ * byte] {} a.Method() }

@@ -1,7 +1,6 @@
 // Copyright 2009,2010,2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // OpenBSD system calls.
 // This file is compiled as ordinary Go code,
 // but it is also input to mksyscall,
@@ -10,189 +9,126 @@
 // it in our own nicer implementation, either here or in
 // syscall_bsd.go or syscall_unix.go.
 
-package syscall
+package syscall import("internal/abi""unsafe") var dupTrampoline = abi.FuncPCABI0(libc_dup3_trampoline) func init() { execveLibc = execve }
 
-import (
-	"internal/abi"
-	"unsafe"
+func syscallInternal(trap, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno)
+{
+    // OpenBSD 7.5+ no longer supports indirect syscalls. A number of Go
+    // packages make use of syscall.Syscall with SYS_IOCTL since it is
+    // not well supported by golang.org/x/sys/unix. Reroute this system
+    // call number to the respective libc stub so that it continues to
+    // work for the time being. See #63900 for further details.
+    if trap == SYS_IOCTL { return syscallX(abi.FuncPCABI0(libc_ioctl_trampoline), a1, a2, a3) }
+    return 0, 0, ENOSYS
+}
+
+func syscall6Internal(trap, a1, a2, a3, a4, a5, a6 uintptr)(r1, r2 uintptr, err Errno)
+{
+    // OpenBSD 7.5+ no longer supports indirect syscalls. A number of Go
+    // packages make use of syscall.Syscall with SYS___SYSCTL since it is
+    // not well supported by golang.org/x/sys/unix. Reroute this system
+    // call number to the respective libc stub so that it continues to
+    // work for the time being. See #63900 for further details.
+    if trap == SYS___SYSCTL { return syscall6X(abi.FuncPCABI0(libc_sysctl_trampoline), a1, a2, a3, a4, a5, a6) }
+    return 0, 0, ENOSYS
+}
+
+func rawSyscallInternal(trap, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) { return 0, 0, ENOSYS }
+
+func rawSyscall6Internal(trap, a1, a2, a3, a4, a5, a6 uintptr)(r1, r2 uintptr, err Errno) { return 0, 0, ENOSYS }
+
+func syscall9Internal(trap, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr)(r1, r2 uintptr, err Errno) { return 0, 0, ENOSYS }
+// Implemented in the runtime package (runtime/sys_openbsd.go)
+func syscall(fn, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) func syscallX(fn, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) func syscall6
+(
+    fn, a1, a2, a3, a4, a5, a6 uintptr
+)
+(r1, r2 uintptr, err Errno) func syscall6X(fn, a1, a2, a3, a4, a5, a6 uintptr)(r1, r2 uintptr, err Errno) func syscall10
+(
+    fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 uintptr
+)
+(r1, r2 uintptr, err Errno) func syscall10X(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 uintptr)(r1, r2 uintptr, err Errno) func rawSyscall
+(
+    fn, a1, a2, a3 uintptr
+)
+(r1, r2 uintptr, err Errno) func rawSyscall6(fn, a1, a2, a3, a4, a5, a6 uintptr)(r1, r2 uintptr, err Errno) func rawSyscall6X
+(
+    fn, a1, a2, a3, a4, a5, a6 uintptr
+)
+(r1, r2 uintptr, err Errno) func rawSyscall10X(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 uintptr)(r1, r2 uintptr, err Errno) func syscall9
+(
+    fn, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr
+)
+(r1, r2 uintptr, err Errno) { return syscall10(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, 0) }
+func syscall9X(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr)(r1, r2 uintptr, err Errno)
+{
+    return syscall10X(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, 0)
+}
+
+func Syscall(trap, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr)(r1, r2 uintptr, err Errno) func Syscall9
+(
+    num, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr
+)
+(r1, r2 uintptr, err Errno) func RawSyscall(trap, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr)
+(
+    r1, r2 uintptr, err Errno
 )
 
-var dupTrampoline = abi.FuncPCABI0(libc_dup3_trampoline)
+type SockaddrDatalink struct { Len uint8 Family uint8 Index uint16 Type uint8 Nlen uint8 Alen uint8 Slen uint8 Data[24] int8 raw RawSockaddrDatalink }
 
-func init() {
-	execveLibc = execve
+func nametomib(name string)(mib[] _C_int, err error)
+{
+    // Perform lookup via a binary search
+    left: = 0 right: = len(sysctlMib) - 1 for 
+    {
+        idx: = int(uint(left + right) >> 1) switch 
+        {
+            case name == sysctlMib[idx].ctlname: return sysctlMib[idx].ctloid, nil case name > sysctlMib[idx].ctlname: left = idx + 1 default: right = idx - 1
+        }
+        if left > right { break }
+    }
+    return nil, EINVAL
 }
 
-func syscallInternal(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
-	// OpenBSD 7.5+ no longer supports indirect syscalls. A number of Go
-	// packages make use of syscall.Syscall with SYS_IOCTL since it is
-	// not well supported by golang.org/x/sys/unix. Reroute this system
-	// call number to the respective libc stub so that it continues to
-	// work for the time being. See #63900 for further details.
-	if trap == SYS_IOCTL {
-		return syscallX(abi.FuncPCABI0(libc_ioctl_trampoline), a1, a2, a3)
-	}
-	return 0, 0, ENOSYS
-}
+func direntIno(buf[] byte)(uint64, bool) { return readInt(buf, unsafe.Offsetof(Dirent {}.Fileno), unsafe.Sizeof(Dirent {}.Fileno)) }
 
-func syscall6Internal(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) {
-	// OpenBSD 7.5+ no longer supports indirect syscalls. A number of Go
-	// packages make use of syscall.Syscall with SYS___SYSCTL since it is
-	// not well supported by golang.org/x/sys/unix. Reroute this system
-	// call number to the respective libc stub so that it continues to
-	// work for the time being. See #63900 for further details.
-	if trap == SYS___SYSCTL {
-		return syscall6X(abi.FuncPCABI0(libc_sysctl_trampoline), a1, a2, a3, a4, a5, a6)
-	}
-	return 0, 0, ENOSYS
-}
+func direntReclen(buf[] byte)(uint64, bool) { return readInt(buf, unsafe.Offsetof(Dirent {}.Reclen), unsafe.Sizeof(Dirent {}.Reclen)) }
 
-func rawSyscallInternal(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
-	return 0, 0, ENOSYS
-}
+func direntNamlen(buf[] byte)(uint64, bool) { return readInt(buf, unsafe.Offsetof(Dirent {}.Namlen), unsafe.Sizeof(Dirent {}.Namlen)) }
 
-func rawSyscall6Internal(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) {
-	return 0, 0, ENOSYS
-}
-
-func syscall9Internal(trap, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err Errno) {
-	return 0, 0, ENOSYS
-}
-
-// Implemented in the runtime package (runtime/sys_openbsd.go)
-func syscall(fn, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
-func syscallX(fn, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
-func syscall6(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-func syscall6X(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-func syscall10(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 uintptr) (r1, r2 uintptr, err Errno)
-func syscall10X(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 uintptr) (r1, r2 uintptr, err Errno)
-func rawSyscall(fn, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
-func rawSyscall6(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-func rawSyscall6X(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-func rawSyscall10X(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, a10 uintptr) (r1, r2 uintptr, err Errno)
-
-func syscall9(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err Errno) {
-	return syscall10(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, 0)
-}
-func syscall9X(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err Errno) {
-	return syscall10X(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9, 0)
-}
-
-func Syscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
-func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-func Syscall9(num, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err Errno)
-func RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
-func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-
-type SockaddrDatalink struct {
-	Len    uint8
-	Family uint8
-	Index  uint16
-	Type   uint8
-	Nlen   uint8
-	Alen   uint8
-	Slen   uint8
-	Data   [24]int8
-	raw    RawSockaddrDatalink
-}
-
-func nametomib(name string) (mib []_C_int, err error) {
-	// Perform lookup via a binary search
-	left := 0
-	right := len(sysctlMib) - 1
-	for {
-		idx := int(uint(left+right) >> 1)
-		switch {
-		case name == sysctlMib[idx].ctlname:
-			return sysctlMib[idx].ctloid, nil
-		case name > sysctlMib[idx].ctlname:
-			left = idx + 1
-		default:
-			right = idx - 1
-		}
-		if left > right {
-			break
-		}
-	}
-	return nil, EINVAL
-}
-
-func direntIno(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Fileno), unsafe.Sizeof(Dirent{}.Fileno))
-}
-
-func direntReclen(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Reclen), unsafe.Sizeof(Dirent{}.Reclen))
-}
-
-func direntNamlen(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Namlen), unsafe.Sizeof(Dirent{}.Namlen))
-}
-
-func Pipe(p []int) error {
-	return Pipe2(p, 0)
-}
-
+func Pipe(p[] int) error { return Pipe2(p, 0) }
 //sysnb pipe2(p *[2]_C_int, flags int) (err error)
 
-func Pipe2(p []int, flags int) error {
-	if len(p) != 2 {
-		return EINVAL
-	}
-	var pp [2]_C_int
-	err := pipe2(&pp, flags)
-	if err == nil {
-		p[0] = int(pp[0])
-		p[1] = int(pp[1])
-	}
-	return err
+func Pipe2(p[] int , flags int) error
+{
+    if len(p) != 2 { return EINVAL }
+    var pp[2] _C_int err: = pipe2( & pp, flags) if err == nil { p[0] = int (pp[0]) p[1] = int (pp[1]) }
+    return err
 }
-
 //sys	accept4(fd int, rsa *RawSockaddrAny, addrlen *_Socklen, flags int) (nfd int, err error)
 
-func Accept4(fd, flags int) (nfd int, sa Sockaddr, err error) {
-	var rsa RawSockaddrAny
-	var len _Socklen = SizeofSockaddrAny
-	nfd, err = accept4(fd, &rsa, &len, flags)
-	if err != nil {
-		return
-	}
-	if len > SizeofSockaddrAny {
-		panic("RawSockaddrAny too small")
-	}
-	sa, err = anyToSockaddr(&rsa)
-	if err != nil {
-		Close(nfd)
-		nfd = 0
-	}
-	return
+func Accept4(fd, flags int)(nfd int , sa Sockaddr, err error)
+{
+    var rsa RawSockaddrAny var len _Socklen = SizeofSockaddrAny nfd, err = accept4(fd, & rsa, & len, flags) if err != nil { return }
+    if len > SizeofSockaddrAny { panic("RawSockaddrAny too small") }
+    sa, err = anyToSockaddr( & rsa) if err != nil { Close(nfd) nfd = 0 }
+    return 
 }
-
 //sys getdents(fd int, buf []byte) (n int, err error)
 
-func Getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error) {
-	return getdents(fd, buf)
-}
-
+func Getdirentries(fd int , buf[] byte, basep * uintptr)(n int , err error) { return getdents(fd, buf) }
 // TODO, see golang.org/issue/5847
-func sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
-	return -1, ENOSYS
-}
+func sendfile(outfd int , infd int , offset * int64, count int)(written int , err error) { return - 1, ENOSYS }
 
-func Getfsstat(buf []Statfs_t, flags int) (n int, err error) {
-	var bufptr *Statfs_t
-	var bufsize uintptr
-	if len(buf) > 0 {
-		bufptr = &buf[0]
-		bufsize = unsafe.Sizeof(Statfs_t{}) * uintptr(len(buf))
-	}
-	return getfsstat(bufptr, bufsize, flags)
+func Getfsstat(buf[] Statfs_t, flags int)(n int , err error)
+{
+    var bufptr * Statfs_t var bufsize uintptr if len(buf) > 0 { bufptr = & buf[0] bufsize = unsafe.Sizeof(Statfs_t {}) * uintptr(len(buf)) }
+    return getfsstat(bufptr, bufsize, flags)
 }
 
 /*
  * Exposed directly
- */
-//sys	Access(path string, mode uint32) (err error)
+ */ //sys	Access(path string, mode uint32) (err error)
 //sys	Adjtime(delta *Timeval, olddelta *Timeval) (err error)
 //sys	Chdir(path string) (err error)
 //sys	Chflags(path string, flags int) (err error)

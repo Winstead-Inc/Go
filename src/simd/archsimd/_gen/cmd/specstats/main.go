@@ -1,7 +1,6 @@
 // Copyright 2026 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Specstats reports progress on the internal/spec transition described in
 // SPEC-TRANSITION.md. The checked-in output is archsimd/_gen/SPEC-STATS.txt:
 //
@@ -27,35 +26,18 @@
 // measurement tool and not a checker: it reports divergence and does not judge
 // it. fill builds the checker, and should absorb the comparison half of this
 // program rather than leave two implementations to drift.
-package main
+package main import("flag""log""path/filepath""simd/archsimd/_gen/gentools""simd/archsimd/_gen/specgen") func main()
+{
+    log.SetFlags(0) log.SetPrefix("specstats: ") genOpts: = gentools.RegisterFlags(nil) flag.Parse() specDir: = specgen.MustFindSpecDir(genOpts.GOROOT) simdDir: = filepath.Clean
+    (
+        filepath.Join(specDir, "..", "..")
+    )
+    genDir: = filepath.Join(simdDir, "archsimd", "_gen")
+    spec, err: = specgen.Load(specDir, nil) if err != nil { log.Fatalf("loading spec: %s", err) }
 
-import (
-	"flag"
-	"log"
-	"path/filepath"
-
-	"simd/archsimd/_gen/gentools"
-	"simd/archsimd/_gen/specgen"
-)
-
-func main() {
-	log.SetFlags(0)
-	log.SetPrefix("specstats: ")
-	genOpts := gentools.RegisterFlags(nil)
-	flag.Parse()
-
-	specDir := specgen.MustFindSpecDir(genOpts.GOROOT)
-	simdDir := filepath.Clean(filepath.Join(specDir, "..", ".."))
-	genDir := filepath.Join(simdDir, "archsimd", "_gen")
-
-	spec, err := specgen.Load(specDir, nil)
-	if err != nil {
-		log.Fatalf("loading spec: %s", err)
-	}
-
-	var files gentools.Files
-	defer files.FlushOrExit()
-
-	buf := files.NewRawFile("simd/archsimd/_gen/SPEC-STATS.txt")
-	measure(loadAPI(genOpts, simdDir), spec, genDir).report(buf)
+    var files gentools.Files defer files.FlushOrExit() buf: = files.NewRawFile("simd/archsimd/_gen/SPEC-STATS.txt") measure
+    (
+        loadAPI(genOpts, simdDir), spec, genDir
+    )
+    .report(buf)
 }

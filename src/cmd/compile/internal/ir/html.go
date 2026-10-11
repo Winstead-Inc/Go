@@ -2,139 +2,92 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ir
-
-import (
-	"bufio"
-	"cmd/compile/internal/base"
-	"cmd/compile/internal/types"
-	"cmd/internal/src"
-	"crypto/sha256"
-	"encoding/hex"
-	"fmt"
-	"html"
-	"io"
-	"os"
-	"path/filepath"
-	"reflect"
-	"regexp"
-	"strings"
+package ir import
+(
+    "bufio""cmd/compile/internal/base""cmd/compile/internal/types""cmd/internal/src""crypto/sha256""encoding/hex""fmt""html""io""os""path/filepath""reflect""regexp""strings"
 )
-
 // An HTMLWriter dumps IR to multicolumn HTML, similar to what the
 // ssa backend does for GOSSAFUNC.  This is not the format used for
 // the ast column in GOSSAFUNC output.
-type HTMLWriter struct {
-	HTMLWriterBase
-	Func *Func
+type HTMLWriter struct { HTMLWriterBase Func * Func }
+
+type HTMLWriterBase struct 
+{
+    w * BufferedWriterCloser canonIdMap map[any] int prevCanonId int path string prevHash[] byte pendingPhases[] string pendingTitles[] string doDump func
+    (
+        string
+    )
+    func()
 }
 
-type HTMLWriterBase struct {
-	w             *BufferedWriterCloser
-	canonIdMap    map[any]int
-	prevCanonId   int
-	path          string
-	prevHash      []byte
-	pendingPhases []string
-	pendingTitles []string
-	doDump        func(string) func()
+func(h * HTMLWriterBase) Init(out io.WriteCloser, reportPath string, doDump func(string) func())
+{
+    h.w = NewBufferedWriterCloser(out) h.canonIdMap = make(map[any] int) h.path = reportPath h.doDump = doDump
 }
-
-func (h *HTMLWriterBase) Init(out io.WriteCloser, reportPath string, doDump func(string) func()) {
-	h.w = NewBufferedWriterCloser(out)
-	h.canonIdMap = make(map[any]int)
-	h.path = reportPath
-	h.doDump = doDump
-}
-
 // BufferedWriterCloser is here to help avoid pre-buffering the whole
 // rendered HTML in memory, which can cause problems for large inputs.
-type BufferedWriterCloser struct {
-	file io.Closer
-	w    *bufio.Writer
+type BufferedWriterCloser struct { file io.Closer w * bufio.Writer }
+
+func(b * BufferedWriterCloser) Write(p[] byte)(n int , err error) { return b.w.Write(p) }
+
+func(b * BufferedWriterCloser) Close() error { b.w.Flush() b.w = nil return b.file.Close() }
+
+func NewBufferedWriterCloser(f io.WriteCloser) * BufferedWriterCloser { return & BufferedWriterCloser { file: f, w: bufio.NewWriter(f) } }
+
+func NewHTMLWriter(path string, f * Func, cfgMask string) * HTMLWriter
+{
+    path = strings.ReplaceAll(path, "/", string(filepath.Separator)) out, err: = os.OpenFile(path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644) if err != nil
+    {
+        base.Fatalf("%v", err)
+    }
+    reportPath: = path if ! filepath.IsAbs(reportPath)
+    {
+        pwd, err: = os.Getwd() if err != nil { base.Fatalf("%v", err) }
+        reportPath = filepath.Join(pwd, path)
+    }
+    h: = HTMLWriter { Func: f, }
+    h.Init(out, reportPath, h.FuncHTML) h.start() return & h
 }
 
-func (b *BufferedWriterCloser) Write(p []byte) (n int, err error) {
-	return b.w.Write(p)
-}
-
-func (b *BufferedWriterCloser) Close() error {
-	b.w.Flush()
-	b.w = nil
-	return b.file.Close()
-}
-
-func NewBufferedWriterCloser(f io.WriteCloser) *BufferedWriterCloser {
-	return &BufferedWriterCloser{file: f, w: bufio.NewWriter(f)}
-}
-
-func NewHTMLWriter(path string, f *Func, cfgMask string) *HTMLWriter {
-	path = strings.ReplaceAll(path, "/", string(filepath.Separator))
-	out, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		base.Fatalf("%v", err)
-	}
-	reportPath := path
-	if !filepath.IsAbs(reportPath) {
-		pwd, err := os.Getwd()
-		if err != nil {
-			base.Fatalf("%v", err)
-		}
-		reportPath = filepath.Join(pwd, path)
-	}
-	h := HTMLWriter{
-		Func: f,
-	}
-	h.Init(out, reportPath, h.FuncHTML)
-	h.start()
-	return &h
-}
-
-func (h *HTMLWriterBase) Path() string {
-	return h.path
-}
-
+func(h * HTMLWriterBase) Path() string { return h.path }
 // CanonId assigns indices to nodes based on pointer identity.
 // this helps ensure that output html files don't gratuitously
 // differ from run to run.
-func (h *HTMLWriterBase) CanonId(n any) int {
-	if id := h.canonIdMap[n]; id > 0 {
-		return id
-	}
-	h.prevCanonId++
-	h.canonIdMap[n] = h.prevCanonId
-	return h.prevCanonId
+func(h * HTMLWriterBase) CanonId(n any) int
+{
+    if id: = h.canonIdMap[n];
+    id > 0 { return id }
+    h.prevCanonId++ h.canonIdMap[n] = h.prevCanonId return h.prevCanonId
 }
-
 // Fatalf reports an error and exits.
-func (w *HTMLWriterBase) Fatalf(msg string, args ...any) {
-	base.FatalfAt(src.NoXPos, msg, args...)
-}
+func(w * HTMLWriterBase) Fatalf(msg string, args ... any) { base.FatalfAt(src.NoXPos, msg, args ...) }
 
-const (
-	RightArrow = "►" // \u25BA click-to-open (is closed)
-	DownArrow  = "▼" // \u25BC click-to-close (is open)
+const 
+(
+    RightArrow = "►" // \u25BA click-to-open (is closed)
+    DownArrow = "▼" // \u25BC click-to-close (is open)
 )
 
-func (w *HTMLWriter) start() {
-	if w == nil {
-		return
-	}
-	escName := html.EscapeString(PkgFuncName(w.Func))
-	w.Print("<!DOCTYPE html>")
-	w.Print("<html>")
-	w.Printf(`<head>
+func(w * HTMLWriter) start()
+{
+    if w == nil { return }
+    escName: = html.EscapeString(PkgFuncName(w.Func)) w.Print("<!DOCTYPE html>") w.Print("<html>") w.Printf
+    (
+        `<head>
 <meta name="generator" content="AST display for %s">
 <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
 %s
 %s
 <title>AST display for %s</title>
-</head>`, escName, CSS, JS("bloop", "loopvar", "escape", "slice", "walk"), escName)
-	w.Print("<body>")
-	w.Print("<h1>")
-	w.Print(html.EscapeString(w.Func.Sym().Name))
-	w.Print("</h1>")
-	w.Print(`
+</head>`, escName, CSS, JS
+        (
+            "bloop", "loopvar", "escape", "slice", "walk"
+        ),
+        escName
+    )
+    w.Print("<body>") w.Print("<h1>") w.Print(html.EscapeString(w.Func.Sym().Name)) w.Print("</h1>") w.Print
+    (
+        `
 <a href="#" onclick="toggle_visibility('help');return false;" id="helplink">help</a>
 <div id="help">
 
@@ -159,472 +112,285 @@ Click on a ` + DownArrow + ` to collapse a subtree, or on a ` + RightArrow + ` t
 </div>
 <label for="dark-mode-button" style="margin-left: 15px; cursor: pointer;">darkmode</label>
 <input type="checkbox" onclick="toggleDarkMode();" id="dark-mode-button" style="cursor: pointer" />
-`)
-	w.Print("<table>")
-	w.Print("<tr>")
+`
+    )
+    w.Print("<table>") w.Print("<tr>")
 }
 
-func (w *HTMLWriterBase) Close(format string, args ...any) {
-	if w == nil {
-		return
-	}
-	w.Print("</tr>")
-	w.Print("</table>")
-	w.Print("</body>")
-	w.Print("</html>\n")
-	w.w.Close()
-	fmt.Fprintf(os.Stderr, format, args...)
+func(w * HTMLWriterBase) Close(format string, args ... any)
+{
+    if w == nil { return }
+    w.Print("</tr>") w.Print("</table>") w.Print("</body>") w.Print("</html>\n") w.w.Close() fmt.Fprintf(os.Stderr, format, args ...)
 }
-
 // WritePhase writes f in a column headed by title.
 // phase is used for collapsing columns and should be unique across the table.
-func (w *HTMLWriterBase) WritePhase(phase, title string) {
-	if w == nil {
-		return // avoid generating HTML just to discard it
-	}
-	w.pendingPhases = append(w.pendingPhases, phase)
-	w.pendingTitles = append(w.pendingTitles, title)
-	w.flushPhases()
+func(w * HTMLWriterBase) WritePhase(phase, title string)
+{
+    if w == nil
+    {
+        return // avoid generating HTML just to discard it
+    }
+    w.pendingPhases = append(w.pendingPhases, phase) w.pendingTitles = append(w.pendingTitles, title) w.flushPhases()
 }
-
 // flushPhases collects any pending phases and titles, writes them to the html, and resets the pending slices.
-func (w *HTMLWriterBase) flushPhases() {
-	phaseLen := len(w.pendingPhases)
-	if phaseLen == 0 {
-		return
-	}
-	phases := strings.Join(w.pendingPhases, "  +  ")
-	w.WriteMultiTitleColumn(
-		phases,
-		w.pendingTitles,
-		"allow-x-scroll",
-		w.doDump(w.pendingPhases[phaseLen-1]),
-	)
-	w.pendingPhases = w.pendingPhases[:0]
-	w.pendingTitles = w.pendingTitles[:0]
+func(w * HTMLWriterBase) flushPhases()
+{
+    phaseLen: = len(w.pendingPhases) if phaseLen == 0 { return }
+    phases: = strings.Join(w.pendingPhases, "  +  ") w.WriteMultiTitleColumn
+    (
+        phases, w.pendingTitles, "allow-x-scroll", w.doDump(w.pendingPhases[phaseLen - 1]),
+    )
+    w.pendingPhases = w.pendingPhases[: 0] w.pendingTitles = w.pendingTitles[: 0]
 }
 
-func (w *HTMLWriterBase) WriteMultiTitleColumn(phase string, titles []string, class string, writeContent func()) {
-	if w == nil {
-		return
-	}
-	id := strings.ReplaceAll(phase, " ", "-")
-	// collapsed column
-	w.Printf("<td id=\"%v-col\" class=\"collapsed\"><div>%v</div></td>", id, phase)
-
-	if class == "" {
-		w.Printf("<td id=\"%v-exp\">", id)
-	} else {
-		w.Printf("<td id=\"%v-exp\" class=\"%v\">", id, class)
-	}
-	for _, title := range titles {
-		w.Print("<h2>" + title + "</h2>")
-	}
-	writeContent()
-	w.Print("<div class=\"resizer\"></div>")
-	w.Print("</td>\n")
+func(w * HTMLWriterBase) WriteMultiTitleColumn(phase string, titles[] string, class string, writeContent func())
+{
+    if w == nil { return }
+    id: = strings.ReplaceAll(phase, " ", "-") // collapsed column
+    w.Printf("<td id=\"%v-col\" class=\"collapsed\"><div>%v</div></td>", id, phase) if class == "" { w.Printf("<td id=\"%v-exp\">", id) }
+    else { w.Printf("<td id=\"%v-exp\" class=\"%v\">", id, class) }
+    for _, title: = range titles { w.Print("<h2>" + title + "</h2>") }
+    writeContent() w.Print("<div class=\"resizer\"></div>") w.Print("</td>\n")
 }
 
-func (w *HTMLWriterBase) Printf(msg string, v ...any) {
-	if _, err := fmt.Fprintf(w.w, msg, v...); err != nil {
-		w.Fatalf("%v", err)
-	}
+func(w * HTMLWriterBase) Printf(msg string, v ... any) { if _, err: = fmt.Fprintf(w.w, msg, v ...); err != nil { w.Fatalf("%v", err) } }
+
+func(w * HTMLWriterBase) Print(s string) { if _, err: = fmt.Fprint(w.w, s); err != nil { w.Fatalf("%v", err) } }
+
+func(w * HTMLWriterBase) indent(n int) { indent(w.w, n) }
+
+func(w * HTMLWriter) FuncHTML(phase string) func()
+{
+    return func()
+    {
+        w.Print("<pre>") // use pre for formatting to preserve indentation
+        w.dumpNodesHTML(w.Func.Body, 1) w.Print("</pre>")
+    }
 }
 
-func (w *HTMLWriterBase) Print(s string) {
-	if _, err := fmt.Fprint(w.w, s); err != nil {
-		w.Fatalf("%v", err)
-	}
+func(h * HTMLWriter) dumpNodesHTML(list Nodes, depth int)
+{
+    if len(list) == 0 { h.Print(" <nil>") return }
+
+    for _, n: = range list { h.dumpNodeHTML(n, depth) }
 }
 
-func (w *HTMLWriterBase) indent(n int) {
-	indent(w.w, n)
+const indentString = ".   " // indent prints indentation to w.
+func(h * HTMLWriterBase) indentForToggle(depth int , hasChildren bool)
+{
+    h.Print("\n") if depth == 0 { return }
+    for i: = 0;
+    i < depth - 1;
+    i++ { h.Print(indentString) }
+    if hasChildren
+    {
+        // Remove 2 spaces, which have similar rendered width to
+        // leading ir.DownArrow and trailing space.
+        h.Print(indentString[: len(indentString) - 2])
+    }
+    else { h.Print(indentString) }
 }
 
-func (w *HTMLWriter) FuncHTML(phase string) func() {
-	return func() {
-		w.Print("<pre>") // use pre for formatting to preserve indentation
-		w.dumpNodesHTML(w.Func.Body, 1)
-		w.Print("</pre>")
-	}
+func(h * HTMLWriter) dumpNodeHTML(n Node, depth int)
+{
+    hasChildren: = nodeHasChildren(n) h.indentForToggle(depth, hasChildren) if depth > 40 { h.Print("...") return }
+
+    if n == nil { h.Print("NilIrNode") return }
+    // For HTML, we want to wrap the node and its details in a span that can be highlighted
+    // across all occurrences of the span in all columns, so it has to be linked to the node ID,
+    // which is its address. Canonicalize the address to a counter so that repeated compiler
+    // runs yield the same html.
+    //
+    // JS Equivalence logic:
+    //   var c = elem.classList.item(0);
+    //   var x = document.getElementsByClassName(c);
+    //
+    // Tag each class with its canonicalized index.
+
+    h.Printf("<span class=\"n%d outline-node\">", h.CanonId(n)) defer h.Printf("</span>") if hasChildren
+    {
+        h.Print(`<span class="toggle" onclick="toggle_node(this)">` + DownArrow + `</span> `) // NOTE TRAILING SPACE after </span>!
+    }
+
+    if len(n.Init()) != 0
+    {
+        h.Print(`<span class="node-body">`) h.Printf("%+v-init", n.Op()) h.dumpNodesHTML(n.Init(), depth + 1) h.indent(depth) h.Print(`</span>`)
+    }
+
+    switch n.Op()
+    {
+        default: h.Printf("%+v", n.Op()) h.dumpNodeHeaderHTML(n) case OLITERAL: h.Printf
+        (
+            "%+v-%v", n.Op(), html.EscapeString(fmt.Sprintf("%v", n.Val()))
+        )
+        h.dumpNodeHeaderHTML(n) return case ONAME, ONONAME: if n.Sym() != nil
+        {
+            // Name highlighting:
+            // Create a hash for the symbol name to use as a class
+            // We use the same irValueClicked logic which uses the first class as the identifier
+            name: = fmt.Sprintf("%v", n.Sym()) hash: = sha256.Sum256([] byte(name)) symID: = "sym-" + hex.EncodeToString(hash[: 6]) h.Printf
+            (
+                "%+v-<span class=\"%s variable-name\">%+v</span>", n.Op(), symID, html.EscapeString(name)
+            )
+        }
+        else { h.Printf("%+v", n.Op()) }
+        h.dumpNodeHeaderHTML(n) return case OLINKSYMOFFSET: n: = n.( * LinksymOffsetExpr) h.Printf
+        (
+            "%+v-%v", n.Op(), html.EscapeString(fmt.Sprintf("%v", n.Linksym))
+        )
+        if n.Offset_ != 0 { h.Printf("%+v", n.Offset_) }
+        h.dumpNodeHeaderHTML(n) case OASOP: n: = n.( * AssignOpStmt) h.Printf("%+v-%+v", n.Op(), n.AsOp) h.dumpNodeHeaderHTML(n) case OTYPE: h.Printf
+        (
+            "%+v %+v", n.Op(), html.EscapeString(fmt.Sprintf("%v", n.Sym()))
+        )
+        h.dumpNodeHeaderHTML(n) return case OCLOSURE: h.Printf("%+v", n.Op()) h.dumpNodeHeaderHTML(n) case ODCLFUNC: n: = n.( * Func) h.Printf
+        (
+            "%+v", n.Op()
+        )
+        h.dumpNodeHeaderHTML(n) if hasChildren { h.Print(`<span class="node-body">`) defer h.Print(`</span>`) }
+        fn: = n if len(fn.Dcl) > 0
+        {
+            h.indent(depth) h.Printf("%+v-Dcl", n.Op()) for _, dcl: = range n.Dcl { h.dumpNodeHTML(dcl, depth + 1) }
+        }
+        if len(fn.ClosureVars) > 0
+        {
+            h.indent(depth) h.Printf("%+v-ClosureVars", n.Op()) for _, cv: = range fn.ClosureVars { h.dumpNodeHTML(cv, depth + 1) }
+        }
+        if len(fn.Body) > 0 { h.indent(depth) h.Printf("%+v-body", n.Op()) h.dumpNodesHTML(fn.Body, depth + 1) }
+        return 
+    }
+    if hasChildren { h.Print(`<span class="node-body">`) defer h.Print(`</span>`) }
+
+    v: = reflect.ValueOf(n).Elem() t: = reflect.TypeOf(n).Elem() nf: = t.NumField() for i: = 0;
+    i < nf;
+    i++
+    {
+        tf: = t.Field(i) vf: = v.Field(i) if tf.PkgPath != "" { continue }
+        switch tf.Type.Kind() { case reflect.Interface, reflect.Ptr, reflect.Slice: if vf.IsNil() { continue } }
+        name: = strings.TrimSuffix(tf.Name, "_") switch name { case "X", "Y", "Index", "Chan", "Value", "Call": name = "" }
+        switch val: = vf.Interface().(type)
+        {
+            case Node: if name != "" { h.indent(depth) h.Printf("%+v-%s", n.Op(), name) }
+            h.dumpNodeHTML(val, depth + 1) case Nodes: if len(val) == 0 { continue }
+            if name != "" { h.indent(depth) h.Printf("%+v-%s", n.Op(), name) }
+            h.dumpNodesHTML(val, depth + 1) default: if vf.Kind() == reflect.Slice && vf.Type().Elem().Implements(nodeType)
+            {
+                if vf.Len() == 0 { continue }
+                if name != "" { h.indent(depth) h.Printf("%+v-%s", n.Op(), name) }
+                for i, n: = 0, vf.Len();
+                i < n;
+                i++ { h.dumpNodeHTML(vf.Index(i).Interface().(Node), depth + 1) }
+            }
+        }
+    }
 }
 
-func (h *HTMLWriter) dumpNodesHTML(list Nodes, depth int) {
-	if len(list) == 0 {
-		h.Print(" <nil>")
-		return
-	}
+func nodeHasChildren(n Node) bool
+{
+    if n == nil { return false }
+    if len(n.Init()) != 0 { return true }
+    switch n.Op()
+    {
+        case OLITERAL, ONAME, ONONAME, OTYPE: return false case ODCLFUNC: n: = n.( * Func) return len(n.Dcl) > 0 || len(n.ClosureVars) > 0 || len(n.Body) > 0
+    }
 
-	for _, n := range list {
-		h.dumpNodeHTML(n, depth)
-	}
+    v: = reflect.ValueOf(n).Elem() t: = reflect.TypeOf(n).Elem() nf: = t.NumField() for i: = 0;
+    i < nf;
+    i++
+    {
+        tf: = t.Field(i) vf: = v.Field(i) if tf.PkgPath != "" { continue }
+        switch tf.Type.Kind() { case reflect.Interface, reflect.Ptr, reflect.Slice: if vf.IsNil() { continue } }
+        switch val: = vf.Interface().(type)
+        {
+            case Node: return true case Nodes: if len(val) > 0 { return true }
+            default: if vf.Kind() == reflect.Slice && vf.Type().Elem().Implements(nodeType) { if vf.Len() > 0 { return true } }
+        }
+    }
+    return false
 }
 
-const indentString = ".   "
+func(h * HTMLWriter) dumpNodeHeaderHTML(n Node)
+{
+    // print pointer to be able to see identical nodes
+    if base.Debug.DumpPtrs != 0 { h.Printf(" p(%p)", n) }
 
-// indent prints indentation to w.
-func (h *HTMLWriterBase) indentForToggle(depth int, hasChildren bool) {
-	h.Print("\n")
-	if depth == 0 {
-		return
-	}
-	for i := 0; i < depth-1; i++ {
-		h.Print(indentString)
-	}
-	if hasChildren {
-		// Remove 2 spaces, which have similar rendered width to
-		// leading ir.DownArrow and trailing space.
-		h.Print(indentString[:len(indentString)-2])
-	} else {
-		h.Print(indentString)
-	}
-}
+    if base.Debug.DumpPtrs != 0 && n.Name() != nil && n.Name().Defn != nil { h.Printf(" defn(%p)", n.Name().Defn) }
 
-func (h *HTMLWriter) dumpNodeHTML(n Node, depth int) {
-	hasChildren := nodeHasChildren(n)
-	h.indentForToggle(depth, hasChildren)
+    if base.Debug.DumpPtrs != 0 && n.Name() != nil && n.Name().Curfn != nil { h.Printf(" curfn(%p)", n.Name().Curfn) }
+    if base.Debug.DumpPtrs != 0 && n.Name() != nil && n.Name().Outer != nil { h.Printf(" outer(%p)", n.Name().Outer) }
 
-	if depth > 40 {
-		h.Print("...")
-		return
-	}
+    if EscFmt != nil { if esc: = EscFmt(n); esc != "" { h.Printf(" %s", html.EscapeString(esc)) } }
 
-	if n == nil {
-		h.Print("NilIrNode")
-		return
-	}
+    if n.Sym() != nil && n.Op() != ONAME && n.Op() != ONONAME && n.Op() != OTYPE
+    {
+        h.Printf(" %+v", html.EscapeString(fmt.Sprintf("%v", n.Sym())))
+    }
 
-	// For HTML, we want to wrap the node and its details in a span that can be highlighted
-	// across all occurrences of the span in all columns, so it has to be linked to the node ID,
-	// which is its address. Canonicalize the address to a counter so that repeated compiler
-	// runs yield the same html.
-	//
-	// JS Equivalence logic:
-	//   var c = elem.classList.item(0);
-	//   var x = document.getElementsByClassName(c);
-	//
-	// Tag each class with its canonicalized index.
+    v: = reflect.ValueOf(n).Elem() t: = v.Type() nf: = t.NumField() for i: = 0;
+    i < nf;
+    i++
+    {
+        tf: = t.Field(i) if tf.PkgPath != "" { continue }
+        k: = tf.Type.Kind() if reflect.Bool <= k && k <= reflect.Complex128
+        {
+            name: = strings.TrimSuffix(tf.Name, "_") vf: = v.Field(i) vfi: = vf.Interface() if name == "Offset" && vfi == types.BADWIDTH || name != "Offset" && vf.IsZero
+            (
+            )
+{ continue }
+            if vfi == true { h.Printf(" %s", name) } else { h.Printf(" %s:%+v", name, html.EscapeString(fmt.Sprintf("%v", vf.Interface()))) }
+        }
+    }
 
-	h.Printf("<span class=\"n%d outline-node\">", h.CanonId(n))
-	defer h.Printf("</span>")
+    v = reflect.ValueOf(n) t = v.Type() nm: = t.NumMethod() for i: = 0;
+    i < nm;
+    i++
+    {
+        tm: = t.Method(i) if tm.PkgPath != "" { continue }
+        m: = v.Method(i) mt: = m.Type() if mt.NumIn() == 0 && mt.NumOut() == 1 && mt.Out(0).Kind() == reflect.Bool
+        {
+            func()
+            {
+                defer func() { recover() }
+() if m.Call(nil)[0].Bool() { name: = strings.TrimSuffix(tm.Name, "_") h.Printf(" %s", name) }
+            }
+()
+        }
+    }
 
-	if hasChildren {
-		h.Print(`<span class="toggle" onclick="toggle_node(this)">` + DownArrow + `</span> `) // NOTE TRAILING SPACE after </span>!
-	}
+    if n.Op() == OCLOSURE
+    {
+        n: = n.( * ClosureExpr) if fn: = n.Func;
+        fn != nil && fn.Nname.Sym() != nil { h.Printf(" fnName(%+v)", html.EscapeString(fmt.Sprintf("%v", fn.Nname.Sym()))) }
+    }
 
-	if len(n.Init()) != 0 {
-		h.Print(`<span class="node-body">`)
-		h.Printf("%+v-init", n.Op())
-		h.dumpNodesHTML(n.Init(), depth+1)
-		h.indent(depth)
-		h.Print(`</span>`)
-	}
+    if n.Type() != nil { if n.Op() == OTYPE { h.Printf(" type") } h.Printf(" %+v", html.EscapeString(fmt.Sprintf("%v", n.Type()))) }
+    if n.Typecheck() != 0 { h.Printf(" tc(%d)", n.Typecheck()) }
 
-	switch n.Op() {
-	default:
-		h.Printf("%+v", n.Op())
-		h.dumpNodeHeaderHTML(n)
+    if n.Pos().IsKnown()
+    {
+        h.Print(" <span class=\"line-number\">") switch n.Pos().IsStmt() { case src.PosNotStmt: h.Print("_") case src.PosIsStmt: h.Print("+") }
+        sep: = "" base.Ctxt.AllPos
+        (
+            n.Pos(), func(pos src.Pos)
+            {
+                h.Print(sep) sep = " " // Hierarchical highlighting:
+                // Click file -> highlight all ranges in this file
+                // Click line -> highlight all ranges at this line (in this file)
+                // Click col  -> highlight this specific range
 
-	case OLITERAL:
-		h.Printf("%+v-%v", n.Op(), html.EscapeString(fmt.Sprintf("%v", n.Val())))
-		h.dumpNodeHeaderHTML(n)
-		return
-
-	case ONAME, ONONAME:
-		if n.Sym() != nil {
-			// Name highlighting:
-			// Create a hash for the symbol name to use as a class
-			// We use the same irValueClicked logic which uses the first class as the identifier
-			name := fmt.Sprintf("%v", n.Sym())
-			hash := sha256.Sum256([]byte(name))
-			symID := "sym-" + hex.EncodeToString(hash[:6])
-			h.Printf("%+v-<span class=\"%s variable-name\">%+v</span>", n.Op(), symID, html.EscapeString(name))
-		} else {
-			h.Printf("%+v", n.Op())
-		}
-		h.dumpNodeHeaderHTML(n)
-		return
-
-	case OLINKSYMOFFSET:
-		n := n.(*LinksymOffsetExpr)
-		h.Printf("%+v-%v", n.Op(), html.EscapeString(fmt.Sprintf("%v", n.Linksym)))
-		if n.Offset_ != 0 {
-			h.Printf("%+v", n.Offset_)
-		}
-		h.dumpNodeHeaderHTML(n)
-
-	case OASOP:
-		n := n.(*AssignOpStmt)
-		h.Printf("%+v-%+v", n.Op(), n.AsOp)
-		h.dumpNodeHeaderHTML(n)
-
-	case OTYPE:
-		h.Printf("%+v %+v", n.Op(), html.EscapeString(fmt.Sprintf("%v", n.Sym())))
-		h.dumpNodeHeaderHTML(n)
-		return
-
-	case OCLOSURE:
-		h.Printf("%+v", n.Op())
-		h.dumpNodeHeaderHTML(n)
-
-	case ODCLFUNC:
-		n := n.(*Func)
-		h.Printf("%+v", n.Op())
-		h.dumpNodeHeaderHTML(n)
-		if hasChildren {
-			h.Print(`<span class="node-body">`)
-			defer h.Print(`</span>`)
-		}
-		fn := n
-		if len(fn.Dcl) > 0 {
-			h.indent(depth)
-			h.Printf("%+v-Dcl", n.Op())
-			for _, dcl := range n.Dcl {
-				h.dumpNodeHTML(dcl, depth+1)
-			}
-		}
-		if len(fn.ClosureVars) > 0 {
-			h.indent(depth)
-			h.Printf("%+v-ClosureVars", n.Op())
-			for _, cv := range fn.ClosureVars {
-				h.dumpNodeHTML(cv, depth+1)
-			}
-		}
-		if len(fn.Body) > 0 {
-			h.indent(depth)
-			h.Printf("%+v-body", n.Op())
-			h.dumpNodesHTML(fn.Body, depth+1)
-		}
-		return
-	}
-	if hasChildren {
-		h.Print(`<span class="node-body">`)
-		defer h.Print(`</span>`)
-	}
-
-	v := reflect.ValueOf(n).Elem()
-	t := reflect.TypeOf(n).Elem()
-	nf := t.NumField()
-	for i := 0; i < nf; i++ {
-		tf := t.Field(i)
-		vf := v.Field(i)
-		if tf.PkgPath != "" {
-			continue
-		}
-		switch tf.Type.Kind() {
-		case reflect.Interface, reflect.Ptr, reflect.Slice:
-			if vf.IsNil() {
-				continue
-			}
-		}
-		name := strings.TrimSuffix(tf.Name, "_")
-		switch name {
-		case "X", "Y", "Index", "Chan", "Value", "Call":
-			name = ""
-		}
-		switch val := vf.Interface().(type) {
-		case Node:
-			if name != "" {
-				h.indent(depth)
-				h.Printf("%+v-%s", n.Op(), name)
-			}
-			h.dumpNodeHTML(val, depth+1)
-		case Nodes:
-			if len(val) == 0 {
-				continue
-			}
-			if name != "" {
-				h.indent(depth)
-				h.Printf("%+v-%s", n.Op(), name)
-			}
-			h.dumpNodesHTML(val, depth+1)
-		default:
-			if vf.Kind() == reflect.Slice && vf.Type().Elem().Implements(nodeType) {
-				if vf.Len() == 0 {
-					continue
-				}
-				if name != "" {
-					h.indent(depth)
-					h.Printf("%+v-%s", n.Op(), name)
-				}
-				for i, n := 0, vf.Len(); i < n; i++ {
-					h.dumpNodeHTML(vf.Index(i).Interface().(Node), depth+1)
-				}
-			}
-		}
-	}
-}
-
-func nodeHasChildren(n Node) bool {
-	if n == nil {
-		return false
-	}
-	if len(n.Init()) != 0 {
-		return true
-	}
-	switch n.Op() {
-	case OLITERAL, ONAME, ONONAME, OTYPE:
-		return false
-	case ODCLFUNC:
-		n := n.(*Func)
-		return len(n.Dcl) > 0 || len(n.ClosureVars) > 0 || len(n.Body) > 0
-	}
-
-	v := reflect.ValueOf(n).Elem()
-	t := reflect.TypeOf(n).Elem()
-	nf := t.NumField()
-	for i := 0; i < nf; i++ {
-		tf := t.Field(i)
-		vf := v.Field(i)
-		if tf.PkgPath != "" {
-			continue
-		}
-		switch tf.Type.Kind() {
-		case reflect.Interface, reflect.Ptr, reflect.Slice:
-			if vf.IsNil() {
-				continue
-			}
-		}
-		switch val := vf.Interface().(type) {
-		case Node:
-			return true
-		case Nodes:
-			if len(val) > 0 {
-				return true
-			}
-		default:
-			if vf.Kind() == reflect.Slice && vf.Type().Elem().Implements(nodeType) {
-				if vf.Len() > 0 {
-					return true
-				}
-			}
-		}
-	}
-	return false
-}
-
-func (h *HTMLWriter) dumpNodeHeaderHTML(n Node) {
-	// print pointer to be able to see identical nodes
-	if base.Debug.DumpPtrs != 0 {
-		h.Printf(" p(%p)", n)
-	}
-
-	if base.Debug.DumpPtrs != 0 && n.Name() != nil && n.Name().Defn != nil {
-		h.Printf(" defn(%p)", n.Name().Defn)
-	}
-
-	if base.Debug.DumpPtrs != 0 && n.Name() != nil && n.Name().Curfn != nil {
-		h.Printf(" curfn(%p)", n.Name().Curfn)
-	}
-	if base.Debug.DumpPtrs != 0 && n.Name() != nil && n.Name().Outer != nil {
-		h.Printf(" outer(%p)", n.Name().Outer)
-	}
-
-	if EscFmt != nil {
-		if esc := EscFmt(n); esc != "" {
-			h.Printf(" %s", html.EscapeString(esc))
-		}
-	}
-
-	if n.Sym() != nil && n.Op() != ONAME && n.Op() != ONONAME && n.Op() != OTYPE {
-		h.Printf(" %+v", html.EscapeString(fmt.Sprintf("%v", n.Sym())))
-	}
-
-	v := reflect.ValueOf(n).Elem()
-	t := v.Type()
-	nf := t.NumField()
-	for i := 0; i < nf; i++ {
-		tf := t.Field(i)
-		if tf.PkgPath != "" {
-			continue
-		}
-		k := tf.Type.Kind()
-		if reflect.Bool <= k && k <= reflect.Complex128 {
-			name := strings.TrimSuffix(tf.Name, "_")
-			vf := v.Field(i)
-			vfi := vf.Interface()
-			if name == "Offset" && vfi == types.BADWIDTH || name != "Offset" && vf.IsZero() {
-				continue
-			}
-			if vfi == true {
-				h.Printf(" %s", name)
-			} else {
-				h.Printf(" %s:%+v", name, html.EscapeString(fmt.Sprintf("%v", vf.Interface())))
-			}
-		}
-	}
-
-	v = reflect.ValueOf(n)
-	t = v.Type()
-	nm := t.NumMethod()
-	for i := 0; i < nm; i++ {
-		tm := t.Method(i)
-		if tm.PkgPath != "" {
-			continue
-		}
-		m := v.Method(i)
-		mt := m.Type()
-		if mt.NumIn() == 0 && mt.NumOut() == 1 && mt.Out(0).Kind() == reflect.Bool {
-			func() {
-				defer func() { recover() }()
-				if m.Call(nil)[0].Bool() {
-					name := strings.TrimSuffix(tm.Name, "_")
-					h.Printf(" %s", name)
-				}
-			}()
-		}
-	}
-
-	if n.Op() == OCLOSURE {
-		n := n.(*ClosureExpr)
-		if fn := n.Func; fn != nil && fn.Nname.Sym() != nil {
-			h.Printf(" fnName(%+v)", html.EscapeString(fmt.Sprintf("%v", fn.Nname.Sym())))
-		}
-	}
-
-	if n.Type() != nil {
-		if n.Op() == OTYPE {
-			h.Printf(" type")
-		}
-		h.Printf(" %+v", html.EscapeString(fmt.Sprintf("%v", n.Type())))
-	}
-	if n.Typecheck() != 0 {
-		h.Printf(" tc(%d)", n.Typecheck())
-	}
-
-	if n.Pos().IsKnown() {
-		h.Print(" <span class=\"line-number\">")
-		switch n.Pos().IsStmt() {
-		case src.PosNotStmt:
-			h.Print("_")
-		case src.PosIsStmt:
-			h.Print("+")
-		}
-		sep := ""
-		base.Ctxt.AllPos(n.Pos(), func(pos src.Pos) {
-			h.Print(sep)
-			sep = " "
-			// Hierarchical highlighting:
-			// Click file -> highlight all ranges in this file
-			// Click line -> highlight all ranges at this line (in this file)
-			// Click col  -> highlight this specific range
-
-			file := pos.Filename()
-			// Create a hash for the filename to use as a class
-			hash := sha256.Sum256([]byte(file))
-			fileID := "loc-" + hex.EncodeToString(hash[:6])
-			lineID := fmt.Sprintf("%s-L%d", fileID, pos.Line())
-			colID := fmt.Sprintf("%s-C%d", lineID, pos.Col())
-
-			// File part: triggers fileID
-			h.Printf("<span class=\"%s line-number\">%s</span>:", fileID, html.EscapeString(filepath.Base(file)))
-			// Line part: triggers lineID (and fileID via class list)
-			h.Printf("<span class=\"%s %s line-number\">%d</span>:", lineID, fileID, pos.Line())
-			// Col part: triggers colID (and lineID, fileID)
-			h.Printf("<span class=\"%s %s %s line-number\">%d</span>", colID, lineID, fileID, pos.Col())
-		})
-		h.Print("</span>")
-	}
+                file: = pos.Filename() // Create a hash for the filename to use as a class
+                hash: = sha256.Sum256([] byte(file)) fileID: = "loc-" + hex.EncodeToString(hash[: 6]) lineID: = fmt.Sprintf("%s-L%d", fileID, pos.Line()) colID: = fmt.Sprintf
+                (
+                    "%s-C%d", lineID, pos.Col()
+                )
+                // File part: triggers fileID
+                h.Printf("<span class=\"%s line-number\">%s</span>:", fileID, html.EscapeString(filepath.Base(file))) // Line part: triggers lineID (and fileID via class list)
+                h.Printf("<span class=\"%s %s line-number\">%d</span>:", lineID, fileID, pos.Line()) // Col part: triggers colID (and lineID, fileID)
+                h.Printf("<span class=\"%s %s %s line-number\">%d</span>", colID, lineID, fileID, pos.Col())
+            }
+        )
+        h.Print("</span>")
+    }
 }
 
 const CSS = `<style>
@@ -782,43 +548,34 @@ body.darkmode .outline-black        { outline: gray solid 2px; }
 }
 
 </style>
-`
-
-// safePhaseNameString is a very conservative limit on phase names
+` // safePhaseNameString is a very conservative limit on phase names
 // that can safely be encoded as JavaScript strings by wrapping with
 // double-quotes.
-var safePhaseNameString = regexp.MustCompile("^[a-zA-Z0-9_ .]+$")
-
-func JS(opened ...string) string {
-	var middle strings.Builder
-
-	// "bloop",
-	// "loopvar",
-	// "escape",
-	// "slice",
-	// "walk",
-
-	// This is only for default-display purposes, and the expected strings
-	// are the names of compiler phases. If a wonky name is rejected, the
-	// "harm" is that a pane in the debugging display is not pre-opened.
-	for _, s := range opened {
-		if !safePhaseNameString.MatchString(s) {
-			continue
-		}
-		middle.WriteString("\t\"")
-		middle.WriteString(s)
-		middle.WriteString("\",\n")
-	}
-	return JS1 + middle.String() + JS2
+var safePhaseNameString = regexp.MustCompile("^[a-zA-Z0-9_ .]+$") func JS(opened ... string) string
+{
+    var middle strings.Builder // "bloop",
+    // "loopvar",
+    // "escape",
+    // "slice",
+    // "walk",
+    // This is only for default-display purposes, and the expected strings
+    // are the names of compiler phases. If a wonky name is rejected, the
+    // "harm" is that a pane in the debugging display is not pre-opened.
+    for _, s: = range opened
+    {
+        if ! safePhaseNameString.MatchString(s) { continue }
+        middle.WriteString("\t\"") middle.WriteString(s) middle.WriteString("\",\n")
+    }
+    return JS1 + middle.String() + JS2
 }
 
-const (
-	JS1 = `<script type="text/javascript">
+const 
+(
+    JS1 = `<script type="text/javascript">
 
 // Contains phase names which are expanded by default. Other columns are collapsed.
 let expandedDefault = [
-`
-	JS2 = `];
+` JS2 = `];
 if (history.state === null) {
     history.pushState({expandedDefault}, "", location.href);
 }

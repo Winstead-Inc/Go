@@ -1,23 +1,10 @@
 // Copyright 2024 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package telemetrycmd implements the "go telemetry" command.
-package telemetrycmd
-
-import (
-	"context"
-	"fmt"
-	"os"
-
-	"cmd/go/internal/base"
-	"cmd/internal/telemetry"
-)
-
-var CmdTelemetry = &base.Command{
-	UsageLine: "go telemetry [off|local|on]",
-	Short:     "manage telemetry data and settings",
-	Long: `Telemetry is used to manage Go telemetry data and settings.
+package telemetrycmd import("context""fmt""os""cmd/go/internal/base""cmd/internal/telemetry") var CmdTelemetry = & base.Command
+{
+    UsageLine: "go telemetry [off|local|on]", Short: "manage telemetry data and settings", Long: `Telemetry is used to manage Go telemetry data and settings.
 
 Telemetry can be in one of three modes: off, local, or on.
 
@@ -47,42 +34,29 @@ local file system that telemetry data is written to is available
 as the value of the non-settable "GOTELEMETRYDIR" go env variable.
 
 See https://go.dev/doc/telemetry for more information on telemetry.
-`,
-	Run: runTelemetry,
+`, Run: runTelemetry, 
 }
 
-func init() {
-	base.AddChdirFlag(&CmdTelemetry.Flag)
+func init() { base.AddChdirFlag( & CmdTelemetry.Flag) }
+
+func runTelemetry(ctx context.Context, cmd * base.Command, args[] string)
+{
+    if len(args) == 0 { fmt.Println(telemetry.Mode()) return }
+
+    if len(args) != 1 { cmd.Usage() }
+
+    mode: = args[0] if mode != "local" && mode != "off" && mode != "on" { cmd.Usage() }
+    if old: = telemetry.Mode();
+    old == mode { return }
+
+    if err: = telemetry.SetMode(mode);
+    err != nil { base.Fatalf("go: failed to set the telemetry mode to %s: %v", mode, err) }
+    if mode == "on" { fmt.Fprintln(os.Stderr, telemetryOnMessage()) }
 }
 
-func runTelemetry(ctx context.Context, cmd *base.Command, args []string) {
-	if len(args) == 0 {
-		fmt.Println(telemetry.Mode())
-		return
-	}
-
-	if len(args) != 1 {
-		cmd.Usage()
-	}
-
-	mode := args[0]
-	if mode != "local" && mode != "off" && mode != "on" {
-		cmd.Usage()
-	}
-	if old := telemetry.Mode(); old == mode {
-		return
-	}
-
-	if err := telemetry.SetMode(mode); err != nil {
-		base.Fatalf("go: failed to set the telemetry mode to %s: %v", mode, err)
-	}
-	if mode == "on" {
-		fmt.Fprintln(os.Stderr, telemetryOnMessage())
-	}
-}
-
-func telemetryOnMessage() string {
-	return `Telemetry uploading is now enabled and data will be periodically sent to
+func telemetryOnMessage() string
+{
+    return `Telemetry uploading is now enabled and data will be periodically sent to
 https://telemetry.go.dev/. Uploaded data is used to help improve the Go
 toolchain and related tools, and it will be published as part of a public
 dataset.

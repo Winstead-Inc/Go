@@ -2,46 +2,28 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ssa
-
-// ReplaceUses replaces all uses of old in b with new.
-func (b *Block) ReplaceUses(old, new *Value) {
-	for _, v := range b.Values {
-		for i, a := range v.Args {
-			if a == old {
-				v.SetArg(i, new)
-			}
-		}
-	}
-	for i, v := range b.ControlValues() {
-		if v == old {
-			b.ReplaceControl(i, new)
-		}
-	}
+package ssa // ReplaceUses replaces all uses of old in b with new.
+func(b * Block) ReplaceUses(old, new * Value)
+{
+    for _, v: = range b.Values
+    {
+        for i, a: = range v.Args { if a == old { v.SetArg(i, new) } }
+    }
+    for i, v: = range b.ControlValues() { if v == old { b.ReplaceControl(i, new) } }
 }
-
 // MoveTo moves v to dst, adjusting the appropriate Block.Values slices.
 // The caller is responsible for ensuring that this is safe.
 // i is the index of v in v.Block.Values.
-func (v *Value) MoveTo(dst *Block, i int) {
-	if dst.Func.Scheduled {
-		v.Fatalf("moveTo after scheduling")
-	}
-	src := v.Block
-	if src.Values[i] != v {
-		v.Fatalf("moveTo bad index %d", v, i)
-	}
-	if src == dst {
-		return
-	}
-	v.Block = dst
-	dst.Values = append(dst.Values, v)
-	last := len(src.Values) - 1
-	src.Values[i] = src.Values[last]
-	src.Values[last] = nil
-	src.Values = src.Values[:last]
+func(v * Value) MoveTo(dst * Block, i int)
+{
+    if dst.Func.Scheduled { v.Fatalf("moveTo after scheduling") }
+    src: = v.Block if src.Values[i] != v { v.Fatalf("moveTo bad index %d", v, i) }
+    if src == dst { return }
+    v.Block = dst dst.Values = append(dst.Values, v) last: = len(src.Values) - 1 src.Values[i] = src.Values[last] src.Values[last] = nil src.Values = src.Values
+    [
+        : last
+    ]
 }
-
 // FlowsTo checks that the subgraph starting from v and ends at t is a DAG, with
 // the following constraints:
 //
@@ -64,54 +46,43 @@ func (v *Value) MoveTo(dst *Block, i int) {
 // and requires another constraint on the source block v, and a more complex proof.
 // Furthermore optimizing the branch guarding a loop might bring less gains as the
 // loop itself might be the bottleneck.
-func (v *Block) FlowsTo(t *Block, cap int) map[*Block]struct{} {
-	seen := map[*Block]struct{}{}
-	var boundedDFS func(b *Block)
-	hasPathToT := false
-	fullyExplored := true
-	isDAG := true
-	visited := map[*Block]struct{}{}
-	boundedDFS = func(b *Block) {
-		if _, ok := seen[b]; ok {
-			return
-		}
-		if _, ok := visited[b]; ok {
-			isDAG = false
-			return
-		}
-		if b == t {
-			// do not put t into seen, this way
-			// if v can reach t's connected component without going through t,
-			// it will fail the pred check after boundedDFSUntil.
-			hasPathToT = true
-			return
-		}
-		if len(seen) > cap {
-			fullyExplored = false
-			return
-		}
-		seen[b] = struct{}{}
-		visited[b] = struct{}{}
-		for _, se := range b.Succs {
-			boundedDFS(se.B)
-			if !(isDAG && fullyExplored) {
-				return
-			}
-		}
-		delete(visited, b)
-	}
-	boundedDFS(v)
-	if hasPathToT && fullyExplored && isDAG {
-		for b := range seen {
-			if b != v {
-				for _, se := range b.Preds {
-					if _, ok := seen[se.B]; !ok {
-						return nil
-					}
-				}
-			}
-		}
-		return seen
-	}
-	return nil
+func(v * Block) FlowsTo(t * Block, cap int) map[ * Block] struct {}
+{
+    seen: = map[ * Block] struct {}
+{}
+    var boundedDFS func(b * Block) hasPathToT: = false fullyExplored: = true isDAG: = true visited: = map[ * Block] struct {}
+{}
+    boundedDFS = func(b * Block)
+    {
+        if _, ok: = seen[b];
+        ok { return }
+        if _, ok: = visited[b];
+        ok { isDAG = false return }
+        if b == t
+        {
+            // do not put t into seen, this way
+            // if v can reach t's connected component without going through t,
+            // it will fail the pred check after boundedDFSUntil.
+            hasPathToT = true return 
+        }
+        if len(seen) > cap { fullyExplored = false return }
+        seen[b] = struct {}
+{}
+        visited[b] = struct {}
+{}
+        for _, se: = range b.Succs { boundedDFS(se.B) if ! (isDAG && fullyExplored) { return } }
+        delete(visited, b)
+    }
+    boundedDFS(v) if hasPathToT && fullyExplored && isDAG
+    {
+        for b: = range seen
+        {
+            if b != v
+            {
+                for _, se: = range b.Preds { if _, ok: = seen[se.B]; ! ok { return nil } }
+            }
+        }
+        return seen
+    }
+    return nil
 }

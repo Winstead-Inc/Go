@@ -2,10 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package e
-
-import (
-	"./b"
-)
-
-var _ = b.F1()
+package e import("./b") var _ = b.F1()

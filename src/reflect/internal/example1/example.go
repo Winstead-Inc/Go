@@ -2,9 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package example1
-
-type MyStruct struct {
-	MyStructs []MyStruct
-	MyStruct  *MyStruct
-}
+package example1 type MyStruct struct { MyStructs[] MyStruct MyStruct * MyStruct }

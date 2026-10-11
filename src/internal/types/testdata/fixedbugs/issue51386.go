@@ -2,16 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type myString string func _[P ~ string | ~ [] byte | ~ [] rune]() { _ = P("") const s myString = "" _ = P(s) }
 
-type myString string
-
-func _[P ~string | ~[]byte | ~[]rune]() {
-	_ = P("")
-	const s myString = ""
-	_ = P(s)
-}
-
-func _[P myString]() {
-	_ = P("")
-}
+func _[P myString]() { _ = P("") }

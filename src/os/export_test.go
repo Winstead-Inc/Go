@@ -2,30 +2,17 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package os
+package os // Export for testing.
 
-// Export for testing.
+var Atime = atime var ErrWriteAtInAppendMode = errWriteAtInAppendMode var ErrPatternHasSeparator = errPatternHasSeparator var ErrPathEscapes = errPathEscapes func init
+(
+)
+{ checkWrapErr = true }
 
-var Atime = atime
-var ErrWriteAtInAppendMode = errWriteAtInAppendMode
-var ErrPatternHasSeparator = errPatternHasSeparator
-var ErrPathEscapes = errPathEscapes
+var ExportReadFileContents = readFileContents // cleanuper stands in for *testing.T, since we can't import testing in os.
+type cleanuper interface { Cleanup(func()) }
 
-func init() {
-	checkWrapErr = true
-}
-
-var ExportReadFileContents = readFileContents
-
-// cleanuper stands in for *testing.T, since we can't import testing in os.
-type cleanuper interface {
-	Cleanup(func())
-}
-
-func SetStatHook(t cleanuper, f func(f *File, name string) (FileInfo, error)) {
-	oldstathook := stathook
-	t.Cleanup(func() {
-		stathook = oldstathook
-	})
-	stathook = f
+func SetStatHook(t cleanuper, f func(f * File, name string)(FileInfo, error))
+{
+    oldstathook: = stathook t.Cleanup(func() { stathook = oldstathook }) stathook = f
 }

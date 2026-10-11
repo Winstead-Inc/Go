@@ -2,14 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package subtle
-
-import (
-	"internal/runtime/sys"
-	_ "unsafe"
-)
-
-// WithDataIndependentTiming enables architecture specific features which ensure
+package subtle import("internal/runtime/sys" _"unsafe") // WithDataIndependentTiming enables architecture specific features which ensure
 // that the timing of specific instructions is independent of their inputs
 // before executing f. On f returning it disables these features.
 //
@@ -37,27 +30,15 @@ import (
 // with no other side-effects.
 //
 //go:noinline
-func WithDataIndependentTiming(f func()) {
-	if !sys.DITSupported {
-		f()
-		return
-	}
+func WithDataIndependentTiming(f func())
+{
+    if ! sys.DITSupported { f() return }
 
-	alreadyEnabled := setDITEnabled()
-
-	// disableDIT is called in a deferred function so that if f panics we will
-	// still disable DIT, in case the panic is recovered further up the stack.
-	defer func() {
-		if !alreadyEnabled {
-			setDITDisabled()
-		}
-	}()
-
-	f()
+    alreadyEnabled: = setDITEnabled() // disableDIT is called in a deferred function so that if f panics we will
+    // still disable DIT, in case the panic is recovered further up the stack.
+    defer func() { if ! alreadyEnabled { setDITDisabled() } }
+() f()
 }
-
 //go:linkname setDITEnabled
-func setDITEnabled() bool
-
-//go:linkname setDITDisabled
+func setDITEnabled() bool //go:linkname setDITDisabled
 func setDITDisabled()

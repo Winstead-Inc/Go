@@ -2,11 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package gcm_test
-
-import (
-	"crypto/cipher"
-	"crypto/internal/fips140/aes/gcm"
-)
-
-var _ cipher.AEAD = (*gcm.GCM)(nil)
+package gcm_test import("crypto/cipher""crypto/internal/fips140/aes/gcm") var _ cipher.AEAD = ( * gcm.GCM)(nil)

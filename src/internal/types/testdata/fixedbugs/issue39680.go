@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-// Embedding stand-alone type parameters is not permitted for now. Disabled.
+package p // Embedding stand-alone type parameters is not permitted for now. Disabled.
 
 /*
 import "fmt"

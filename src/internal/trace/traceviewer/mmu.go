@@ -1,9 +1,7 @@
 // Copyright 2023 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Minimum mutator utilization (MMU) graphing.
-
 // TODO:
 //
 // In worst window list, show break-down of GC utilization sources
@@ -23,154 +21,87 @@
 // could potentially put confidence intervals on these estimates and
 // render this progressively as we refine the distributions.
 
-package traceviewer
-
-import (
-	"encoding/json"
-	"fmt"
-	"internal/trace"
-	"log"
-	"math"
-	"net/http"
-	"strconv"
-	"strings"
-	"sync"
-	"time"
+package traceviewer import("encoding/json""fmt""internal/trace""log""math""net/http""strconv""strings""sync""time") type MutatorUtilFunc func
+(
+    trace.UtilFlags
 )
-
-type MutatorUtilFunc func(trace.UtilFlags) ([][]trace.MutatorUtil, error)
-
-func MMUHandlerFunc(ranges []Range, f MutatorUtilFunc) http.HandlerFunc {
-	mmu := &mmu{
-		cache:  make(map[trace.UtilFlags]*mmuCacheEntry),
-		f:      f,
-		ranges: ranges,
-	}
-	return func(w http.ResponseWriter, r *http.Request) {
-		switch r.FormValue("mode") {
-		case "plot":
-			mmu.HandlePlot(w, r)
-			return
-		case "details":
-			mmu.HandleDetails(w, r)
-			return
-		}
-		http.ServeContent(w, r, "", time.Time{}, strings.NewReader(templMMU))
-	}
+([][] trace.MutatorUtil, error) func MMUHandlerFunc(ranges[] Range, f MutatorUtilFunc) http.HandlerFunc
+{
+    mmu: = & mmu { cache: make(map[trace.UtilFlags] * mmuCacheEntry), f: f, ranges: ranges, }
+    return func(w http.ResponseWriter, r * http.Request)
+    {
+        switch r.FormValue("mode") { case "plot": mmu.HandlePlot(w, r) return case "details": mmu.HandleDetails(w, r) return }
+        http.ServeContent(w, r, "", time.Time {}, strings.NewReader(templMMU))
+    }
 }
 
-var utilFlagNames = map[string]trace.UtilFlags{
-	"perProc":    trace.UtilPerProc,
-	"stw":        trace.UtilSTW,
-	"background": trace.UtilBackground,
-	"assist":     trace.UtilAssist,
-	"sweep":      trace.UtilSweep,
+var utilFlagNames = map[string] trace.UtilFlags
+{
+    "perProc": trace.UtilPerProc, "stw": trace.UtilSTW, "background": trace.UtilBackground, "assist": trace.UtilAssist, "sweep": trace.UtilSweep, 
 }
 
-func requestUtilFlags(r *http.Request) trace.UtilFlags {
-	var flags trace.UtilFlags
-	for flagStr := range strings.SplitSeq(r.FormValue("flags"), "|") {
-		flags |= utilFlagNames[flagStr]
-	}
-	return flags
+func requestUtilFlags(r * http.Request) trace.UtilFlags
+{
+    var flags trace.UtilFlags for flagStr: = range strings.SplitSeq(r.FormValue("flags"),"|") { flags |= utilFlagNames[flagStr] }
+    return flags
 }
 
-type mmuCacheEntry struct {
-	init     sync.Once
-	util     [][]trace.MutatorUtil
-	mmuCurve *trace.MMUCurve
-	err      error
+type mmuCacheEntry struct { init sync.Once util[][] trace.MutatorUtil mmuCurve * trace.MMUCurve err error }
+
+type mmu struct { mu sync.Mutex cache map[trace.UtilFlags] * mmuCacheEntry f MutatorUtilFunc ranges[] Range }
+
+func(m * mmu) get(flags trace.UtilFlags)([][] trace.MutatorUtil, * trace.MMUCurve, error)
+{
+    m.mu.Lock() entry: = m.cache[flags] if entry == nil { entry = new (mmuCacheEntry) m.cache[flags] = entry }
+    m.mu.Unlock() entry. init.Do
+    (
+        func()
+        {
+            util, err: = m.f(flags) if err != nil { entry.err = err } else { entry.util = util entry.mmuCurve = trace.NewMMUCurve(util) }
+        }
+    )
+    return entry.util, entry.mmuCurve, entry.err
 }
-
-type mmu struct {
-	mu     sync.Mutex
-	cache  map[trace.UtilFlags]*mmuCacheEntry
-	f      MutatorUtilFunc
-	ranges []Range
-}
-
-func (m *mmu) get(flags trace.UtilFlags) ([][]trace.MutatorUtil, *trace.MMUCurve, error) {
-	m.mu.Lock()
-	entry := m.cache[flags]
-	if entry == nil {
-		entry = new(mmuCacheEntry)
-		m.cache[flags] = entry
-	}
-	m.mu.Unlock()
-
-	entry.init.Do(func() {
-		util, err := m.f(flags)
-		if err != nil {
-			entry.err = err
-		} else {
-			entry.util = util
-			entry.mmuCurve = trace.NewMMUCurve(util)
-		}
-	})
-	return entry.util, entry.mmuCurve, entry.err
-}
-
 // HandlePlot serves the JSON data for the MMU plot.
-func (m *mmu) HandlePlot(w http.ResponseWriter, r *http.Request) {
-	mu, mmuCurve, err := m.get(requestUtilFlags(r))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to produce MMU data: %v", err), http.StatusInternalServerError)
-		return
-	}
+func(m * mmu) HandlePlot(w http.ResponseWriter, r * http.Request)
+{
+    mu, mmuCurve, err: = m. get(requestUtilFlags(r)) if err != nil
+    {
+        http.Error(w, fmt.Sprintf("failed to produce MMU data: %v", err), http.StatusInternalServerError) return 
+    }
 
-	var quantiles []float64
-	for flagStr := range strings.SplitSeq(r.FormValue("flags"), "|") {
-		if flagStr == "mut" {
-			quantiles = []float64{0, 1 - .999, 1 - .99, 1 - .95}
-			break
-		}
-	}
-
-	// Find a nice starting point for the plot.
-	xMin := time.Second
-	for xMin > 1 {
-		if mmu := mmuCurve.MMU(xMin); mmu < 0.0001 {
-			break
-		}
-		xMin /= 1000
-	}
-	// Cover six orders of magnitude.
-	xMax := xMin * 1e6
-	// But no more than the length of the trace.
-	minEvent, maxEvent := mu[0][0].Time, mu[0][len(mu[0])-1].Time
-	for _, mu1 := range mu[1:] {
-		if mu1[0].Time < minEvent {
-			minEvent = mu1[0].Time
-		}
-		if mu1[len(mu1)-1].Time > maxEvent {
-			maxEvent = mu1[len(mu1)-1].Time
-		}
-	}
-	if maxMax := time.Duration(maxEvent - minEvent); xMax > maxMax {
-		xMax = maxMax
-	}
-	// Compute MMU curve.
-	logMin, logMax := math.Log(float64(xMin)), math.Log(float64(xMax))
-	const samples = 100
-	plot := make([][]float64, samples)
-	for i := 0; i < samples; i++ {
-		window := time.Duration(math.Exp(float64(i)/(samples-1)*(logMax-logMin) + logMin))
-		if quantiles == nil {
-			plot[i] = make([]float64, 2)
-			plot[i][1] = mmuCurve.MMU(window)
-		} else {
-			plot[i] = make([]float64, 1+len(quantiles))
-			copy(plot[i][1:], mmuCurve.MUD(window, quantiles))
-		}
-		plot[i][0] = float64(window)
-	}
-
-	// Create JSON response.
-	err = json.NewEncoder(w).Encode(map[string]any{"xMin": int64(xMin), "xMax": int64(xMax), "quantiles": quantiles, "curve": plot})
-	if err != nil {
-		log.Printf("failed to serialize response: %v", err)
-		return
-	}
+    var quantiles[] float64 for flagStr: = range strings.SplitSeq(r.FormValue("flags"),"|")
+    {
+        if flagStr == "mut" { quantiles = [] float64 { 0, 1 - .999, 1 - .99, 1 - .95 } break }
+    }
+    // Find a nice starting point for the plot.
+    xMin: = time.Second for xMin > 1 { if mmu: = mmuCurve.MMU(xMin); mmu < 0.0001 { break } xMin /= 1000 }
+    // Cover six orders of magnitude.
+    xMax: = xMin * 1e6 // But no more than the length of the trace.
+    minEvent, maxEvent: = mu[0][0].Time, mu[0][len(mu[0]) - 1].Time for _, mu1: = range mu[1:]
+    {
+        if mu1[0].Time < minEvent { minEvent = mu1[0].Time }
+        if mu1[len(mu1) - 1].Time > maxEvent { maxEvent = mu1[len(mu1) - 1].Time }
+    }
+    if maxMax: = time.Duration(maxEvent - minEvent);
+    xMax > maxMax { xMax = maxMax }
+    // Compute MMU curve.
+    logMin, logMax: = math.Log(float64(xMin)), math.Log(float64(xMax)) const samples = 100 plot: = make([][] float64, samples) for i: = 0;
+    i < samples;
+    i++
+    {
+        window: = time.Duration(math.Exp(float64(i) / (samples - 1) * (logMax - logMin) + logMin)) if quantiles == nil
+        {
+            plot[i] = make([] float64, 2) plot[i][1] = mmuCurve.MMU(window)
+        }
+        else { plot[i] = make([] float64, 1 + len(quantiles)) copy(plot[i][1:], mmuCurve.MUD(window, quantiles)) }
+        plot[i][0] = float64(window)
+    }
+    // Create JSON response.
+    err = json.NewEncoder(w).Encode(map[string] any { "xMin": int64(xMin),"xMax": int64(xMax),"quantiles": quantiles, "curve": plot }) if err != nil
+    {
+        log.Printf("failed to serialize response: %v", err) return 
+    }
 }
 
 var templMMU = `<!doctype html>
@@ -366,49 +297,32 @@ var templMMU = `<!doctype html>
     <div id="details">Select a point for details.</div>
   </body>
 </html>
-`
+` // HandleDetails serves details of an MMU graph at a particular window.
+func(m * mmu) HandleDetails(w http.ResponseWriter, r * http.Request)
+{
+    _, mmuCurve, err: = m. get(requestUtilFlags(r)) if err != nil
+    {
+        http.Error(w, fmt.Sprintf("failed to produce MMU data: %v", err), http.StatusInternalServerError) return 
+    }
 
-// HandleDetails serves details of an MMU graph at a particular window.
-func (m *mmu) HandleDetails(w http.ResponseWriter, r *http.Request) {
-	_, mmuCurve, err := m.get(requestUtilFlags(r))
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to produce MMU data: %v", err), http.StatusInternalServerError)
-		return
-	}
+    windowStr: = r.FormValue("window") window, err: = strconv.ParseUint(windowStr, 10, 64) if err != nil
+    {
+        http.Error(w, fmt.Sprintf("failed to parse window parameter %q: %v", windowStr, err), http.StatusBadRequest) return 
+    }
+    worst: = mmuCurve.Examples(time.Duration(window), 10) // Construct a link for each window.
+    var links[] linkedUtilWindow for _, ui: = range worst { links = append(links, m.newLinkedUtilWindow(ui, time.Duration(window))) }
 
-	windowStr := r.FormValue("window")
-	window, err := strconv.ParseUint(windowStr, 10, 64)
-	if err != nil {
-		http.Error(w, fmt.Sprintf("failed to parse window parameter %q: %v", windowStr, err), http.StatusBadRequest)
-		return
-	}
-	worst := mmuCurve.Examples(time.Duration(window), 10)
-
-	// Construct a link for each window.
-	var links []linkedUtilWindow
-	for _, ui := range worst {
-		links = append(links, m.newLinkedUtilWindow(ui, time.Duration(window)))
-	}
-
-	err = json.NewEncoder(w).Encode(links)
-	if err != nil {
-		log.Printf("failed to serialize trace: %v", err)
-		return
-	}
+    err = json.NewEncoder(w).Encode(links) if err != nil { log.Printf("failed to serialize trace: %v", err) return }
 }
 
-type linkedUtilWindow struct {
-	trace.UtilWindow
-	URL string
-}
+type linkedUtilWindow struct { trace.UtilWindow URL string }
 
-func (m *mmu) newLinkedUtilWindow(ui trace.UtilWindow, window time.Duration) linkedUtilWindow {
-	// Find the range containing this window.
-	var r Range
-	for _, r = range m.ranges {
-		if r.EndTime > ui.Time {
-			break
-		}
-	}
-	return linkedUtilWindow{ui, fmt.Sprintf("%s#%v:%v", r.URL(ViewProc), float64(ui.Time)/1e6, float64(ui.Time+int64(window))/1e6)}
+func(m * mmu) newLinkedUtilWindow(ui trace.UtilWindow, window time.Duration) linkedUtilWindow
+{
+    // Find the range containing this window.
+    var r Range for _, r = range m.ranges { if r.EndTime > ui.Time { break } }
+    return linkedUtilWindow
+    {
+        ui, fmt.Sprintf("%s#%v:%v", r.URL(ViewProc), float64(ui.Time) / 1e6, float64(ui.Time + int64(window)) / 1e6)
+    }
 }

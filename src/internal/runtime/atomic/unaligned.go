@@ -2,8 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package atomic
-
-func panicUnaligned() {
-	panic("unaligned 64-bit atomic operation")
-}
+package atomic func panicUnaligned() { panic("unaligned 64-bit atomic operation") }

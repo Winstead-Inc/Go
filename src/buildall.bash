@@ -16,45 +16,53 @@
 # Options:
 #   -e: stop at first failure
 
-if [ ! -f run.bash ]; then
+if [ ! -f run.bash ];
+then
 	echo 'buildall.bash must be run from $GOROOT/src' 1>&2
 	exit 1
 fi
 
 sete=false
-if [ "$1" = "-e" ]; then
+if [ "$1" = "-e" ];
+then
 	sete=true
 	shift
 fi
 
-if [ "$sete" = true ]; then
+if [ "$sete" = true ];
+then
 	set -e
 fi
 
 pattern="$1"
-if [ "$pattern" = "" ]; then
+if [ "$pattern" = "" ];
+then
 	pattern=.
 fi
 
 ./make.bash || exit 1
 GOROOT="$(cd .. && pwd)"
 
-gettargets() {
+gettargets()
+{
 	../bin/go tool dist list | sed -e 's|/|-|' |
 		grep -E -v '^(android|ios)' # need C toolchain even for cross-compiling
 	echo linux-arm-arm5
 }
 
-selectedtargets() {
+selectedtargets()
+{
 	gettargets | grep -E "$pattern"
 }
 
 # put linux first in the target list to get all the architectures up front.
-linux_targets() {
+linux_targets()
+{
 	selectedtargets | grep 'linux' | sort
 }
 
-non_linux_targets() {
+non_linux_targets()
+{
 	selectedtargets | grep -v 'linux' | sort
 }
 
@@ -69,7 +77,8 @@ do
 	export GOOS=$(echo $target | sed 's/-.*//')
 	export GOARCH=$(echo $target | sed 's/.*-//')
 	unset GOARM
-	if [ "$GOARCH" = "arm5" ]; then
+	if [ "$GOARCH" = "arm5" ];
+then
 		export GOARCH=arm
 		export GOARM=5
 	fi
@@ -85,7 +94,8 @@ do
 	fi
 done
 
-if [ "$failed" = "true" ]; then
+if [ "$failed" = "true" ];
+then
 	echo "" 1>&2
 	echo "Build(s) failed." 1>&2
 	exit 1

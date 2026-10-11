@@ -2,20 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p import"unsafe" type T[P any] struct { T/* ERROR "invalid recursive type" */[P] }
 
-import "unsafe"
-
-type T[P any] struct {
-	T /* ERROR "invalid recursive type" */ [P]
+func _[P any]()
+{
+    _ = unsafe.Sizeof(T[int] {}) _ = unsafe.Sizeof(struct { T[int] } {}) _ = unsafe.Sizeof(T[P] {}) _ = unsafe.Sizeof(struct { T[P] } {})
 }
 
-func _[P any]() {
-	_ = unsafe.Sizeof(T[int]{})
-	_ = unsafe.Sizeof(struct{ T[int] }{})
-
-	_ = unsafe.Sizeof(T[P]{})
-	_ = unsafe.Sizeof(struct{ T[P] }{})
-}
-
-const _ = unsafe /* ERROR "not constant" */ .Sizeof(T /* ERROR "invalid recursive type" */ [int]{})
+const _ = unsafe /* ERROR "not constant" */.Sizeof(T/* ERROR "invalid recursive type" */[int] {})

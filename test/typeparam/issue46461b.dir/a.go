@@ -2,6 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
-
-type T[U interface{ M() T[U] }] int
+package a type T[U interface { M() T[U] }] int

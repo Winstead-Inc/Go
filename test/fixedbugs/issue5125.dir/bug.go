@@ -2,16 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package bug
+package bug type Node interface { Eval(s * Scene) }
 
-type Node interface {
-	Eval(s *Scene)
-}
+type plug struct { node Node }
 
-type plug struct {
-	node Node
-}
-
-type Scene struct {
-	changed map[plug]bool
-}
+type Scene struct { changed map[plug] bool }

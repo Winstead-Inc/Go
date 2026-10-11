@@ -405,5 +405,4 @@ that method will be used to save the character and successive
 calls will not lose data.  To attach ReadRune and UnreadRune
 methods to a reader without that capability, use
 [bufio.NewReader].
-*/
-package fmt
+*/ package fmt

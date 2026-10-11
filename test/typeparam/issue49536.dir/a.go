@@ -2,11 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a func F() interface {}
+{ return new (T[int]) }
 
-func F() interface{} { return new(T[int]) }
-
-type T[P any] int
-
-func (x *T[P]) One() int { return x.Two() }
-func (x *T[P]) Two() int { return 0 }
+type T[P any] int func(x * T[P]) One() int { return x.Two() }
+func(x * T[P]) Two() int { return 0 }

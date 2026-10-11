@@ -28,83 +28,39 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package x86
+package x86 import("cmd/internal/objabi""cmd/internal/sys""cmd/link/internal/ld") func Init()( * sys.Arch, ld.Arch)
+{
+    arch: = sys.Arch386 theArch: = ld.Arch
+    {
+        Funcalign: funcAlign, Maxalign: maxAlign, Minalign: minAlign, Dwarfregsp: dwarfRegSP, Dwarfreglr: dwarfRegLR, // 0xCC is INT $3 - breakpoint instruction
+        CodePad: [] byte { 0xCC },
 
-import (
-	"cmd/internal/objabi"
-	"cmd/internal/sys"
-	"cmd/link/internal/ld"
-)
+        Plan9Magic: uint32(4 * 11 * 11 + 7), Adddynrel: adddynrel, Archinit: archinit, Archreloc: archreloc, Archrelocvariant: archrelocvariant, Gentext: gentext, Machoreloc1: machoreloc1, PEreloc1: pereloc1, ELF: ld.ELFArch
+        {
+            Linuxdynld: "/lib/ld-linux.so.2", LinuxdynldMusl: "/lib/ld-musl-i386.so.1", Freebsddynld: "/usr/libexec/ld-elf.so.1", Openbsddynld: "/usr/libexec/ld.so", Netbsddynld: "/usr/libexec/ld.elf_so", Solarisdynld: "/lib/ld.so.1", Reloc1: elfreloc1, RelocSize: 8, SetupPLT: elfsetupplt, 
+        },
+    }
 
-func Init() (*sys.Arch, ld.Arch) {
-	arch := sys.Arch386
-
-	theArch := ld.Arch{
-		Funcalign:  funcAlign,
-		Maxalign:   maxAlign,
-		Minalign:   minAlign,
-		Dwarfregsp: dwarfRegSP,
-		Dwarfreglr: dwarfRegLR,
-		// 0xCC is INT $3 - breakpoint instruction
-		CodePad: []byte{0xCC},
-
-		Plan9Magic: uint32(4*11*11 + 7),
-
-		Adddynrel:        adddynrel,
-		Archinit:         archinit,
-		Archreloc:        archreloc,
-		Archrelocvariant: archrelocvariant,
-		Gentext:          gentext,
-		Machoreloc1:      machoreloc1,
-		PEreloc1:         pereloc1,
-
-		ELF: ld.ELFArch{
-			Linuxdynld:     "/lib/ld-linux.so.2",
-			LinuxdynldMusl: "/lib/ld-musl-i386.so.1",
-			Freebsddynld:   "/usr/libexec/ld-elf.so.1",
-			Openbsddynld:   "/usr/libexec/ld.so",
-			Netbsddynld:    "/usr/libexec/ld.elf_so",
-			Solarisdynld:   "/lib/ld.so.1",
-
-			Reloc1:    elfreloc1,
-			RelocSize: 8,
-			SetupPLT:  elfsetupplt,
-		},
-	}
-
-	return arch, theArch
+    return arch, theArch
 }
 
-func archinit(ctxt *ld.Link) {
-	switch ctxt.HeadType {
-	default:
-		ld.Exitf("unknown -H option: %v", ctxt.HeadType)
+func archinit(ctxt * ld.Link)
+{
+    switch ctxt.HeadType
+    {
+        default: ld.Exitf("unknown -H option: %v", ctxt.HeadType) case objabi.Hplan9: /* plan 9 */ ld.HEADR = 32 if * ld.FlagRound == - 1
+        {
+            * ld.FlagRound = 4096
+        }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(4096, * ld.FlagRound) + int64(ld.HEADR) }
 
-	case objabi.Hplan9: /* plan 9 */
-		ld.HEADR = 32
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 4096
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(4096, *ld.FlagRound) + int64(ld.HEADR)
-		}
+        case objabi.Hlinux, /* elf32 executable */ objabi.Hfreebsd, objabi.Hnetbsd, objabi.Hopenbsd: ld.Elfinit(ctxt) ld.HEADR = ld.ELFRESERVE if * ld.FlagRound == - 1
+        {
+            * ld.FlagRound = 4096
+        }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(0x08048000, * ld.FlagRound) + int64(ld.HEADR) }
 
-	case objabi.Hlinux, /* elf32 executable */
-		objabi.Hfreebsd,
-		objabi.Hnetbsd,
-		objabi.Hopenbsd:
-		ld.Elfinit(ctxt)
-
-		ld.HEADR = ld.ELFRESERVE
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 4096
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(0x08048000, *ld.FlagRound) + int64(ld.HEADR)
-		}
-
-	case objabi.Hwindows: /* PE executable */
-		// ld.HEADR, ld.FlagTextAddr, ld.FlagRound are set in ld.Peinit
-		return
-	}
+        case objabi.Hwindows: /* PE executable */ // ld.HEADR, ld.FlagTextAddr, ld.FlagRound are set in ld.Peinit
+        return 
+    }
 }

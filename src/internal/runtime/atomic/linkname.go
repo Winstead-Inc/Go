@@ -2,10 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package atomic
-
-import _ "unsafe" // for linkname
-
+package atomic import _"unsafe" // for linkname
 // Export some functions via linkname to assembly in sync/atomic.
 //
 //go:linknamestd Load

@@ -286,7 +286,7 @@ pkg net/url, method (*URL) Clone() *URL #73450
 pkg net/url, method (Values) Clone() Values #73450
 pkg strings, func CutLast(string, string) (string, string, bool) #71151
 pkg testing/synctest, func Sleep(time.Duration) #77169
-pkg unicode, const Version = "17.0.0" #77266
+pkg unicode, const Version = "17.0.0"#77266
 pkg unicode, var Beria_Erfe *RangeTable #77266
 pkg unicode, var Garay *RangeTable #77266
 pkg unicode, var Gurung_Khema *RangeTable #77266

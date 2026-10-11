@@ -1,5 +1,1 @@
-package indirect
-
-import "dep"
-
-func F(dep.Interface) {}
+package indirect import"dep" func F(dep.Interface) {}

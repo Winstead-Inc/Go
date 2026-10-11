@@ -2,14 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
+package b import"./a" type B[T any] struct { v a.A[T] }
 
-import "./a"
-
-type B[T any] struct {
-	v a.A[T]
-}
-
-func (b B[T]) F() {
-	b.v.F()
-}
+func(b B[T]) F() { b.v.F() }

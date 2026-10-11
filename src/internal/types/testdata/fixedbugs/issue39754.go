@@ -2,20 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type Optional[T any] struct {}
 
-type Optional[T any] struct {}
+func(_ Optional[T]) Val()(T, bool) type Box[T any] interface { Val()(T, bool) }
 
-func (_ Optional[T]) Val() (T, bool)
+func f[V interface {}, A, B Box[V]]() {}
 
-type Box[T any] interface {
-	Val() (T, bool)
-}
-
-func f[V interface{}, A, B Box[V]]() {}
-
-func _() {
-	f[int, Optional[int], Optional[int]]()
-	_ = f[int, Optional[int], Optional /* ERROR "does not satisfy Box" */ [string]]
-	_ = f[int, Optional[int], Optional /* ERRORx "Optional.* does not satisfy Box.*" */ [string]]
+func _()
+{
+    f[int , Optional[int], Optional[int]]() _ = f[int , Optional[int], Optional/* ERROR "does not satisfy Box" */[string]] _ = f
+    [
+        int, Optional[int], Optional /* ERRORx "Optional.* does not satisfy Box.*" */[string]
+    ]
 }

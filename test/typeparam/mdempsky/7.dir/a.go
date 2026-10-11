@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
-
-type I[T any] interface{ M() T }
+package a type I[T any] interface { M() T }
 
 var X I[int]

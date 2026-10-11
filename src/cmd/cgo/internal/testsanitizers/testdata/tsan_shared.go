@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// This program failed with SIGSEGV when run under the C/C++ ThreadSanitizer.
+package main // This program failed with SIGSEGV when run under the C/C++ ThreadSanitizer.
 // The Go runtime had re-registered the C handler with the wrong flags due to a
 // typo, resulting in null pointers being passed for the info and context
 // parameters to the handler.
@@ -51,13 +49,9 @@ static void register_handler() {
 		exit(EXIT_FAILURE);
 	}
 }
-*/
-import "C"
-
-import "syscall"
-
-func init() {
-	C.raise(C.int(syscall.SIGUSR1))
-}
+*/ import"C" import"syscall" func init
+(
+)
+{ C.raise(C.int (syscall.SIGUSR1)) }
 
 func main() {}

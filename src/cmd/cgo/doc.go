@@ -579,10 +579,7 @@ The following options are available when running cgo directly:
 		in directory.
 	-trimpath rewrites
 		Apply trims and rewrites to source file paths.
-*/
-package main
-
-/*
+*/ package main /*
 Implementation details.
 
 Cgo provides a way for Go programs to call C code linked into the same

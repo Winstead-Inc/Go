@@ -1,7 +1,6 @@
 // Copyright 2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Build with:
 // gcc -g multiple-code-sections.c -Wl,--emit-relocs -Wl,--discard-none -Wl,-zmax-page-size=1 -fno-asynchronous-unwind-tables -o go-relocation-test-gcc930-ranges-with-rela-x86-64
 // gcc -g multiple-code-sections.c -Wl,-zmax-page-size=1 -fno-asynchronous-unwind-tables -o go-relocation-test-gcc930-ranges-no-rela-x86-64
@@ -19,10 +18,6 @@
 //       --remove-section=.interp \
 //       --remove-section=.rodata
 __attribute__((section(".separate_section"))) // To get GCC to emit a DW_AT_ranges attribute for the CU.
-int func(void) {
-    return 0;
-}
+int func(void) { return 0; }
 
-int main(int argc, char *argv[]) {
-    return 0;
-}
+int main(int argc, char * argv[]) { return 0; }

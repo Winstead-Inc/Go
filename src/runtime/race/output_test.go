@@ -1,100 +1,63 @@
 // Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build race
 
-package race_test
+package race_test import("fmt""internal/testenv""os""os/exec""path/filepath""regexp""runtime""strings""testing") func TestOutput(t * testing.T)
+{
+    pkgdir: = t.TempDir() out, err: = exec.Command(testenv.GoToolPath(t),"install", "-race", "-pkgdir=" + pkgdir, "testing").CombinedOutput() if err != nil
+    {
+        t.Fatalf("go install -race: %v\n%s", err, out)
+    }
 
-import (
-	"fmt"
-	"internal/testenv"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"regexp"
-	"runtime"
-	"strings"
-	"testing"
-)
+    for _, test: = range tests
+    {
+        t.Run
+        (
+            test.name, func(t * testing.T)
+            {
+                if test.goos != "" && test.goos != runtime.GOOS { t.Skipf("runs only on %v", test.goos) }
+                dir: = t.TempDir() source: = "main.go" if test.run == "test" { source = "main_test.go" }
+                src: = filepath.Join(dir, source) f, err: = os.Create(src) if err != nil { t.Fatalf("failed to create file: %v", err) }
+                _, err = f.WriteString(test.source) if err != nil { f.Close() t.Fatalf("failed to write: %v", err) }
+                if err: = f.Close();
+                err != nil { t.Fatalf("failed to close file: %v", err) }
 
-func TestOutput(t *testing.T) {
-	pkgdir := t.TempDir()
-	out, err := exec.Command(testenv.GoToolPath(t), "install", "-race", "-pkgdir="+pkgdir, "testing").CombinedOutput()
-	if err != nil {
-		t.Fatalf("go install -race: %v\n%s", err, out)
-	}
-
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if test.goos != "" && test.goos != runtime.GOOS {
-				t.Skipf("runs only on %v", test.goos)
-			}
-			dir := t.TempDir()
-			source := "main.go"
-			if test.run == "test" {
-				source = "main_test.go"
-			}
-			src := filepath.Join(dir, source)
-			f, err := os.Create(src)
-			if err != nil {
-				t.Fatalf("failed to create file: %v", err)
-			}
-			_, err = f.WriteString(test.source)
-			if err != nil {
-				f.Close()
-				t.Fatalf("failed to write: %v", err)
-			}
-			if err := f.Close(); err != nil {
-				t.Fatalf("failed to close file: %v", err)
-			}
-
-			cmd := exec.Command(testenv.GoToolPath(t), test.run, "-race", "-pkgdir="+pkgdir, src)
-			// GODEBUG spoils program output, GOMAXPROCS makes it flaky.
-			for _, env := range os.Environ() {
-				if strings.HasPrefix(env, "GODEBUG=") ||
-					strings.HasPrefix(env, "GOMAXPROCS=") ||
-					strings.HasPrefix(env, "GORACE=") {
-					continue
-				}
-				cmd.Env = append(cmd.Env, env)
-			}
-			cmd.Env = append(cmd.Env,
-				"GOMAXPROCS=1", // see comment in race_test.go
-				"GORACE="+test.gorace,
-			)
-			got, _ := cmd.CombinedOutput()
-			matched := false
-			for _, re := range test.re {
-				if regexp.MustCompile(re).MatchString(string(got)) {
-					matched = true
-					break
-				}
-			}
-			if !matched {
-				exp := fmt.Sprintf("expect:\n%v\n", test.re[0])
-				if len(test.re) > 1 {
-					exp = fmt.Sprintf("expected one of %d patterns:\n",
-						len(test.re))
-					for k, re := range test.re {
-						exp += fmt.Sprintf("pattern %d:\n%v\n", k, re)
-					}
-				}
-				t.Fatalf("failed test case: %sgot:\n%s", exp, got)
-			}
-		})
-	}
+                cmd: = exec.Command(testenv.GoToolPath(t), test.run, "-race", "-pkgdir=" + pkgdir, src) // GODEBUG spoils program output, GOMAXPROCS makes it flaky.
+                for _, env: = range os.Environ()
+                {
+                    if strings.HasPrefix(env, "GODEBUG=") || strings.HasPrefix(env, "GOMAXPROCS=") || strings.HasPrefix(env, "GORACE=") { continue }
+                    cmd.Env = append(cmd.Env, env)
+                }
+                cmd.Env = append
+                (
+                    cmd.Env, "GOMAXPROCS=1", // see comment in race_test.go
+                    "GORACE=" + test.gorace, 
+                )
+                got, _: = cmd.CombinedOutput() matched: = false for _, re: = range test.re
+                {
+                    if regexp.MustCompile(re).MatchString(string(got)) { matched = true break }
+                }
+                if ! matched
+                {
+                    exp: = fmt.Sprintf("expect:\n%v\n", test.re[0]) if len(test.re) > 1
+                    {
+                        exp = fmt.Sprintf("expected one of %d patterns:\n", len(test.re)) for k, re: = range test.re
+                        {
+                            exp += fmt.Sprintf("pattern %d:\n%v\n", k, re)
+                        }
+                    }
+                    t.Fatalf("failed test case: %sgot:\n%s", exp, got)
+                }
+            }
+        )
+    }
 }
 
-var tests = []struct {
-	name   string
-	run    string
-	goos   string
-	gorace string
-	source string
-	re     []string
-}{
-	{"simple", "run", "", "atexit_sleep_ms=0", `
+var tests = [] struct { name string run string goos string gorace string source string re[] string }
+{
+    {
+        "simple", "run", "", "atexit_sleep_ms=0", `
 package main
 import "time"
 var xptr *int
@@ -119,9 +82,13 @@ func racer() {
 	store(xptr, 42)
 	donechan <- true
 }
-`, []string{
-	// Allow the race output in either order.
-	`==================
+`, 
+        [
+        ]
+        string
+        {
+            // Allow the race output in either order.
+            `==================
 WARNING: DATA RACE
 Write at 0x[0-9,a-f]+ by goroutine [0-9]:
   main\.store\(\)
@@ -143,8 +110,7 @@ Goroutine [0-9] \(running\) created at:
 ==================
 Found 1 data race\(s\)
 exit status 66
-`,
-	`==================
+`, `==================
 WARNING: DATA RACE
 Write at 0x[0-9,a-f]+ by goroutine [0-9]:
   main\.store\(\)
@@ -166,9 +132,11 @@ Goroutine [0-9] \(running\) created at:
 ==================
 Found 1 data race\(s\)
 exit status 66
-`}},
-
-	{"exitcode", "run", "", "atexit_sleep_ms=0 exitcode=13", `
+`
+        }
+    },
+    {
+        "exitcode", "run", "", "atexit_sleep_ms=0 exitcode=13", `
 package main
 func main() {
 	done := make(chan bool)
@@ -180,9 +148,13 @@ func main() {
 	x = 43
 	<-done
 }
-`, []string{`exit status 13`}},
-
-	{"strip_path_prefix", "run", "", "atexit_sleep_ms=0 strip_path_prefix=/main.", `
+`, 
+        [
+        ]
+        string { `exit status 13` }
+    },
+    {
+        "strip_path_prefix", "run", "", "atexit_sleep_ms=0 strip_path_prefix=/main.", `
 package main
 func main() {
 	done := make(chan bool)
@@ -194,11 +166,18 @@ func main() {
 	x = 43
 	<-done
 }
-`, []string{`
+`, 
+        [
+        ]
+        string
+        {
+            `
       go:7 \+0x[0-9,a-f]+
-`}},
-
-	{"halt_on_error", "run", "", "atexit_sleep_ms=0 halt_on_error=1", `
+`
+        }
+    },
+    {
+        "halt_on_error", "run", "", "atexit_sleep_ms=0 halt_on_error=1", `
 package main
 func main() {
 	done := make(chan bool)
@@ -210,12 +189,19 @@ func main() {
 	x = 43
 	<-done
 }
-`, []string{`
+`, 
+        [
+        ]
+        string
+        {
+            `
 ==================
 exit status 66
-`}},
-
-	{"test_fails_on_race", "test", "", "atexit_sleep_ms=0", `
+`
+        }
+    },
+    {
+        "test_fails_on_race", "test", "", "atexit_sleep_ms=0", `
 package main_test
 import "testing"
 func TestFail(t *testing.T) {
@@ -230,14 +216,21 @@ func TestFail(t *testing.T) {
 	<-done
 	t.Log(t.Failed())
 }
-`, []string{`
+`, 
+        [
+        ]
+        string
+        {
+            `
 ==================
 --- FAIL: TestFail \([0-9.]+s\)
 .*testing.go:.*: race detected during execution of test
 .*main_test.go:14: true
-FAIL`}},
-
-	{"slicebytetostring_pc", "run", "", "atexit_sleep_ms=0", `
+FAIL`
+        }
+    },
+    {
+        "slicebytetostring_pc", "run", "", "atexit_sleep_ms=0", `
 package main
 func main() {
 	done := make(chan string)
@@ -248,14 +241,21 @@ func main() {
 	data[0] = 1
 	<-done
 }
-`, []string{`
+`, 
+        [
+        ]
+        string
+        {
+            `
   runtime\.slicebytetostring\(\)
       .*/runtime/string\.go:.*
   main\.main\.func1\(\)
-      .*/main.go:7`}},
-
-	// Test for https://golang.org/issue/33309
-	{"midstack_inlining_traceback", "run", "linux", "atexit_sleep_ms=0", `
+      .*/main.go:7`
+        }
+    },
+    // Test for https://golang.org/issue/33309
+    {
+        "midstack_inlining_traceback", "run", "linux", "atexit_sleep_ms=0", `
 package main
 
 var x int
@@ -278,9 +278,13 @@ func g(c chan int) {
 func h(c chan int) {
 	c <- x
 }
-`, []string{
-	// Allow the race output in either order.
-	`==================
+`, 
+        [
+        ]
+        string
+        {
+            // Allow the race output in either order.
+            `==================
 WARNING: DATA RACE
 Read at 0x[0-9,a-f]+ by goroutine [0-9]:
   main\.h\(\)
@@ -300,8 +304,7 @@ Goroutine [0-9] \(running\) created at:
 ==================
 Found 1 data race\(s\)
 exit status 66
-`,
-	`==================
+`, `==================
 WARNING: DATA RACE
 Write at 0x[0-9,a-f]+ by main goroutine:
   main\.main\(\)
@@ -321,10 +324,12 @@ Goroutine [0-9] \(running\) created at:
 ==================
 Found 1 data race\(s\)
 exit status 66
-`}},
-
-	// Test for https://golang.org/issue/17190
-	{"external_cgo_thread", "run", "linux", "atexit_sleep_ms=0", `
+`
+        }
+    },
+    // Test for https://golang.org/issue/17190
+    {
+        "external_cgo_thread", "run", "linux", "atexit_sleep_ms=0", `
 package main
 
 /*
@@ -360,9 +365,13 @@ func main() {
 	racy++
 	<- done
 }
-`, []string{
-	// Optionally allow ABI wrappers, and allow the race output in either order.
-	`==================
+`, 
+        [
+        ]
+        string
+        {
+            // Optionally allow ABI wrappers, and allow the race output in either order.
+            `==================
 WARNING: DATA RACE
 Read at 0x[0-9,a-f]+ by main goroutine:
   main\.main\(\)
@@ -379,8 +388,7 @@ Previous write at 0x[0-9,a-f]+ by goroutine [0-9]:
 Goroutine [0-9] \(running\) created at:
   runtime\.newextram\(\)
       .*/runtime/proc.go:[0-9]+ \+0x[0-9,a-f]+
-==================`,
-	`==================
+==================`, `==================
 WARNING: DATA RACE
 Write at 0x[0-9,a-f]+ by goroutine [0-9]:
   main\.goCallback\(\)
@@ -397,8 +405,7 @@ Previous read at 0x[0-9,a-f]+ by main goroutine:
 Goroutine [0-9] \(running\) created at:
   runtime\.newextram\(\)
       .*/runtime/proc.go:[0-9]+ \+0x[0-9,a-f]+
-==================`,
-		`==================
+==================`, `==================
 WARNING: DATA RACE
 Read at 0x[0-9,a-f]+ by .*:
   main\..*
@@ -411,8 +418,11 @@ Previous write at 0x[0-9,a-f]+ by .*:
 Goroutine [0-9] \(running\) created at:
   runtime\.newextram\(\)
       .*/runtime/proc.go:[0-9]+ \+0x[0-9,a-f]+
-==================`}},
-	{"second_test_passes", "test", "", "atexit_sleep_ms=0", `
+==================`
+        }
+    },
+    {
+        "second_test_passes", "test", "", "atexit_sleep_ms=0", `
 package main_test
 import "testing"
 func TestFail(t *testing.T) {
@@ -429,12 +439,20 @@ func TestFail(t *testing.T) {
 
 func TestPass(t *testing.T) {
 }
-`, []string{`
+`, 
+        [
+        ]
+        string
+        {
+            `
 ==================
 --- FAIL: TestFail \([0-9.]+s\)
 .*testing.go:.*: race detected during execution of test
-FAIL`}},
-	{"mutex", "run", "", "atexit_sleep_ms=0", `
+FAIL`
+        }
+    },
+    {
+        "mutex", "run", "", "atexit_sleep_ms=0", `
 package main
 import (
 	"sync"
@@ -464,9 +482,14 @@ func main() {
 	}
 	wg.Wait()
 	if (data == iterations*(threads+1)) { fmt.Println("pass") }
-}`, []string{`pass`}},
-	// Test for https://github.com/golang/go/issues/37355
-	{"chanmm", "run", "", "atexit_sleep_ms=0", `
+}`, 
+        [
+        ]
+        string { `pass` }
+    },
+    // Test for https://github.com/golang/go/issues/37355
+    {
+        "chanmm", "run", "", "atexit_sleep_ms=0", `
 package main
 import (
 	"sync"
@@ -493,9 +516,13 @@ func main() {
 	wg.Wait()
 	_ = data
 }
-`, []string{
-	// Allow the race output in either order.
-	`==================
+`, 
+        [
+        ]
+        string
+        {
+            // Allow the race output in either order.
+            `==================
 WARNING: DATA RACE
 Write at 0x[0-9,a-f]+ by goroutine [0-9]:
   main\.main\.func2\(\)
@@ -508,8 +535,7 @@ Previous write at 0x[0-9,a-f]+ by main goroutine:
 Goroutine [0-9] \(running\) created at:
   main\.main\(\)
       .*/main.go:[0-9]+ \+0x[0-9,a-f]+
-==================`,
-	`==================
+==================`, `==================
 WARNING: DATA RACE
 Write at 0x[0-9,a-f]+ by main goroutine:
   main\.main\(\)
@@ -522,10 +548,13 @@ Previous write at 0x[0-9,a-f]+ by goroutine [0-9]:
 Goroutine [0-9] \(running\) created at:
   main\.main\(\)
       .*/main.go:[0-9]+ \+0x[0-9,a-f]+
-==================`}},
-	// Test symbolizing wrappers. Both (*T).f and main.gowrap1 are wrappers.
-	// go.dev/issue/60245
-	{"wrappersym", "run", "", "atexit_sleep_ms=0", `
+==================`
+        }
+    },
+    // Test symbolizing wrappers. Both (*T).f and main.gowrap1 are wrappers.
+    // go.dev/issue/60245
+    {
+        "wrappersym", "run", "", "atexit_sleep_ms=0", `
 package main
 import "sync"
 var wg sync.WaitGroup
@@ -542,9 +571,13 @@ func (t T) f() {
 	x = 42
 	wg.Done()
 }
-`, []string{
-	// Allow the race output in either order.
-	`==================
+`, 
+        [
+        ]
+        string
+        {
+            // Allow the race output in either order.
+            `==================
 WARNING: DATA RACE
 Write at 0x[0-9,a-f]+ by goroutine [0-9]:
   main\.T\.f\(\)
@@ -562,8 +595,7 @@ Previous write at 0x[0-9,a-f]+ by main goroutine:
   main\.main\(\)
       .*/main.go:10 \+0x[0-9,a-f]+
 
-`,
-	`==================
+`, `==================
 WARNING: DATA RACE
 Write at 0x[0-9,a-f]+ by main goroutine:
   main\.T\.f\(\)
@@ -581,8 +613,11 @@ Previous write at 0x[0-9,a-f]+ by goroutine [0-9]:
   main\.main\.gowrap1\(\)
       .*/main.go:9 \+0x[0-9,a-f]+
 
-`}},
-	{"non_inline_array_compare", "run", "", "atexit_sleep_ms=0", `
+`
+        }
+    },
+    {
+        "non_inline_array_compare", "run", "", "atexit_sleep_ms=0", `
 package main
 
 import (
@@ -605,10 +640,18 @@ func main() {
 	x[rand.IntN(len(x))]++
 	println(<-ch)
 }
-`, []string{`==================
+`, 
+        [
+        ]
+        string
+        {
+            `==================
 WARNING: DATA RACE
-`}},
-	{"non_inline_struct_compare", "run", "", "atexit_sleep_ms=0", `
+`
+        }
+    },
+    {
+        "non_inline_struct_compare", "run", "", "atexit_sleep_ms=0", `
 package main
 
 import "math/rand/v2"
@@ -633,7 +676,14 @@ func main() {
 	x.a[rand.IntN(len(x.a))]++
 	println(<-ch)
 }
-`, []string{`==================
+`, 
+        [
+        ]
+        string
+        {
+            `==================
 WARNING: DATA RACE
-`}},
+`
+        }
+    },
 }

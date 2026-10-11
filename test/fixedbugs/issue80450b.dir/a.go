@@ -2,10 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package target
+package target type Target struct {}
 
-type Target struct{}
+func(Target) M() {}
 
-func (Target) M() {}
-
-var P *Target
+var P * Target

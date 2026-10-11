@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p import"strings" type T struct {}
 
-import "strings"
-
-type T struct{}
-
-func (T) M() {
-	strings.HasPrefix("", "")
-}
+func(T) M() { strings.HasPrefix("", "") }

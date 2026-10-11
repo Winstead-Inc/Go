@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 #include <stdlib.h>
 
 int* test() {
@@ -17,30 +15,19 @@ void clearStack(int n) {
   }
 }
 
-*/
-import "C"
-
-type S struct {
-	p *C.int
+*/ import"C" type S struct 
+{
+    p * C. int
 }
 
-var p *S
+var p * S //go:noinline
+func F() { p = & S { p: C.test() } }
 
-//go:noinline
-func F() {
-	p = &S{p: C.test()}
-}
+func clearStack(n int) { if n > 0 { clearStack(n - 1) } }
 
-func clearStack(n int) {
-	if n > 0 {
-		clearStack(n - 1)
-	}
-}
-
-func main() {
-	// Test should pass: memory allocated by C does not leak
-	// because a Go global variable points to it.
-	F()
-	clearStack(100)
-	C.clearStack(100)
+func main()
+{
+    // Test should pass: memory allocated by C does not leak
+    // because a Go global variable points to it.
+    F() clearStack(100) C.clearStack(100)
 }

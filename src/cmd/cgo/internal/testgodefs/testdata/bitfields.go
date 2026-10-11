@@ -1,12 +1,9 @@
 // Copyright 2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build ignore
 
-package main
-
-// This file tests that we don't generate an incorrect field location
+package main // This file tests that we don't generate an incorrect field location
 // for a bitfield that appears aligned.
 
 /*
@@ -25,7 +22,4 @@ struct bitfields {
     unsigned int Short2 : 16; // alignment is OK
     unsigned int Short3 : 16; // alignment is OK
 };
-*/
-import "C"
-
-type bitfields C.struct_bitfields
+*/ import"C" type bitfields C.struct_bitfields

@@ -1,7 +1,6 @@
 // Copyright 2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // IR visitors for walking the IR tree.
 //
 // The lowest level helpers are DoChildren and EditChildren, which
@@ -11,9 +10,7 @@
 // Although these are both useful directly, two simpler patterns
 // are fairly common and also provided: Visit and Any.
 
-package ir
-
-// DoChildren calls do(x) on each of n's non-nil child nodes x.
+package ir // DoChildren calls do(x) on each of n's non-nil child nodes x.
 // If any call returns true, DoChildren stops and returns true.
 // Otherwise, DoChildren returns false.
 //
@@ -87,74 +84,44 @@ package ir
 // DoChildren effectively, but of course, usage that fits within the
 // simplifications captured by Visit or Any will be best served
 // by directly calling the ones provided by this package.
-func DoChildren(n Node, do func(Node) bool) bool {
-	if n == nil {
-		return false
-	}
-	return n.doChildren(do)
-}
-
+func DoChildren(n Node, do func(Node) bool) bool { if n == nil { return false } return n.doChildren(do) }
 // DoChildrenWithHidden is like DoChildren, but also visits
 // Node-typed fields tagged with `mknode:"-"`.
 //
 // TODO(mdempsky): Remove the `mknode:"-"` tags so this function can
 // go away.
-func DoChildrenWithHidden(n Node, do func(Node) bool) bool {
-	if n == nil {
-		return false
-	}
-	return n.doChildrenWithHidden(do)
-}
-
+func DoChildrenWithHidden(n Node, do func(Node) bool) bool { if n == nil { return false } return n.doChildrenWithHidden(do) }
 // Visit visits each non-nil node x in the IR tree rooted at n
 // in a depth-first preorder traversal, calling visit on each node visited.
-func Visit(n Node, visit func(Node)) {
-	if n == nil {
-		return
-	}
-	var do func(Node) bool
-	do = func(x Node) bool {
-		visit(x)
-		return DoChildren(x, do)
-	}
-	do(n)
+func Visit(n Node, visit func(Node))
+{
+    if n == nil { return }
+    var do func(Node) bool do = func(x Node) bool { visit(x) return DoChildren(x, do) }
+    do(n)
 }
-
 // VisitList calls Visit(x, visit) for each node x in the list.
-func VisitList(list Nodes, visit func(Node)) {
-	for _, x := range list {
-		Visit(x, visit)
-	}
-}
-
+func VisitList(list Nodes, visit func(Node)) { for _, x: = range list { Visit(x, visit) } }
 // VisitFuncAndClosures calls visit on each non-nil node in fn.Body,
 // including any nested closure bodies.
-func VisitFuncAndClosures(fn *Func, visit func(n Node)) {
-	VisitList(fn.Body, func(n Node) {
-		visit(n)
-		if n, ok := n.(*ClosureExpr); ok && n.Op() == OCLOSURE {
-			VisitFuncAndClosures(n.Func, visit)
-		}
-	})
+func VisitFuncAndClosures(fn * Func, visit func(n Node))
+{
+    VisitList
+    (
+        fn.Body, func(n Node) { visit(n) if n, ok: = n.( * ClosureExpr); ok && n.Op() == OCLOSURE { VisitFuncAndClosures(n.Func, visit) } }
+    )
 }
-
 // Any looks for a non-nil node x in the IR tree rooted at n
 // for which cond(x) returns true.
 // Any considers nodes in a depth-first, preorder traversal.
 // When Any finds a node x such that cond(x) is true,
 // Any ends the traversal and returns true immediately.
 // Otherwise Any returns false after completing the entire traversal.
-func Any(n Node, cond func(Node) bool) bool {
-	if n == nil {
-		return false
-	}
-	var do func(Node) bool
-	do = func(x Node) bool {
-		return cond(x) || DoChildren(x, do)
-	}
-	return do(n)
+func Any(n Node, cond func(Node) bool) bool
+{
+    if n == nil { return false }
+    var do func(Node) bool do = func(x Node) bool { return cond(x) || DoChildren(x, do) }
+    return do(n)
 }
-
 // EditChildren edits the child nodes of n, replacing each child x with edit(x).
 //
 // Note that EditChildren(n, edit) only calls edit(x) for n's immediate children.
@@ -188,21 +155,10 @@ func Any(n Node, cond func(Node) bool) bool {
 //	}
 //
 // Of course, in this case it is better to call ir.DeepCopy than to build one anew.
-func EditChildren(n Node, edit func(Node) Node) {
-	if n == nil {
-		return
-	}
-	n.editChildren(edit)
-}
-
+func EditChildren(n Node, edit func(Node) Node) { if n == nil { return } n.editChildren(edit) }
 // EditChildrenWithHidden is like EditChildren, but also edits
 // Node-typed fields tagged with `mknode:"-"`.
 //
 // TODO(mdempsky): Remove the `mknode:"-"` tags so this function can
 // go away.
-func EditChildrenWithHidden(n Node, edit func(Node) Node) {
-	if n == nil {
-		return
-	}
-	n.editChildrenWithHidden(edit)
-}
+func EditChildrenWithHidden(n Node, edit func(Node) Node) { if n == nil { return } n.editChildrenWithHidden(edit) }

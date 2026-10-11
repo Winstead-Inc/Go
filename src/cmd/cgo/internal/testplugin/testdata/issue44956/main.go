@@ -1,7 +1,6 @@
 // Copyright 2021 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Issue 44956: writable static temp is not exported correctly.
 // In the test below, package base is
 //
@@ -22,26 +21,11 @@
 // again. When base.stmp is not exported, plugin2's base.X points to
 // its own private base.stmp, which is not initialized, fail.
 
-package main
+package main import"plugin" func main()
+{
+    _, err: = plugin.Open("issue44956p1.so") if err != nil { panic("FAIL") }
 
-import "plugin"
-
-func main() {
-	_, err := plugin.Open("issue44956p1.so")
-	if err != nil {
-		panic("FAIL")
-	}
-
-	p2, err := plugin.Open("issue44956p2.so")
-	if err != nil {
-		panic("FAIL")
-	}
-	f, err := p2.Lookup("F")
-	if err != nil {
-		panic("FAIL")
-	}
-	x := f.(func() *map[int]int)()
-	if x == nil || (*x)[123] != 456 {
-		panic("FAIL")
-	}
+    p2, err: = plugin.Open("issue44956p2.so") if err != nil { panic("FAIL") }
+    f, err: = p2.Lookup("F") if err != nil { panic("FAIL") }
+    x: = f.(func() * map[int] int)() if x == nil || ( * x)[123] != 456 { panic("FAIL") }
 }

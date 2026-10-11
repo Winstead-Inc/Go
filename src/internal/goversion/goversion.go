@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package goversion
-
-// Version is the Go 1.x version which is currently
+package goversion // Version is the Go 1.x version which is currently
 // in development and will eventually get released.
 //
 // It should be updated at the start of each development cycle to be

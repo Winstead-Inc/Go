@@ -2,23 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package x509_test
+package x509_test import("crypto/dsa""crypto/ecdsa""crypto/ed25519""crypto/mldsa""crypto/rsa""crypto/x509""encoding/pem""fmt") func ExampleCertificate_Verify()
+{
+    // Verifying with a custom list of root certificates.
 
-import (
-	"crypto/dsa"
-	"crypto/ecdsa"
-	"crypto/ed25519"
-	"crypto/mldsa"
-	"crypto/rsa"
-	"crypto/x509"
-	"encoding/pem"
-	"fmt"
-)
-
-func ExampleCertificate_Verify() {
-	// Verifying with a custom list of root certificates.
-
-	const rootPEM = `
+    const rootPEM = `
 -----BEGIN CERTIFICATE-----
 MIIEBDCCAuygAwIBAgIDAjppMA0GCSqGSIb3DQEBBQUAMEIxCzAJBgNVBAYTAlVT
 MRYwFAYDVQQKEw1HZW9UcnVzdCBJbmMuMRswGQYDVQQDExJHZW9UcnVzdCBHbG9i
@@ -42,9 +30,7 @@ zG+FA1jDaFETzf3I93k9mTXwVqO94FntT0QJo544evZG0R0SnU++0ED8Vf4GXjza
 HFa9llF7b1cq26KqltyMdMKVvvBulRP/F/A8rLIQjcxz++iPAsbw+zOzlTvjwsto
 WHPbqCRiOwY1nQ2pM714A5AuTHhdUDqB1O6gyHA43LL5Z/qHQF1hwFGPa4NrzQU6
 yuGnBXj8ytqU0CwIPX4WecigUCAkVDNx
------END CERTIFICATE-----`
-
-	const certPEM = `
+-----END CERTIFICATE-----` const certPEM = `
 -----BEGIN CERTIFICATE-----
 MIIDujCCAqKgAwIBAgIIE31FZVaPXTUwDQYJKoZIhvcNAQEFBQAwSTELMAkGA1UE
 BhMCVVMxEzARBgNVBAoTCkdvb2dsZSBJbmMxJTAjBgNVBAMTHEdvb2dsZSBJbnRl
@@ -66,38 +52,23 @@ TZZyzmEOyclm3UGFYe82P/iDFt+CeQ3NpmBg+GoaVCuWAARJN/KfglbLyyYygcQq
 0SgeDh8dRKUiaW3HQSoYvTvdTuqzwK4CXsr3b5/dAOY8uMuG/IAR3FgwTbZ1dtoW
 RvOTa8hYiU6A475WuZKyEHcwnGYe57u2I2KbMgcKjPniocj4QzgYsVAVKW3IwaOh
 yE+vPxsiUkvQHdO2fojCkY8jg70jxM+gu59tPDNbw3Uh/2Ij310FgTHsnGQMyA==
------END CERTIFICATE-----`
+-----END CERTIFICATE-----` // First, create the set of root certificates. For this example we only
+    // have one. It's also possible to omit this in order to use the
+    // default root set of the current operating system.
+    roots: = x509.NewCertPool() ok: = roots.AppendCertsFromPEM([] byte(rootPEM)) if ! ok { panic("failed to parse root certificate") }
 
-	// First, create the set of root certificates. For this example we only
-	// have one. It's also possible to omit this in order to use the
-	// default root set of the current operating system.
-	roots := x509.NewCertPool()
-	ok := roots.AppendCertsFromPEM([]byte(rootPEM))
-	if !ok {
-		panic("failed to parse root certificate")
-	}
+    block, _: = pem.Decode([] byte(certPEM)) if block == nil { panic("failed to parse certificate PEM") }
+    cert, err: = x509.ParseCertificate(block.Bytes) if err != nil { panic("failed to parse certificate: " + err.Error()) }
 
-	block, _ := pem.Decode([]byte(certPEM))
-	if block == nil {
-		panic("failed to parse certificate PEM")
-	}
-	cert, err := x509.ParseCertificate(block.Bytes)
-	if err != nil {
-		panic("failed to parse certificate: " + err.Error())
-	}
+    opts: = x509.VerifyOptions { DNSName: "mail.google.com", Roots: roots, }
 
-	opts := x509.VerifyOptions{
-		DNSName: "mail.google.com",
-		Roots:   roots,
-	}
-
-	if _, err := cert.Verify(opts); err != nil {
-		panic("failed to verify certificate: " + err.Error())
-	}
+    if _, err: = cert.Verify(opts);
+    err != nil { panic("failed to verify certificate: " + err.Error()) }
 }
 
-func ExampleParsePKIXPublicKey() {
-	const pubPEM = `
+func ExampleParsePKIXPublicKey()
+{
+    const pubPEM = `
 -----BEGIN PUBLIC KEY-----
 MIICIjANBgkqhkiG9w0BAQEFAAOCAg8AMIICCgKCAgEAlRuRnThUjU8/prwYxbty
 WPT9pURI3lbsKMiB6Fn/VHOKE13p4D8xgOCADpdRagdT6n4etr9atzDKUSvpMtR3
@@ -111,63 +82,38 @@ a9/q96DiXZajwlpq3wFctrs1oXqBp5DVrCIj8hU2wNgB7LtQ1mCtsYz//heai0K9
 PhE4X6hiE0YmeAZjR0uHl8M/5aW9xCoJ72+12kKpWAa0SFRWLy6FejNYCYpkupVJ
 yecLk/4L1W0l6jQQZnWErXZYe0PNFcmwGXy1Rep83kfBRNKRy5tvocalLlwXLdUk
 AIU+2GKjyT3iMuzZxxFxPFMCAwEAAQ==
------END PUBLIC KEY-----`
+-----END PUBLIC KEY-----` block, _: = pem.Decode
+    (
+[] byte(pubPEM)
+    )
+    if block == nil { panic("failed to parse PEM block containing the public key") }
 
-	block, _ := pem.Decode([]byte(pubPEM))
-	if block == nil {
-		panic("failed to parse PEM block containing the public key")
-	}
+    pub, err: = x509.ParsePKIXPublicKey(block.Bytes) if err != nil { panic("failed to parse DER encoded public key: " + err.Error()) }
 
-	pub, err := x509.ParsePKIXPublicKey(block.Bytes)
-	if err != nil {
-		panic("failed to parse DER encoded public key: " + err.Error())
-	}
-
-	switch pub := pub.(type) {
-	case *rsa.PublicKey:
-		fmt.Println("pub is of type RSA:", pub)
-	case *dsa.PublicKey:
-		fmt.Println("pub is of type DSA:", pub)
-	case *ecdsa.PublicKey:
-		fmt.Println("pub is of type ECDSA:", pub)
-	case ed25519.PublicKey:
-		fmt.Println("pub is of type Ed25519:", pub)
-	case *mldsa.PublicKey:
-		fmt.Println("pub is of type ML-DSA:", pub)
-	default:
-		panic("unknown type of public key")
-	}
+    switch pub: = pub.(type)
+    {
+        case * rsa.PublicKey: fmt.Println("pub is of type RSA:", pub) case * dsa.PublicKey: fmt.Println("pub is of type DSA:", pub) case * ecdsa.PublicKey: fmt.Println
+        (
+            "pub is of type ECDSA:", pub
+        )
+        case ed25519.PublicKey: fmt.Println("pub is of type Ed25519:", pub) case * mldsa.PublicKey: fmt.Println("pub is of type ML-DSA:", pub) default: panic
+        (
+            "unknown type of public key"
+        )
+    }
 }
 
-func ExampleMarshalPKCS8PrivateKey_mlDSA() {
-	// Generate an ML-DSA-44 key, marshal it to PKCS #8, and PEM-encode it.
-	// ML-DSA private keys are encoded in their seed-only representation per
-	// RFC 9881.
-	priv, err := mldsa.GenerateKey(mldsa.MLDSA44())
-	if err != nil {
-		panic(err)
-	}
+func ExampleMarshalPKCS8PrivateKey_mlDSA()
+{
+    // Generate an ML-DSA-44 key, marshal it to PKCS #8, and PEM-encode it.
+    // ML-DSA private keys are encoded in their seed-only representation per
+    // RFC 9881.
+    priv, err: = mldsa.GenerateKey(mldsa.MLDSA44()) if err != nil { panic(err) }
 
-	der, err := x509.MarshalPKCS8PrivateKey(priv)
-	if err != nil {
-		panic(err)
-	}
+    der, err: = x509.MarshalPKCS8PrivateKey(priv) if err != nil { panic(err) }
 
-	pemBytes := pem.EncodeToMemory(&pem.Block{
-		Type:  "PRIVATE KEY",
-		Bytes: der,
-	})
-
-	// Round-trip the PEM-encoded key back into an *mldsa.PrivateKey.
-	block, _ := pem.Decode(pemBytes)
-	if block == nil {
-		panic("failed to decode PEM block")
-	}
-	parsed, err := x509.ParsePKCS8PrivateKey(block.Bytes)
-	if err != nil {
-		panic(err)
-	}
-	if !parsed.(*mldsa.PrivateKey).Equal(priv) {
-		panic("round-tripped key does not match original")
-	}
+    pemBytes: = pem.EncodeToMemory( & pem.Block { Type: "PRIVATE KEY", Bytes: der, }) // Round-trip the PEM-encoded key back into an *mldsa.PrivateKey.
+    block, _: = pem.Decode(pemBytes) if block == nil { panic("failed to decode PEM block") }
+    parsed, err: = x509.ParsePKCS8PrivateKey(block.Bytes) if err != nil { panic(err) }
+    if ! parsed.( * mldsa.PrivateKey).Equal(priv) { panic("round-tripped key does not match original") }
 }

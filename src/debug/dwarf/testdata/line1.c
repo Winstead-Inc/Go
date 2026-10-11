@@ -2,8 +2,4 @@
 
 void f2();
 
-int main()
-{
-	f1();
-	f2();
-}
+int main() { f1(); f2(); }

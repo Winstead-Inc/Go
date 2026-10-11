@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 #include <stdio.h>
 
 #pragma once
@@ -16,15 +14,10 @@ void print(const char *str) {
 	 printf("%s", str);
 	 go_func();
 }
-*/
-import "C"
-import "fmt"
-
-func main() {
-	str := C.CString("Hello from C\n")
-	C.print(str)
-}
-
+*/ import"C" import"fmt" func main
+(
+)
+{ str: = C.CString("Hello from C\n") C.print(str) }
 // \
 /*
 
@@ -40,8 +33,5 @@ static void inject(void) {
 
 #endif
 
-/* */
-//export go_func
-func go_func() {
-	fmt.Println("Hello from Go")
-}
+/* */ //export go_func
+func go_func() { fmt.Println("Hello from Go") }

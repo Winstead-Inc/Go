@@ -2,10 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
-
-import "./a"
-
-func init() {
-	a.F[func()]() // ERROR "does not satisfy comparable"
+package b import"./a" func init()
+{
+    a.F[func()]() // ERROR "does not satisfy comparable"
 }

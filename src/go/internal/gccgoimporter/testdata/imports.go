@@ -1,5 +1,1 @@
-package imports
-
-import "fmt"
-
-var Hello = fmt.Sprintf("Hello, world")
+package imports import"fmt" var Hello = fmt.Sprintf("Hello, world")

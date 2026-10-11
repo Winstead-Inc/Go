@@ -2,7 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-static void f(void) {
-}
+static void f(void) {}
 
-void (*v)(void) = f;
+void( * v)(void) = f;

@@ -12,56 +12,40 @@
  *   It is possible that a message from ctxDone will make the function beginCmds
  * returns without draining the channel ch, so that goroutines created by anonymous
  * function will leak.
- */
-
-package main
-
-import (
-	"context"
-	"os"
-	"runtime/pprof"
-	"time"
+ */ package main import
+(
+    "context""os""runtime/pprof""time"
 )
+func init() { register("Cockroach10790", Cockroach10790) }
 
-func init() {
-	register("Cockroach10790", Cockroach10790)
+type Replica_cockroach10790 struct { chans[] chan bool }
+
+func(r * Replica_cockroach10790) beginCmds(ctx context.Context)
+{
+    ctxDone: = ctx.Done() for _, ch: = range r.chans
+    {
+        select
+        {
+            case <- ch: case <- ctxDone: go func()
+            {
+                // G3
+                for _, ch: = range r.chans { <- ch }
+            }
+()
+        }
+    }
 }
 
-type Replica_cockroach10790 struct {
-	chans   []chan bool
+func(r * Replica_cockroach10790) sendChans(ctx context.Context)
+{
+    for _, ch: = range r.chans { select { case ch <- true: case <- ctx.Done(): return } }
 }
 
-func (r *Replica_cockroach10790) beginCmds(ctx context.Context) {
-	ctxDone := ctx.Done()
-	for _, ch := range r.chans {
-		select {
-		case <-ch:
-		case <-ctxDone:
-			go func() { // G3
-				for _, ch := range r.chans {
-					<-ch
-				}
-			}()
-		}
-	}
+func NewReplica_cockroach10790() * Replica_cockroach10790
+{
+    r: = & Replica_cockroach10790 {}
+    r.chans = append(r.chans, make(chan bool), make(chan bool)) return r
 }
-
-func (r *Replica_cockroach10790) sendChans(ctx context.Context) {
-	for _, ch := range r.chans {
-		select {
-		case ch <- true:
-		case <-ctx.Done():
-			return
-		}
-	}
-}
-
-func NewReplica_cockroach10790() *Replica_cockroach10790 {
-	r := &Replica_cockroach10790{}
-	r.chans = append(r.chans, make(chan bool), make(chan bool))
-	return r
-}
-
 // Example of goroutine leak trace:
 //
 // G1              G2                G3                     helper goroutine
@@ -79,20 +63,19 @@ func NewReplica_cockroach10790() *Replica_cockroach10790 {
 //	------------------------------G3 leaks----------------------------------------------
 //
 
-func Cockroach10790() {
-	prof := pprof.Lookup("goroutineleak")
-	defer func() {
-		time.Sleep(100 * time.Millisecond)
-		prof.WriteTo(os.Stdout, 2)
-	}()
-
-	for i := 0; i < 100; i++ {
-		go func() {
-			r := NewReplica_cockroach10790()
-			ctx, cancel := context.WithCancel(context.Background())
-			go r.sendChans(ctx) // helper goroutine
-			go r.beginCmds(ctx) // G1
-			go cancel()         // G2
-		}()
-	}
+func Cockroach10790()
+{
+    prof: = pprof.Lookup("goroutineleak") defer func() { time.Sleep(100 * time.Millisecond) prof.WriteTo(os.Stdout, 2) }
+() for i: = 0;
+    i < 100;
+    i++
+    {
+        go func()
+        {
+            r: = NewReplica_cockroach10790() ctx, cancel: = context.WithCancel(context.Background()) go r.sendChans(ctx) // helper goroutine
+            go r.beginCmds(ctx) // G1
+            go cancel() // G2
+        }
+()
+    }
 }

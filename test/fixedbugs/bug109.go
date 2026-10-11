@@ -1,16 +1,9 @@
 // compile
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package bug109
-
-func f(a float64) float64 {
-	e := 1.0
-	e = e * a
-	return e
-}
+package bug109 func f(a float64) float64 { e: = 1.0 e = e * a return e }
 
 /*
 6g bugs/bug109.go

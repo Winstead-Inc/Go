@@ -28,10 +28,7 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package arm64
-
-// Writing object files.
-
+package arm64 // Writing object files.
 // cmd/9l/l.h from Vita Nuova.
 //
 //	Copyright © 1994-1999 Lucent Technologies Inc.  All rights reserved.
@@ -61,14 +58,11 @@ package arm64
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-const (
-	maxAlign  = 32 // max data alignment
-	minAlign  = 1  // min data alignment
-	funcAlign = 16
+const 
+(
+    maxAlign = 32 // max data alignment
+    minAlign = 1 // min data alignment
+    funcAlign = 16
 )
 
-/* Used by ../internal/ld/dwarf.go */
-const (
-	dwarfRegSP = 31
-	dwarfRegLR = 30
-)
+/* Used by ../internal/ld/dwarf.go */ const (dwarfRegSP = 31 dwarfRegLR = 30)

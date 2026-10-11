@@ -1,7 +1,6 @@
 // Copyright 2025 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // simdgen is an experiment in generating Go <-> asm SIMD mappings.
 //
 // Usage: simdgen [-arch=amd64|arm64|sve] [-xedPath=path] [-arm64Path=path] [-q=query] input.yaml...
@@ -89,9 +88,7 @@
 // -noconstimmporting flags.
 //
 // simdgen supports amd64 and arm64 architectures.
-package main
-
-// Big TODOs:
+package main // Big TODOs:
 //
 // - This can produce duplicates, which can also lead to less efficient
 // environment merging. Add hashing and use it for deduplication. Be careful
@@ -101,248 +98,159 @@ package main
 // - Do I need Closure, Value, and Domain? It feels like I should only need two
 // types.
 
-import (
-	"cmp"
-	"flag"
-	"fmt"
-	"log"
-	"maps"
-	"os"
-	"path/filepath"
-	"runtime/pprof"
-	"slices"
-	"strings"
-
-	"simd/archsimd/_gen/gentools"
-	"simd/archsimd/_gen/sgutil"
-	"simd/archsimd/_gen/simdgen/arm64"
-	"simd/archsimd/_gen/simdgen/sve"
-	"simd/archsimd/_gen/unify"
-
-	"gopkg.in/yaml.v3"
+import
+(
+    "cmp""flag""fmt""log""maps""os""path/filepath""runtime/pprof""slices""strings""simd/archsimd/_gen/gentools""simd/archsimd/_gen/sgutil""simd/archsimd/_gen/simdgen/arm64""simd/archsimd/_gen/simdgen/sve""simd/archsimd/_gen/unify""gopkg.in/yaml.v3"
 )
 
-var (
-	flagXedPath           = sgutil.FlagXEDPath("..")
-	flagArm64Path         = sgutil.FlagARM64Path("..")
-	flagQ                 = flag.String("q", "", "query: read `def` as another input (skips final validation)")
-	flagO                 = flag.String("o", "yaml", "output type: yaml, godefs (generate definitions into a Go source tree")
-	genFlags              = gentools.RegisterFlags(nil)
-	FlagNoDedup           = flag.Bool("nodedup", false, "disable deduplicating godefs of 2 qualifying operations from different extensions")
-	FlagNoConstImmPorting = flag.Bool("noconstimmporting", false, "disable const immediate porting from op to imm operand")
+var
+(
+    flagXedPath = sgutil.FlagXEDPath("..") flagArm64Path = sgutil.FlagARM64Path("..") flagQ = flag.String
+    (
+        "q", "", "query: read `def` as another input (skips final validation)"
+    )
+    flagO = flag.String("o", "yaml", "output type: yaml, godefs (generate definitions into a Go source tree") genFlags = gentools.RegisterFlags(nil) FlagNoDedup = flag.Bool
+    (
+        "nodedup", false, "disable deduplicating godefs of 2 qualifying operations from different extensions"
+    )
+    FlagNoConstImmPorting = flag.Bool("noconstimmporting", false, "disable const immediate porting from op to imm operand") FlagArch = flag.String
+    (
+        "arch", "", "unify with architecture definitions for `arch`\n\tif amd64, loads from -xedPath\n\tif arm64 or sve, loads from -arm64Path"
+    )
 
-	FlagArch = flag.String("arch", "", "unify with architecture definitions for `arch`\n\tif amd64, loads from -xedPath\n\tif arm64 or sve, loads from -arm64Path")
-
-	Verbose = flag.Bool("v", false, "verbose")
-
-	flagDebugXED   = flag.Bool("debug-xed", false, "show XED instructions")
-	flagDebugUnify = flag.Bool("debug-unify", false, "print unification trace")
-	flagDebugHTML  = flag.String("debug-html", "", "write unification trace to `file.html`")
-	FlagReportDup  = flag.Bool("reportdup", false, "report the duplicate godefs")
-
-	flagCPUProfile = flag.String("cpuprofile", "", "write CPU profile to `file`")
-	flagMemProfile = flag.String("memprofile", "", "write memory profile to `file`")
+    Verbose = flag.Bool("v", false, "verbose") flagDebugXED = flag.Bool("debug-xed", false, "show XED instructions") flagDebugUnify = flag.Bool
+    (
+        "debug-unify", false, "print unification trace"
+    )
+    flagDebugHTML = flag.String("debug-html", "", "write unification trace to `file.html`") FlagReportDup = flag.Bool
+    (
+        "reportdup", false, "report the duplicate godefs"
+    )
+    flagCPUProfile = flag.String("cpuprofile", "", "write CPU profile to `file`") flagMemProfile = flag.String
+    (
+        "memprofile", "", "write memory profile to `file`"
+    )
 )
 
-const simdPackage = "simd/archsimd"
+const simdPackage = "simd/archsimd" func main()
+{
+    flag.Parse() if * flagCPUProfile != ""
+    {
+        f, err: = os.Create( * flagCPUProfile) if err != nil { log.Fatalf("-cpuprofile: %s", err) }
+        defer f.Close() pprof.StartCPUProfile(f) defer pprof.StopCPUProfile()
+    }
+    if * flagMemProfile != ""
+    {
+        f, err: = os.Create( * flagMemProfile) if err != nil { log.Fatalf("-memprofile: %s", err) }
+        defer func() { pprof.WriteHeapProfile(f) f.Close() }
+()
+    }
+    // Load instructions into the architecture-specific defs set.
+    var defs[] * unify.Value switch * FlagArch
+    {
+        case "": // No input from architecture definitions. That's fine if we're just
+        // emitting generic yaml, but if we're emitting godefs we need to know
+        // the arch.
+        if * flagO == "godefs" { log.Fatalf("-o godefs requires -arch") }
+        case "amd64": xedPath, err: = sgutil.ResolveXEDPath(flagXedPath) if err != nil { log.Fatal(err) }
+        defs = loadXED(xedPath) case "arm64": arm64Path, err: = sgutil.ResolveARM64Path(flagArm64Path) if err != nil { log.Fatal(err) }
+        defs, err = arm64.Load(arm64Path) if err != nil { log.Fatalf("loading ARM64 instructions: %s", err) }
+        case "sve": arm64Path, err: = sgutil.ResolveARM64Path(flagArm64Path) if err != nil { log.Fatal(err) }
+        defs, err = sve.Load(arm64Path) if err != nil { log.Fatalf("loading ARM64 SVE instructions: %s", err) }
+        default: log.Fatalf("-arch must be one of: amd64, arm64, sve")
+    }
 
-func main() {
-	flag.Parse()
+    var inputs[] unify.Closure if defs != nil { inputs = append(inputs, unify.NewSum(defs ...)) }
+    // Load query.
+    if * flagQ != ""
+    {
+        r: = strings.NewReader( * flagQ) def, err: = unify.Read(r, "<query>", unify.ReadOpts {}) if err != nil { log.Fatalf("parsing -q: %s", err) }
+        inputs = append(inputs, def)
+    }
+    // Load defs files.
+    must: = make(map[ * unify.Value] struct {}) for _, path: = range flag.Args()
+    {
+        defs, err: = unify.ReadFile(path, unify.ReadOpts {}) if err != nil { log.Fatal(err) }
+        inputs = append(inputs, defs) base: = filepath.Base(path) if base == "go_amd64.yaml" || base == "go_arm64.yaml" || base == "go_sve.yaml"
+        {
+            // These must all be used in the final result
+            for def: = range defs.Summands() { must[def] = struct {} {} }
+        }
+    }
+    // Prepare for unification
+    if * flagDebugUnify { unify.Debug.UnifyLog = os.Stderr }
+    if * flagDebugHTML != "" { f, err: = os.Create( * flagDebugHTML) if err != nil { log.Fatal(err) } unify.Debug.HTML = f defer f.Close() }
+    // Unify!
+    unified, err: = unify.Unify(inputs ...) if err != nil { log.Fatal(err) }
 
-	if *flagCPUProfile != "" {
-		f, err := os.Create(*flagCPUProfile)
-		if err != nil {
-			log.Fatalf("-cpuprofile: %s", err)
-		}
-		defer f.Close()
-		pprof.StartCPUProfile(f)
-		defer pprof.StopCPUProfile()
-	}
-	if *flagMemProfile != "" {
-		f, err := os.Create(*flagMemProfile)
-		if err != nil {
-			log.Fatalf("-memprofile: %s", err)
-		}
-		defer func() {
-			pprof.WriteHeapProfile(f)
-			f.Close()
-		}()
-	}
+    ok: = true // Validate results.
+    //
+    // Don't validate if this is a command-line query because that tends to
+    // eliminate lots of required defs and is used in cases where maybe defs
+    // aren't enumerable anyway.
+    if * flagQ == "" && len(must) > 0 { ok = validate(unified, must) }
+    // Print results.
+    switch * flagO
+    {
+        case "yaml": // Produce a result that looks like encoding a slice, but stream it.
+        fmt.Println("!sum") var val1[1] * unify.Value for val: = range unified.All()
+        {
+            val1[0] = val // We have to make a new encoder each time or it'll print a document
+            // separator between each object.
+            enc: = yaml.NewEncoder(os.Stdout) if err: = enc.Encode(val1);
+            err != nil { log.Fatal(err) }
+            enc.Close()
+        }
+        case "godefs": if err: = writeGoDefs(unified);
+        err != nil { log.Fatalf("Failed writing godefs: %+v", err) }
+    }
 
-	// Load instructions into the architecture-specific defs set.
-	var defs []*unify.Value
-	switch *FlagArch {
-	case "":
-		// No input from architecture definitions. That's fine if we're just
-		// emitting generic yaml, but if we're emitting godefs we need to know
-		// the arch.
-		if *flagO == "godefs" {
-			log.Fatalf("-o godefs requires -arch")
-		}
-	case "amd64":
-		xedPath, err := sgutil.ResolveXEDPath(flagXedPath)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defs = loadXED(xedPath)
-	case "arm64":
-		arm64Path, err := sgutil.ResolveARM64Path(flagArm64Path)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defs, err = arm64.Load(arm64Path)
-		if err != nil {
-			log.Fatalf("loading ARM64 instructions: %s", err)
-		}
-	case "sve":
-		arm64Path, err := sgutil.ResolveARM64Path(flagArm64Path)
-		if err != nil {
-			log.Fatal(err)
-		}
-		defs, err = sve.Load(arm64Path)
-		if err != nil {
-			log.Fatalf("loading ARM64 SVE instructions: %s", err)
-		}
-	default:
-		log.Fatalf("-arch must be one of: amd64, arm64, sve")
-	}
-
-	var inputs []unify.Closure
-	if defs != nil {
-		inputs = append(inputs, unify.NewSum(defs...))
-	}
-
-	// Load query.
-	if *flagQ != "" {
-		r := strings.NewReader(*flagQ)
-		def, err := unify.Read(r, "<query>", unify.ReadOpts{})
-		if err != nil {
-			log.Fatalf("parsing -q: %s", err)
-		}
-		inputs = append(inputs, def)
-	}
-
-	// Load defs files.
-	must := make(map[*unify.Value]struct{})
-	for _, path := range flag.Args() {
-		defs, err := unify.ReadFile(path, unify.ReadOpts{})
-		if err != nil {
-			log.Fatal(err)
-		}
-		inputs = append(inputs, defs)
-
-		base := filepath.Base(path)
-		if base == "go_amd64.yaml" || base == "go_arm64.yaml" || base == "go_sve.yaml" {
-			// These must all be used in the final result
-			for def := range defs.Summands() {
-				must[def] = struct{}{}
-			}
-		}
-	}
-
-	// Prepare for unification
-	if *flagDebugUnify {
-		unify.Debug.UnifyLog = os.Stderr
-	}
-	if *flagDebugHTML != "" {
-		f, err := os.Create(*flagDebugHTML)
-		if err != nil {
-			log.Fatal(err)
-		}
-		unify.Debug.HTML = f
-		defer f.Close()
-	}
-
-	// Unify!
-	unified, err := unify.Unify(inputs...)
-	if err != nil {
-		log.Fatal(err)
-	}
-
-	ok := true
-
-	// Validate results.
-	//
-	// Don't validate if this is a command-line query because that tends to
-	// eliminate lots of required defs and is used in cases where maybe defs
-	// aren't enumerable anyway.
-	if *flagQ == "" && len(must) > 0 {
-		ok = validate(unified, must)
-	}
-
-	// Print results.
-	switch *flagO {
-	case "yaml":
-		// Produce a result that looks like encoding a slice, but stream it.
-		fmt.Println("!sum")
-		var val1 [1]*unify.Value
-		for val := range unified.All() {
-			val1[0] = val
-			// We have to make a new encoder each time or it'll print a document
-			// separator between each object.
-			enc := yaml.NewEncoder(os.Stdout)
-			if err := enc.Encode(val1); err != nil {
-				log.Fatal(err)
-			}
-			enc.Close()
-		}
-	case "godefs":
-		if err := writeGoDefs(unified); err != nil {
-			log.Fatalf("Failed writing godefs: %+v", err)
-		}
-	}
-
-	if !*Verbose && *FlagArch == "amd64" {
-		if operandRemarks == 0 {
-			fmt.Fprintf(os.Stderr, "XED decoding generated no errors, which is unusual.\n")
-		} else {
-			fmt.Fprintf(os.Stderr, "XED decoding generated %d \"errors\" which is not cause for alarm, use -v for details.\n", operandRemarks)
-		}
-	}
-	if !ok {
-		os.Exit(1)
-	}
+    if !* Verbose && * FlagArch == "amd64"
+    {
+        if operandRemarks == 0 { fmt.Fprintf(os.Stderr, "XED decoding generated no errors, which is unusual.\n") }
+        else { fmt.Fprintf(os.Stderr, "XED decoding generated %d \"errors\" which is not cause for alarm, use -v for details.\n", operandRemarks) }
+    }
+    if ! ok { os.Exit(1) }
 }
 
-func validate(cl unify.Closure, required map[*unify.Value]struct{}) bool {
-	ok := true
-	// Validate that:
-	// 1. All final defs are exact
-	// 2. All required defs are used
-	for def := range cl.All() {
-		if _, ok := def.Domain.(unify.Def); !ok {
-			fmt.Fprintf(os.Stderr, "%s: expected Def, got %T\n", def.PosString(), def.Domain)
-			continue
-		}
+func validate(cl unify.Closure, required map[ * unify.Value] struct {}) bool
+{
+    ok: = true // Validate that:
+    // 1. All final defs are exact
+    // 2. All required defs are used
+    for def: = range cl.All()
+    {
+        if _, ok: = def.Domain.(unify.Def);
+        ! ok { fmt.Fprintf(os.Stderr, "%s: expected Def, got %T\n", def.PosString(), def.Domain) continue }
 
-		if !def.Exact() {
-			fmt.Fprintf(os.Stderr, "%s: def not reduced to an exact value, why is %s:\n", def.PosString(), def.WhyNotExact())
-			fmt.Fprintf(os.Stderr, "\t%s\n", strings.ReplaceAll(def.String(), "\n", "\n\t"))
-		}
+        if ! def.Exact()
+        {
+            fmt.Fprintf(os.Stderr, "%s: def not reduced to an exact value, why is %s:\n", def.PosString(), def.WhyNotExact()) fmt.Fprintf
+            (
+                os.Stderr, "\t%s\n", strings.ReplaceAll(def.String(),"\n", "\n\t")
+            )
+        }
 
-		for root := range def.Provenance() {
-			delete(required, root)
-		}
-	}
-	// Report unused defs
-	unused := slices.SortedFunc(maps.Keys(required),
-		func(a, b *unify.Value) int {
-			return cmp.Or(
-				cmp.Compare(a.Pos().Path, b.Pos().Path),
-				cmp.Compare(a.Pos().Line, b.Pos().Line),
-			)
-		})
-	for _, def := range unused {
-		// TODO: Can we say anything more actionable? This is always a problem
-		// with unification: if it fails, it's very hard to point a finger at
-		// any particular reason. We could go back and try unifying this again
-		// with each subset of the inputs (starting with individual inputs) to
-		// at least say "it doesn't unify with anything in x.yaml". That's a lot
-		// of work, but if we have trouble debugging unification failure it may
-		// be worth it.
-		fmt.Fprintf(os.Stderr, "%s: def required, but did not unify (%v)\n",
-			def.PosString(), def)
-		ok = false
-	}
-	return ok
+        for root: = range def.Provenance() { delete (required, root) }
+    }
+    // Report unused defs
+    unused: = slices.SortedFunc
+    (
+        maps.Keys(required), func(a, b * unify.Value) int
+        {
+            return cmp.Or(cmp.Compare(a.Pos().Path, b.Pos().Path), cmp.Compare(a.Pos().Line, b.Pos().Line),)
+        }
+    )
+    for _, def: = range unused
+    {
+        // TODO: Can we say anything more actionable? This is always a problem
+        // with unification: if it fails, it's very hard to point a finger at
+        // any particular reason. We could go back and try unifying this again
+        // with each subset of the inputs (starting with individual inputs) to
+        // at least say "it doesn't unify with anything in x.yaml". That's a lot
+        // of work, but if we have trouble debugging unification failure it may
+        // be worth it.
+        fmt.Fprintf(os.Stderr, "%s: def required, but did not unify (%v)\n", def.PosString(), def) ok = false
+    }
+    return ok
 }

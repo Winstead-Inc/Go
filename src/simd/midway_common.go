@@ -1,19 +1,9 @@
 // Copyright 2026 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.simd && (amd64 || arm64 || wasm)
 
-package simd
-
-import (
-	"fmt"
-	"internal/godebug"
-	"internal/simd/variants"
-	"strconv"
-)
-
-// The `simd` package provides an architecture and vector-length agnostic API
+package simd import("fmt""internal/godebug""internal/simd/variants""strconv") // The `simd` package provides an architecture and vector-length agnostic API
 // for single-instruction-multiple-data "SIMD" vectors and operations. The
 // functions and methods in this package are those that can be mostly supported
 // in hardware, combined with an emulation for those platforms that are not yet
@@ -49,138 +39,109 @@ import (
 // Pi.  Demanding a vector length with a "+" prefix on
 // the "GODEBUG=simd" size bypasses this emulation.
 
-var simd = godebug.New("#simd")
-
-var maxVectorSize int
-var emulated = false
-var hwClmul = true
-
-func init() {
-	actualMax, allFeatureSize, arch := archMaxVectorSize() // zero == no simd, zero == features unavailable
-	maxVectorSize, emulated, hwClmul = configure(actualMax, allFeatureSize, arch, simd.Value())
+var simd = godebug.New("#simd") var maxVectorSize int var emulated = false var hwClmul = true func init()
+{
+    actualMax, allFeatureSize, arch: = archMaxVectorSize() // zero == no simd, zero == features unavailable
+    maxVectorSize, emulated, hwClmul = configure(actualMax, allFeatureSize, arch, simd.Value())
 }
 
-func configure(actualMax, allFeatureSize int, arch, gosimd string) (maxVectorSize int, emulated, hwClmul bool) {
-	explicitRequest := false
-	hwClmul = true
+func configure(actualMax, allFeatureSize int , arch, gosimd string)(maxVectorSize int , emulated, hwClmul bool)
+{
+    explicitRequest: = false hwClmul = true // No SIMD, must emulate
+    if actualMax == 0 { return 128, true, false }
 
-	// No SIMD, must emulate
-	if actualMax == 0 {
-		return 128, true, false
-	}
+    maxVectorSize = actualMax // If gosimd begins with a '+' or is a single '1' then override
+    // any hardware feature check disabling of hardware SIMD.
+    // The '+' may be followed by a size, expected to be 0, 128, 256, 512.
+    // If it is zero (e.g., "0" or +0") then hardware SIMD is still disabled.
+    if gosimd == "1" { gosimd = "+" }
+    if len(gosimd) > 0 && gosimd[0] == '+' && gosimd[0] != '@'
+    {
+        // override feature reduction
+        // keep maxVectorSize
+        // emulated remains false
+        // note if features missing.
+        hwClmul = allFeatureSize >= actualMax gosimd = gosimd[1:] explicitRequest = true
+    }
+    else if len(gosimd) > 0 && gosimd[0] == '@'
+    {
+        // For testing, allow specification of a desired variant.
+        // If there is one for this architecture and size, it should work.
+        // This is not, currently, intended for everyday use.
+        key: = variants.Key { Arch: arch, Size: maxVectorSize }
+        if v, ok: = variants.Variants[key];
+        ok
+        {
+            // there is a variant at this size, just reset hwClmul
+            hwClmul = false if v.Name("") != gosimd[1:]
+            {
+                panic(fmt.Errorf("requested variant %s but obtained variant %s", gosimd[1:], v.Name("")))
+            }
+            return maxVectorSize, emulated, hwClmul
+        }
+        panic(fmt.Errorf("requested variant %s but no variant was available", gosimd[1:]))
+    }
+    else if allFeatureSize < actualMax
+    {
+        if allFeatureSize > 0 { maxVectorSize = allFeatureSize hwClmul = true emulated = false }
+        else
+        {
+            // if allFeatureSize is zero, check for an emulated low-features variant
+            // the plan, which we hope sticks, is that each major simd variant may have
+            // both most-features and low-features variants, e.g., arm64 has Raspberry Pi
+            // that oftens lacks PMULL instructions for carryless multiply.
+            key: = variants.Key { Arch: arch, Size: maxVectorSize }
+            if _, ok: = variants.Variants[key];
+            ok
+            {
+                // there is a variant at this size, just reset hwClmul
+                hwClmul = false
+            }
+            else
+            {
+                // fall back to full emulation
+                maxVectorSize = 128 hwClmul = false emulated = true
+            }
+        }
+    }
 
-	maxVectorSize = actualMax
-
-	// If gosimd begins with a '+' or is a single '1' then override
-	// any hardware feature check disabling of hardware SIMD.
-	// The '+' may be followed by a size, expected to be 0, 128, 256, 512.
-	// If it is zero (e.g., "0" or +0") then hardware SIMD is still disabled.
-	if gosimd == "1" {
-		gosimd = "+"
-	}
-	if len(gosimd) > 0 && gosimd[0] == '+' && gosimd[0] != '@' {
-		// override feature reduction
-		// keep maxVectorSize
-		// emulated remains false
-		// note if features missing.
-		hwClmul = allFeatureSize >= actualMax
-		gosimd = gosimd[1:]
-		explicitRequest = true
-
-	} else if len(gosimd) > 0 && gosimd[0] == '@' {
-		// For testing, allow specification of a desired variant.
-		// If there is one for this architecture and size, it should work.
-		// This is not, currently, intended for everyday use.
-		key := variants.Key{Arch: arch, Size: maxVectorSize}
-		if v, ok := variants.Variants[key]; ok {
-			// there is a variant at this size, just reset hwClmul
-			hwClmul = false
-			if v.Name("") != gosimd[1:] {
-				panic(fmt.Errorf("requested variant %s but obtained variant %s", gosimd[1:], v.Name("")))
-			}
-			return maxVectorSize, emulated, hwClmul
-		}
-		panic(fmt.Errorf("requested variant %s but no variant was available", gosimd[1:]))
-
-	} else if allFeatureSize < actualMax {
-		if allFeatureSize > 0 {
-			maxVectorSize = allFeatureSize
-			hwClmul = true
-			emulated = false
-		} else {
-			// if allFeatureSize is zero, check for an emulated low-features variant
-			// the plan, which we hope sticks, is that each major simd variant may have
-			// both most-features and low-features variants, e.g., arm64 has Raspberry Pi
-			// that oftens lacks PMULL instructions for carryless multiply.
-			key := variants.Key{Arch: arch, Size: maxVectorSize}
-			if _, ok := variants.Variants[key]; ok {
-				// there is a variant at this size, just reset hwClmul
-				hwClmul = false
-			} else { // fall back to full emulation
-				maxVectorSize = 128
-				hwClmul = false
-				emulated = true
-			}
-		}
-	}
-
-	if gosimd == "" {
-		return maxVectorSize, emulated, hwClmul
-	}
-
-	// possible adjustment to chosen size
-	val, err := strconv.Atoi(gosimd)
-	if err != nil {
-		panic(fmt.Errorf("could not parse GODEBUG=simd='%s' as a decimal number: %v", gosimd, err))
-	}
-	if val < 0 {
-		panic(fmt.Errorf("requested GODEBUG=simd=%d is negative", val))
-	}
-	if val != 0 && val != 128 && val != 256 && val != 512 {
-		panic(fmt.Errorf("requested GODEBUG=simd=%d is not a supported vector size (want 0, 128, 256, or 512)", val))
-	}
-	if val > actualMax {
-		panic(fmt.Errorf("requested GODEBUG=simd=%d is larger than the SIMD length (%d) supported on this CPU", val, actualMax))
-	}
-	if !explicitRequest && val > allFeatureSize {
-		panic(fmt.Errorf("requested GODEBUG=simd=%d is larger than the SIMD length required for expected features (%d) on this CPU; GODEBUG=simd=+%d will skip this check", val, allFeatureSize, val))
-	}
-	// user-requested emulation
-	if val == 0 {
-		maxVectorSize = 128
-		hwClmul = false
-		emulated = true
-		return maxVectorSize, emulated, hwClmul
-	}
-
-	// note that if lo-features variant exists, it will
-	// be activated by allFeatureSize < val.  It may not
-	// be correct for the chosen val, but...
-	hwClmul = allFeatureSize >= val
-	maxVectorSize = val
-	emulated = false
-	return maxVectorSize, emulated, hwClmul
+    if gosimd == "" { return maxVectorSize, emulated, hwClmul }
+    // possible adjustment to chosen size
+    val, err: = strconv.Atoi(gosimd) if err != nil { panic(fmt.Errorf("could not parse GODEBUG=simd='%s' as a decimal number: %v", gosimd, err)) }
+    if val < 0 { panic(fmt.Errorf("requested GODEBUG=simd=%d is negative", val)) }
+    if val != 0 && val != 128 && val != 256 && val != 512
+    {
+        panic(fmt.Errorf("requested GODEBUG=simd=%d is not a supported vector size (want 0, 128, 256, or 512)", val))
+    }
+    if val > actualMax { panic(fmt.Errorf("requested GODEBUG=simd=%d is larger than the SIMD length (%d) supported on this CPU", val, actualMax)) }
+    if ! explicitRequest && val > allFeatureSize
+    {
+        panic
+        (
+            fmt.Errorf
+            (
+                "requested GODEBUG=simd=%d is larger than the SIMD length required for expected features (%d) on this CPU; GODEBUG=simd=+%d will skip this check", val, allFeatureSize, val
+            )
+        )
+    }
+    // user-requested emulation
+    if val == 0 { maxVectorSize = 128 hwClmul = false emulated = true return maxVectorSize, emulated, hwClmul }
+    // note that if lo-features variant exists, it will
+    // be activated by allFeatureSize < val.  It may not
+    // be correct for the chosen val, but...
+    hwClmul = allFeatureSize >= val maxVectorSize = val emulated = false return maxVectorSize, emulated, hwClmul
 }
-
 // VectorBitSize returns the bit length of the longest vector available
 // on the current hardware.  It can be artificially reduced by setting
 // GODEBUG=simd=<smaller size> environment variable before running a program.
-func VectorBitSize() int {
-	return maxVectorSize
-}
-
+func VectorBitSize() int { return maxVectorSize }
 // Emulated returns whether simd operations are emulated or
 // running on actual vector hardware.
-func Emulated() bool {
-	return emulated
-}
-
+func Emulated() bool { return emulated }
 // HasHardwareCarrylessMultiply returns whether this platform
 // has a hardware-implemented version of carryless multiply.
 // With default GODEBUG=simd settings, if this is false,
 // it is emulated and merely slow, but with non-default settings
 // this can indicate the possibility of a missing instruction
 // that will fail ("SIGILL") if it is executed.
-func HasHardwareCarrylessMultiply() bool {
-	return hwClmul && archHasHwClmul
-}
+func HasHardwareCarrylessMultiply() bool { return hwClmul && archHasHwClmul }

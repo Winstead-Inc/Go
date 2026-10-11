@@ -2,18 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package mvs
-
-import (
-	"fmt"
-	"reflect"
-	"strings"
-	"testing"
-
-	"golang.org/x/mod/module"
-)
-
-var tests = `
+package mvs import("fmt""reflect""strings""testing""golang.org/x/mod/module") var tests = `
 # Scenario from blog.
 name: blog
 A: B1 C2
@@ -437,199 +426,117 @@ A1: B1 C1
 B1: C1
 C1:
 req M A B: A1 B1
-`
+` func Test
+(
+    t * testing.T
+)
+{
+    var(name string reqs reqsMap fns[] func( * testing.T)) flush: = func()
+    {
+        if name != ""
+        {
+            t.Run(name, func(t * testing.T) { for _, fn: = range fns { fn(t) } if len(fns) == 0 { t.Errorf("no functions tested") } })
+        }
+    }
+    m: = func(s string) module.Version { return module.Version { Path: s[: 1], Version: s[1:] } }
+    ms: = func(list[] string)[] module.Version { var mlist[] module.Version for _, s: = range list { mlist = append(mlist, m(s)) } return mlist }
+    checkList: = func(t * testing.T, desc string, list[] module.Version, err error, val string)
+    {
+        if err != nil { t.Fatalf("%s: %v", desc, err) }
+        vs: = ms(strings.Fields(val)) if ! reflect.DeepEqual(list, vs) { t.Errorf("%s = %v, want %v", desc, list, vs) }
+    }
 
-func Test(t *testing.T) {
-	var (
-		name string
-		reqs reqsMap
-		fns  []func(*testing.T)
-	)
-	flush := func() {
-		if name != "" {
-			t.Run(name, func(t *testing.T) {
-				for _, fn := range fns {
-					fn(t)
-				}
-				if len(fns) == 0 {
-					t.Errorf("no functions tested")
-				}
-			})
-		}
-	}
-	m := func(s string) module.Version {
-		return module.Version{Path: s[:1], Version: s[1:]}
-	}
-	ms := func(list []string) []module.Version {
-		var mlist []module.Version
-		for _, s := range list {
-			mlist = append(mlist, m(s))
-		}
-		return mlist
-	}
-	checkList := func(t *testing.T, desc string, list []module.Version, err error, val string) {
-		if err != nil {
-			t.Fatalf("%s: %v", desc, err)
-		}
-		vs := ms(strings.Fields(val))
-		if !reflect.DeepEqual(list, vs) {
-			t.Errorf("%s = %v, want %v", desc, list, vs)
-		}
-	}
-
-	for _, line := range strings.Split(tests, "\n") {
-		line = strings.TrimSpace(line)
-		if strings.HasPrefix(line, "#") || line == "" {
-			continue
-		}
-		i := strings.Index(line, ":")
-		if i < 0 {
-			t.Fatalf("missing colon: %q", line)
-		}
-		key := strings.TrimSpace(line[:i])
-		val := strings.TrimSpace(line[i+1:])
-		if key == "" {
-			t.Fatalf("missing key: %q", line)
-		}
-		kf := strings.Fields(key)
-		switch kf[0] {
-		case "name":
-			if len(kf) != 1 {
-				t.Fatalf("name takes no arguments: %q", line)
-			}
-			flush()
-			reqs = make(reqsMap)
-			fns = nil
-			name = val
-			continue
-		case "build":
-			if len(kf) != 2 {
-				t.Fatalf("build takes one argument: %q", line)
-			}
-			fns = append(fns, func(t *testing.T) {
-				list, err := BuildList([]module.Version{m(kf[1])}, reqs)
-				checkList(t, key, list, err, val)
-			})
-			continue
-		case "upgrade*":
-			if len(kf) != 2 {
-				t.Fatalf("upgrade* takes one argument: %q", line)
-			}
-			fns = append(fns, func(t *testing.T) {
-				list, err := UpgradeAll(m(kf[1]), reqs)
-				checkList(t, key, list, err, val)
-			})
-			continue
-		case "upgradereq":
-			if len(kf) < 2 {
-				t.Fatalf("upgrade takes at least one argument: %q", line)
-			}
-			fns = append(fns, func(t *testing.T) {
-				list, err := Upgrade(m(kf[1]), reqs, ms(kf[2:])...)
-				if err == nil {
-					// Copy the reqs map, but substitute the upgraded requirements in
-					// place of the target's original requirements.
-					upReqs := make(reqsMap, len(reqs))
-					for m, r := range reqs {
-						upReqs[m] = r
-					}
-					upReqs[m(kf[1])] = list
-
-					list, err = Req(m(kf[1]), nil, upReqs)
-				}
-				checkList(t, key, list, err, val)
-			})
-			continue
-		case "upgrade":
-			if len(kf) < 2 {
-				t.Fatalf("upgrade takes at least one argument: %q", line)
-			}
-			fns = append(fns, func(t *testing.T) {
-				list, err := Upgrade(m(kf[1]), reqs, ms(kf[2:])...)
-				checkList(t, key, list, err, val)
-			})
-			continue
-		case "downgrade":
-			if len(kf) < 2 {
-				t.Fatalf("downgrade takes at least one argument: %q", line)
-			}
-			fns = append(fns, func(t *testing.T) {
-				list, err := Downgrade(m(kf[1]), reqs, ms(kf[1:])...)
-				checkList(t, key, list, err, val)
-			})
-			continue
-		case "req":
-			if len(kf) < 2 {
-				t.Fatalf("req takes at least one argument: %q", line)
-			}
-			fns = append(fns, func(t *testing.T) {
-				list, err := Req(m(kf[1]), kf[2:], reqs)
-				checkList(t, key, list, err, val)
-			})
-			continue
-		}
-		if len(kf) == 1 && 'A' <= key[0] && key[0] <= 'Z' {
-			var rs []module.Version
-			for _, f := range strings.Fields(val) {
-				r := m(f)
-				if reqs[r] == nil {
-					reqs[r] = []module.Version{}
-				}
-				rs = append(rs, r)
-			}
-			reqs[m(key)] = rs
-			continue
-		}
-		t.Fatalf("bad line: %q", line)
-	}
-	flush()
+    for _, line: = range strings.Split(tests, "\n")
+    {
+        line = strings.TrimSpace(line) if strings.HasPrefix(line, "#") || line == "" { continue }
+        i: = strings.Index(line, ":") if i < 0 { t.Fatalf("missing colon: %q", line) }
+        key: = strings.TrimSpace(line[: i]) val: = strings.TrimSpace(line[i + 1:]) if key == "" { t.Fatalf("missing key: %q", line) }
+        kf: = strings.Fields(key) switch kf[0]
+        {
+            case "name": if len(kf) != 1 { t.Fatalf("name takes no arguments: %q", line) }
+            flush() reqs = make(reqsMap) fns = nil name = val continue case "build": if len(kf) != 2 { t.Fatalf("build takes one argument: %q", line) }
+            fns = append
+            (
+                fns, func(t * testing.T) { list, err: = BuildList([] module.Version { m(kf[1]) }, reqs) checkList(t, key, list, err, val) }
+            )
+            continue case "upgrade*": if len(kf) != 2 { t.Fatalf("upgrade* takes one argument: %q", line) }
+            fns = append(fns, func(t * testing.T) { list, err: = UpgradeAll(m(kf[1]), reqs) checkList(t, key, list, err, val) }) continue case "upgradereq": if len
+            (
+                kf
+            )
+            < 2 { t.Fatalf("upgrade takes at least one argument: %q", line) }
+            fns = append
+            (
+                fns, func(t * testing.T)
+                {
+                    list, err: = Upgrade(m(kf[1]), reqs, ms(kf[2:]) ...) if err == nil
+                    {
+                        // Copy the reqs map, but substitute the upgraded requirements in
+                        // place of the target's original requirements.
+                        upReqs: = make(reqsMap, len(reqs)) for m, r: = range reqs { upReqs[m] = r }
+                        upReqs[m(kf[1])] = list list, err = Req(m(kf[1]), nil, upReqs)
+                    }
+                    checkList(t, key, list, err, val)
+                }
+            )
+            continue case "upgrade": if len(kf) < 2 { t.Fatalf("upgrade takes at least one argument: %q", line) }
+            fns = append
+            (
+                fns, func(t * testing.T) { list, err: = Upgrade(m(kf[1]), reqs, ms(kf[2:]) ...) checkList(t, key, list, err, val) }
+            )
+            continue case "downgrade": if len(kf) < 2 { t.Fatalf("downgrade takes at least one argument: %q", line) }
+            fns = append
+            (
+                fns, func(t * testing.T) { list, err: = Downgrade(m(kf[1]), reqs, ms(kf[1:]) ...) checkList(t, key, list, err, val) }
+            )
+            continue case "req": if len(kf) < 2 { t.Fatalf("req takes at least one argument: %q", line) }
+            fns = append(fns, func(t * testing.T) { list, err: = Req(m(kf[1]), kf[2:], reqs) checkList(t, key, list, err, val) }) continue
+        }
+        if len(kf) == 1 && 'A' <= key[0] && key[0] <= 'Z'
+        {
+            var rs[] module.Version for _, f: = range strings.Fields(val)
+            {
+                r: = m(f) if reqs[r] == nil { reqs[r] = [] module.Version {} }
+                rs = append(rs, r)
+            }
+            reqs[m(key)] = rs continue
+        }
+        t.Fatalf("bad line: %q", line)
+    }
+    flush()
 }
 
-type reqsMap map[module.Version][]module.Version
-
-func (r reqsMap) Max(_, v1, v2 string) string {
-	if v1 == "none" || v2 == "" {
-		return v2
-	}
-	if v2 == "none" || v1 == "" {
-		return v1
-	}
-	if v1 < v2 {
-		return v2
-	}
-	return v1
+type reqsMap map[module.Version][] module.Version func(r reqsMap) Max(_, v1, v2 string) string
+{
+    if v1 == "none" || v2 == "" { return v2 }
+    if v2 == "none" || v1 == "" { return v1 }
+    if v1 < v2 { return v2 }
+    return v1
 }
 
-func (r reqsMap) Upgrade(m module.Version) (module.Version, error) {
-	u := module.Version{Version: "none"}
-	for k := range r {
-		if k.Path == m.Path && r.Max(k.Path, u.Version, k.Version) == k.Version && !strings.HasSuffix(k.Version, ".hidden") {
-			u = k
-		}
-	}
-	if u.Path == "" {
-		return module.Version{}, fmt.Errorf("missing module: %v", module.Version{Path: m.Path})
-	}
-	return u, nil
+func(r reqsMap) Upgrade(m module.Version)(module.Version, error)
+{
+    u: = module.Version { Version: "none" }
+    for k: = range r
+    {
+        if k.Path == m.Path && r.Max(k.Path, u.Version, k.Version) == k.Version && ! strings.HasSuffix(k.Version, ".hidden") { u = k }
+    }
+    if u.Path == "" { return module.Version {}, fmt.Errorf("missing module: %v", module.Version { Path: m.Path }) }
+    return u, nil
 }
 
-func (r reqsMap) Previous(m module.Version) (module.Version, error) {
-	var p module.Version
-	for k := range r {
-		if k.Path == m.Path && p.Version < k.Version && k.Version < m.Version && !strings.HasSuffix(k.Version, ".hidden") {
-			p = k
-		}
-	}
-	if p.Path == "" {
-		return module.Version{Path: m.Path, Version: "none"}, nil
-	}
-	return p, nil
+func(r reqsMap) Previous(m module.Version)(module.Version, error)
+{
+    var p module.Version for k: = range r
+    {
+        if k.Path == m.Path && p.Version < k.Version && k.Version < m.Version && ! strings.HasSuffix(k.Version, ".hidden") { p = k }
+    }
+    if p.Path == "" { return module.Version { Path: m.Path, Version: "none" }, nil }
+    return p, nil
 }
 
-func (r reqsMap) Required(m module.Version) ([]module.Version, error) {
-	rr, ok := r[m]
-	if !ok {
-		return nil, fmt.Errorf("missing module: %v", m)
-	}
-	return rr, nil
+func(r reqsMap) Required(m module.Version)([] module.Version, error)
+{
+    rr, ok: = r[m] if ! ok { return nil, fmt.Errorf("missing module: %v", m) }
+    return rr, nil
 }

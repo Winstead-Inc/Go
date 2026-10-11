@@ -2,28 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import("fmt""net") func init() { registerInit("NetpollDeadlock", NetpollDeadlockInit) register("NetpollDeadlock", NetpollDeadlock) }
 
-import (
-	"fmt"
-	"net"
-)
-
-func init() {
-	registerInit("NetpollDeadlock", NetpollDeadlockInit)
-	register("NetpollDeadlock", NetpollDeadlock)
+func NetpollDeadlockInit()
+{
+    fmt.Println("dialing") c, err: = net.Dial("tcp", "localhost:14356") if err == nil { c.Close() } else { fmt.Println("error: ", err) }
 }
 
-func NetpollDeadlockInit() {
-	fmt.Println("dialing")
-	c, err := net.Dial("tcp", "localhost:14356")
-	if err == nil {
-		c.Close()
-	} else {
-		fmt.Println("error: ", err)
-	}
-}
-
-func NetpollDeadlock() {
-	fmt.Println("done")
-}
+func NetpollDeadlock() { fmt.Println("done") }

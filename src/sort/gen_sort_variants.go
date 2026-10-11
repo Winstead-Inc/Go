@@ -1,236 +1,138 @@
 // Copyright 2022 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build ignore
-
 // This program is run via "go generate" (via a directive in sort.go)
 // to generate implementation variants of the underlying sorting algorithm.
 // When passed the -generic flag it generates generic variants of sorting;
 // otherwise it generates the non-generic variants used by the sort package.
 
-package main
-
-import (
-	"bytes"
-	"flag"
-	"fmt"
-	"go/format"
-	"log"
-	"os"
-	"text/template"
-)
-
-type Variant struct {
-	// Name is the variant name: should be unique among variants.
-	Name string
-
-	// Path is the file path into which the generator will emit the code for this
-	// variant.
-	Path string
-
-	// Package is the package this code will be emitted into.
-	Package string
-
-	// Imports is the imports needed for this package.
-	Imports string
-
-	// FuncSuffix is appended to all function names in this variant's code. All
-	// suffixes should be unique within a package.
-	FuncSuffix string
-
-	// DataType is the type of the data parameter of functions in this variant's
-	// code.
-	DataType string
-
-	// TypeParam is the optional type parameter for the function.
-	TypeParam string
-
-	// ExtraParam is an extra parameter to pass to the function. Should begin with
-	// ", " to separate from other params.
-	ExtraParam string
-
-	// ExtraArg is an extra argument to pass to calls between functions; typically
-	// it invokes ExtraParam. Should begin with ", " to separate from other args.
-	ExtraArg string
-
-	// Funcs is a map of functions used from within the template. The following
-	// functions are expected to exist:
-	//
-	//    Less (name, i, j):
-	//      emits a comparison expression that checks if the value `name` at
-	//      index `i` is smaller than at index `j`.
-	//
-	//    Swap (name, i, j):
-	//      emits a statement that performs a data swap between elements `i` and
-	//      `j` of the value `name`.
-	Funcs template.FuncMap
+package main import("bytes""flag""fmt""go/format""log""os""text/template") type Variant struct 
+{
+    // Name is the variant name: should be unique among variants.
+    Name string // Path is the file path into which the generator will emit the code for this
+    // variant.
+    Path string // Package is the package this code will be emitted into.
+    Package string // Imports is the imports needed for this package.
+    Imports string // FuncSuffix is appended to all function names in this variant's code. All
+    // suffixes should be unique within a package.
+    FuncSuffix string // DataType is the type of the data parameter of functions in this variant's
+    // code.
+    DataType string // TypeParam is the optional type parameter for the function.
+    TypeParam string // ExtraParam is an extra parameter to pass to the function. Should begin with
+    // ", " to separate from other params.
+    ExtraParam string // ExtraArg is an extra argument to pass to calls between functions; typically
+    // it invokes ExtraParam. Should begin with ", " to separate from other args.
+    ExtraArg string // Funcs is a map of functions used from within the template. The following
+    // functions are expected to exist:
+    //
+    //    Less (name, i, j):
+    //      emits a comparison expression that checks if the value `name` at
+    //      index `i` is smaller than at index `j`.
+    //
+    //    Swap (name, i, j):
+    //      emits a statement that performs a data swap between elements `i` and
+    //      `j` of the value `name`.
+    Funcs template.FuncMap
 }
 
-var (
-	traditionalVariants = []Variant{
-		Variant{
-			Name:       "interface",
-			Path:       "zsortinterface.go",
-			Package:    "sort",
-			Imports:    "",
-			FuncSuffix: "",
-			TypeParam:  "",
-			ExtraParam: "",
-			ExtraArg:   "",
-			DataType:   "Interface",
-			Funcs: template.FuncMap{
-				"Less": func(name, i, j string) string {
-					return fmt.Sprintf("%s.Less(%s, %s)", name, i, j)
-				},
-				"Swap": func(name, i, j string) string {
-					return fmt.Sprintf("%s.Swap(%s, %s)", name, i, j)
-				},
-			},
-		},
-		Variant{
-			Name:       "func",
-			Path:       "zsortfunc.go",
-			Package:    "sort",
-			Imports:    "",
-			FuncSuffix: "_func",
-			TypeParam:  "",
-			ExtraParam: "",
-			ExtraArg:   "",
-			DataType:   "lessSwap",
-			Funcs: template.FuncMap{
-				"Less": func(name, i, j string) string {
-					return fmt.Sprintf("%s.Less(%s, %s)", name, i, j)
-				},
-				"Swap": func(name, i, j string) string {
-					return fmt.Sprintf("%s.Swap(%s, %s)", name, i, j)
-				},
-			},
-		},
-	}
+var
+(
+    traditionalVariants = [] Variant
+    {
+        Variant
+        {
+            Name: "interface", Path: "zsortinterface.go", Package: "sort", Imports: "", FuncSuffix: "", TypeParam: "", ExtraParam: "", ExtraArg: "", DataType: "Interface", Funcs: template.FuncMap
+            {
+                "Less": func(name, i, j string) string { return fmt.Sprintf("%s.Less(%s, %s)", name, i, j) },
+                "Swap": func(name, i, j string) string { return fmt.Sprintf("%s.Swap(%s, %s)", name, i, j) },
+            },
+        },
+        Variant
+        {
+            Name: "func", Path: "zsortfunc.go", Package: "sort", Imports: "", FuncSuffix: "_func", TypeParam: "", ExtraParam: "", ExtraArg: "", DataType: "lessSwap", Funcs: template.FuncMap
+            {
+                "Less": func(name, i, j string) string { return fmt.Sprintf("%s.Less(%s, %s)", name, i, j) },
+                "Swap": func(name, i, j string) string { return fmt.Sprintf("%s.Swap(%s, %s)", name, i, j) },
+            },
+        },
+    }
 
-	genericVariants = []Variant{
-		Variant{
-			Name:       "generic_ordered",
-			Path:       "zsortordered.go",
-			Package:    "slices",
-			Imports:    "import \"cmp\"\n",
-			FuncSuffix: "Ordered",
-			TypeParam:  "[E cmp.Ordered]",
-			ExtraParam: "",
-			ExtraArg:   "",
-			DataType:   "[]E",
-			Funcs: template.FuncMap{
-				"Less": func(name, i, j string) string {
-					return fmt.Sprintf("cmp.Less(%s[%s], %s[%s])", name, i, name, j)
-				},
-				"Swap": func(name, i, j string) string {
-					return fmt.Sprintf("%s[%s], %s[%s] = %s[%s], %s[%s]", name, i, name, j, name, j, name, i)
-				},
-			},
-		},
-		Variant{
-			Name:       "generic_func",
-			Path:       "zsortanyfunc.go",
-			Package:    "slices",
-			FuncSuffix: "CmpFunc",
-			TypeParam:  "[E any]",
-			ExtraParam: ", cmp func(a, b E) int",
-			ExtraArg:   ", cmp",
-			DataType:   "[]E",
-			Funcs: template.FuncMap{
-				"Less": func(name, i, j string) string {
-					return fmt.Sprintf("(cmp(%s[%s], %s[%s]) < 0)", name, i, name, j)
-				},
-				"Swap": func(name, i, j string) string {
-					return fmt.Sprintf("%s[%s], %s[%s] = %s[%s], %s[%s]", name, i, name, j, name, j, name, i)
-				},
-			},
-		},
-	}
+    genericVariants = [] Variant
+    {
+        Variant
+        {
+            Name: "generic_ordered", Path: "zsortordered.go", Package: "slices", Imports: "import \"cmp\"\n", FuncSuffix: "Ordered", TypeParam: "[E cmp.Ordered]", ExtraParam: "", ExtraArg: "", DataType: "[]E", Funcs: template.FuncMap
+            {
+                "Less": func(name, i, j string) string { return fmt.Sprintf("cmp.Less(%s[%s], %s[%s])", name, i, name, j) },
+                "Swap": func(name, i, j string) string
+                {
+                    return fmt.Sprintf("%s[%s], %s[%s] = %s[%s], %s[%s]", name, i, name, j, name, j, name, i)
+                },
+            },
+        },
+        Variant
+        {
+            Name: "generic_func", Path: "zsortanyfunc.go", Package: "slices", FuncSuffix: "CmpFunc", TypeParam: "[E any]", ExtraParam: ", cmp func(a, b E) int", ExtraArg: ", cmp", DataType: "[]E", Funcs: template.FuncMap
+            {
+                "Less": func(name, i, j string) string { return fmt.Sprintf("(cmp(%s[%s], %s[%s]) < 0)", name, i, name, j) },
+                "Swap": func(name, i, j string) string
+                {
+                    return fmt.Sprintf("%s[%s], %s[%s] = %s[%s], %s[%s]", name, i, name, j, name, j, name, i)
+                },
+            },
+        },
+    }
 
-	expVariants = []Variant{
-		Variant{
-			Name:       "exp_ordered",
-			Path:       "zsortordered.go",
-			Package:    "slices",
-			Imports:    "import \"golang.org/x/exp/constraints\"\n",
-			FuncSuffix: "Ordered",
-			TypeParam:  "[E constraints.Ordered]",
-			ExtraParam: "",
-			ExtraArg:   "",
-			DataType:   "[]E",
-			Funcs: template.FuncMap{
-				"Less": func(name, i, j string) string {
-					return fmt.Sprintf("cmpLess(%s[%s], %s[%s])", name, i, name, j)
-				},
-				"Swap": func(name, i, j string) string {
-					return fmt.Sprintf("%s[%s], %s[%s] = %s[%s], %s[%s]", name, i, name, j, name, j, name, i)
-				},
-			},
-		},
-		Variant{
-			Name:       "exp_func",
-			Path:       "zsortanyfunc.go",
-			Package:    "slices",
-			FuncSuffix: "CmpFunc",
-			TypeParam:  "[E any]",
-			ExtraParam: ", cmp func(a, b E) int",
-			ExtraArg:   ", cmp",
-			DataType:   "[]E",
-			Funcs: template.FuncMap{
-				"Less": func(name, i, j string) string {
-					return fmt.Sprintf("(cmp(%s[%s], %s[%s]) < 0)", name, i, name, j)
-				},
-				"Swap": func(name, i, j string) string {
-					return fmt.Sprintf("%s[%s], %s[%s] = %s[%s], %s[%s]", name, i, name, j, name, j, name, i)
-				},
-			},
-		},
-	}
+    expVariants = [] Variant
+    {
+        Variant
+        {
+            Name: "exp_ordered", Path: "zsortordered.go", Package: "slices", Imports: "import \"golang.org/x/exp/constraints\"\n", FuncSuffix: "Ordered", TypeParam: "[E constraints.Ordered]", ExtraParam: "", ExtraArg: "", DataType: "[]E", Funcs: template.FuncMap
+            {
+                "Less": func(name, i, j string) string { return fmt.Sprintf("cmpLess(%s[%s], %s[%s])", name, i, name, j) },
+                "Swap": func(name, i, j string) string
+                {
+                    return fmt.Sprintf("%s[%s], %s[%s] = %s[%s], %s[%s]", name, i, name, j, name, j, name, i)
+                },
+            },
+        },
+        Variant
+        {
+            Name: "exp_func", Path: "zsortanyfunc.go", Package: "slices", FuncSuffix: "CmpFunc", TypeParam: "[E any]", ExtraParam: ", cmp func(a, b E) int", ExtraArg: ", cmp", DataType: "[]E", Funcs: template.FuncMap
+            {
+                "Less": func(name, i, j string) string { return fmt.Sprintf("(cmp(%s[%s], %s[%s]) < 0)", name, i, name, j) },
+                "Swap": func(name, i, j string) string
+                {
+                    return fmt.Sprintf("%s[%s], %s[%s] = %s[%s], %s[%s]", name, i, name, j, name, j, name, i)
+                },
+            },
+        },
+    }
 )
 
-func main() {
-	genGeneric := flag.Bool("generic", false, "generate generic versions")
-	genExp := flag.Bool("exp", false, "generate x/exp/slices versions")
-	flag.Parse()
-
-	var variants []Variant
-	if *genExp {
-		variants = expVariants
-	} else if *genGeneric {
-		variants = genericVariants
-	} else {
-		variants = traditionalVariants
-	}
-	for i := range variants {
-		generate(&variants[i])
-	}
+func main()
+{
+    genGeneric: = flag.Bool("generic", false, "generate generic versions") genExp: = flag.Bool("exp", false, "generate x/exp/slices versions") flag.Parse() var variants
+    [
+    ]
+    Variant if * genExp { variants = expVariants }
+    else if * genGeneric { variants = genericVariants } else { variants = traditionalVariants }
+    for i: = range variants { generate( & variants[i]) }
 }
-
 // generate generates the code for variant `v` into a file named by `v.Path`.
-func generate(v *Variant) {
-	// Parse templateCode anew for each variant because Parse requires Funcs to be
-	// registered, and it helps type-check the funcs.
-	tmpl, err := template.New("gen").Funcs(v.Funcs).Parse(templateCode)
-	if err != nil {
-		log.Fatal("template Parse:", err)
-	}
+func generate(v * Variant)
+{
+    // Parse templateCode anew for each variant because Parse requires Funcs to be
+    // registered, and it helps type-check the funcs.
+    tmpl, err: = template.New("gen").Funcs(v.Funcs).Parse(templateCode) if err != nil { log.Fatal("template Parse:", err) }
 
-	var out bytes.Buffer
-	err = tmpl.Execute(&out, v)
-	if err != nil {
-		log.Fatal("template Execute:", err)
-	}
+    var out bytes.Buffer err = tmpl.Execute( & out, v) if err != nil { log.Fatal("template Execute:", err) }
 
-	formatted, err := format.Source(out.Bytes())
-	if err != nil {
-		log.Fatal("format:", err)
-	}
+    formatted, err: = format.Source(out.Bytes()) if err != nil { log.Fatal("format:", err) }
 
-	if err := os.WriteFile(v.Path, formatted, 0644); err != nil {
-		log.Fatal("WriteFile:", err)
-	}
+    if err: = os.WriteFile(v.Path, formatted, 0644);
+    err != nil { log.Fatal("WriteFile:", err) }
 }
 
 var templateCode = `// Code generated by gen_sort_variants.go; DO NOT EDIT.

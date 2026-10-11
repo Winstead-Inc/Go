@@ -2,22 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// extern void registerDestructor();
-import "C"
-
-import "fmt"
-
-func init() {
-	register("DestructorCallback", DestructorCallback)
-}
-
+package main // extern void registerDestructor();
+import"C" import"fmt" func init() { register("DestructorCallback", DestructorCallback) }
 //export GoDestructorCallback
-func GoDestructorCallback() {
-}
+func GoDestructorCallback() {}
 
-func DestructorCallback() {
-	C.registerDestructor()
-	fmt.Println("OK")
-}
+func DestructorCallback() { C.registerDestructor() fmt.Println("OK") }

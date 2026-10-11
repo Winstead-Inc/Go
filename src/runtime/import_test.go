@@ -1,7 +1,6 @@
 // Copyright 2023 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // This file and importx_test.go make it possible to write tests in the runtime
 // package, which is generally more convenient for testing runtime internals.
 // For tests that mostly touch public APIs, it's generally easier to write them
@@ -19,27 +18,13 @@
 //
 // 2. Runtime package tests can't directly import other std packages, so we
 // inject any necessary functions from std.
-
 // TODO: Generate this
 
-package runtime_test
-
-import (
-	"fmt"
-	"internal/testenv"
-	"runtime"
-	"testing"
-)
-
-func init() {
-	runtime.FmtSprintf = fmt.Sprintf
-	runtime.TestenvOptimizationOff = testenv.OptimizationOff
+package runtime_test import("fmt""internal/testenv""runtime""testing") func init()
+{
+    runtime.FmtSprintf = fmt.Sprintf runtime.TestenvOptimizationOff = testenv.OptimizationOff
 }
 
-func TestInlineUnwinder(t *testing.T) {
-	runtime.XTestInlineUnwinder(t)
-}
+func TestInlineUnwinder(t * testing.T) { runtime.XTestInlineUnwinder(t) }
 
-func TestSPWrite(t *testing.T) {
-	runtime.XTestSPWrite(t)
-}
+func TestSPWrite(t * testing.T) { runtime.XTestSPWrite(t) }

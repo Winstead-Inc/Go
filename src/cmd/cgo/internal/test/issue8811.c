@@ -4,5 +4,4 @@
 
 int issue8811Initialized = 0;
 
-void issue8811Init() {
-}
+void issue8811Init() {}

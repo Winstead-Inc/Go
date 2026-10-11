@@ -1,16 +1,13 @@
 // errorcheck
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import."unsafe" // ERROR "not used"
 
-import . "unsafe"	// ERROR "not used"
-
-func main() {
-	var x int
-	println(unsafe.Sizeof(x)) // ERROR "undefined"
+func main()
+{
+    var x int println(unsafe.Sizeof(x)) // ERROR "undefined"
 }
 
 /*

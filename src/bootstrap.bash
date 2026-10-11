@@ -20,19 +20,22 @@
 
 set -e
 
-if [ "$GOOS" = "" -o "$GOARCH" = "" ]; then
+if [ "$GOOS" = "" -o "$GOARCH" = "" ];
+then
 	echo "usage: GOOS=os GOARCH=arch ./bootstrap.bash [-force]" >&2
 	exit 2
 fi
 
 forceflag=""
-if [ "$1" = "-force" ]; then
+if [ "$1" = "-force" ];
+then
 	forceflag=-force
 	shift
 fi
 
 targ="../../go-${GOOS}-${GOARCH}-bootstrap"
-if [ -e $targ ]; then
+if [ -e $targ ];
+then
 	echo "$targ already exists; remove before continuing"
 	exit 2
 fi
@@ -46,7 +49,8 @@ echo
 echo "#### Cleaning $targ"
 chmod -R +w .
 rm -f .gitignore
-if [ -e .git ]; then
+if [ -e .git ];
+then
 	git clean -f -d
 fi
 echo
@@ -62,7 +66,8 @@ goarch="$(../bin/go env GOARCH)"
 # NOTE: Cannot invoke go command after this point.
 # We're about to delete all but the cross-compiled binaries.
 cd ..
-if [ "$goos" = "$gohostos" -a "$goarch" = "$gohostarch" ]; then
+if [ "$goos" = "$gohostos" -a "$goarch" = "$gohostarch" ];
+then
 	# cross-compile for local system. nothing to copy.
 	# useful if you've bootstrapped yourself but want to
 	# prepare a clean toolchain for others.
@@ -80,6 +85,6 @@ echo ----
 echo Bootstrap toolchain for "$GOOS/$GOARCH" installed in "$(pwd)".
 echo Building tbz.
 cd ..
-tar cf - "go-${GOOS}-${GOARCH}-bootstrap" | bzip2 -9 >"go-${GOOS}-${GOARCH}-bootstrap.tbz"
+tar cf - "go-${GOOS}-${GOARCH}-bootstrap" | bzip2 -9 > "go-${GOOS}-${GOARCH}-bootstrap.tbz"
 ls -l "$(pwd)/go-${GOOS}-${GOARCH}-bootstrap.tbz"
 exit 0

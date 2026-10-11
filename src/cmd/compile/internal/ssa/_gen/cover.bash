@@ -11,7 +11,7 @@
 # This script is needed to set up a temporary test file, so that we don't break
 # regular 'go run .' usage to run the generator.
 
-cat >main_test.go <<-EOF
+cat > main_test.go <<- EOF
 	//go:build ignore
 
 	package main

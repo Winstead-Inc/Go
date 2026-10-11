@@ -1,9 +1,7 @@
 // Copyright 2023 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.jsonv2
-
 // Package jsontext implements syntactic processing of JSON
 // as specified in RFC 4627, RFC 7159, RFC 7493, RFC 8259, and RFC 8785.
 // JSON is a simple data interchange format that can represent
@@ -102,10 +100,7 @@
 // # Security Considerations
 //
 // See the "Security Considerations" section in [encoding/json/v2].
-package jsontext
-
-// requireKeyedLiterals can be embedded in a struct to require keyed literals.
-type requireKeyedLiterals struct{}
-
+package jsontext // requireKeyedLiterals can be embedded in a struct to require keyed literals.
+type requireKeyedLiterals struct {}
 // nonComparable can be embedded in a struct to prevent comparability.
-type nonComparable [0]func()
+type nonComparable[0] func()

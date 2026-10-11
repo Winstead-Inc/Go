@@ -2,10 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-import "./b"
-
-var v b.S
-
-func main() {}
+package main import"./b" var v b.S func main() {}

@@ -9,7 +9,8 @@
 SDK=iphonesimulator
 PLATFORM=ios-simulator
 
-if [ "$GOARCH" == "arm64" ]; then
+if [ "$GOARCH" == "arm64" ];
+then
 	CLANGARCH="arm64"
 else
 	CLANGARCH="x86_64"

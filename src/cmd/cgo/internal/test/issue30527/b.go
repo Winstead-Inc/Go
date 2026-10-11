@@ -2,10 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package issue30527
-
-const (
-	X = 1 << iota
-	Y
-	Z
-)
+package issue30527 const (X = 1 << iota Y Z)

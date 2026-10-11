@@ -2,9 +2,5 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-type Builder[T ~struct{ Builder[T] }] struct{}
-type myBuilder struct {
-	Builder[myBuilder]
-}
+package p type Builder[T ~ struct { Builder[T] }] struct {}
+type myBuilder struct { Builder[myBuilder] }

@@ -1,17 +1,11 @@
 // compile
-
 // Copyright 2022 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // gofrontend crashed compiling this code.
 
-package p
+package p type S struct {}
 
-type S struct {}
+func(s * S) test(_ string) {}
 
-func (s *S) test(_ string) {}
-
-var T = [1]func(*S, string) {
-	(*S).test,
-}
+var T = [1] func( * S, string) { ( * S).test, }

@@ -2,17 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main var divisibleOps = [] opData {}
 
-var divisibleOps = []opData{}
+var divisibleBlocks = [] blockData {}
 
-var divisibleBlocks = []blockData{}
-
-func init() {
-	archs = append(archs, arch{
-		name:    "divisible",
-		ops:     divisibleOps,
-		blocks:  divisibleBlocks,
-		generic: true,
-	})
-}
+func init() { archs = append(archs, arch { name: "divisible", ops: divisibleOps, blocks: divisibleBlocks, generic: true, }) }

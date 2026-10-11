@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-// don't crash
+package p // don't crash
 // TODO(gri) make this test work for go/types
 // func T[P] m() {}

@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type T0[P any] struct { f P }
 
-type T0[P any] struct {
-	f P
-}
-
-type T1 /* ERROR "invalid recursive type" */ struct {
-	_ T0[T1]
-}
+type T1 /* ERROR "invalid recursive type" */ struct { _ T0[T1] }

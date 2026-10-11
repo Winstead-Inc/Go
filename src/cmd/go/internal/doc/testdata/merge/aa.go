@@ -1,7 +1,6 @@
 // Package comment A.
-package merge
-
-// A doc.
-func A() {
-	// A comment.
+package merge // A doc.
+func A()
+{
+    // A comment.
 }

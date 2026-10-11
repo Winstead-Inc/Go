@@ -4,7 +4,8 @@
 # license that can be found in the LICENSE file.
 
 set -e
-if [ ! -f make.bash ]; then
+if [ ! -f make.bash ];
+then
 	echo 'all.bash must be run from $GOROOT/src' 1>&2
 	exit 1
 fi

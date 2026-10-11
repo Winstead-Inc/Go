@@ -2,8 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
-
-type G[T any] struct {
-	x T
-}
+package a type G[T any] struct { x T }

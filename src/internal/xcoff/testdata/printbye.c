@@ -1,5 +1,3 @@
 #include <stdio.h>
 
-void printbye(){
-	printf("Goodbye\n");
-}
+void printbye() { printf("Goodbye\n"); }

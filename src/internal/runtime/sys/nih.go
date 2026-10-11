@@ -2,12 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package sys
-
-// NOTE: keep in sync with cmd/compile/internal/types.CalcSize
+package sys // NOTE: keep in sync with cmd/compile/internal/types.CalcSize
 // to make the compiler recognize this as an intrinsic type.
-type nih struct{}
-
+type nih struct {}
 // NotInHeap is a type must never be allocated from the GC'd heap or on the stack,
 // and is called not-in-heap.
 //
@@ -38,4 +35,4 @@ type nih struct{}
 // scheduler and the memory allocator where they are illegal or simply
 // inefficient. This mechanism is reasonably safe and does not compromise
 // the readability of the runtime.
-type NotInHeap struct{ _ nih }
+type NotInHeap struct { _ nih }

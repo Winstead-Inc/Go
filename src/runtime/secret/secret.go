@@ -1,17 +1,9 @@
 // Copyright 2024 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.runtimesecret
 
-package secret
-
-import (
-	"runtime"
-	_ "unsafe"
-)
-
-// Do invokes f.
+package secret import("runtime" _"unsafe") // Do invokes f.
 //
 // Do ensures that any temporary storage used by f is erased in a
 // timely manner. (In this context, "f" is shorthand for the
@@ -58,87 +50,59 @@ import (
 //     struct is confidential, then users should not create a pointer into
 //     the object. Since this function is intended to be used with constant-time
 //     cryptographic code, this requirement is usually fulfilled implicitly.
-func Do(f func()) {
-	const osArch = runtime.GOOS + "/" + runtime.GOARCH
-	switch osArch {
-	default:
-		// unsupported, just invoke f directly.
-		f()
-		return
-	case "linux/amd64", "linux/arm64", "linux/loong64":
-	}
-
-	// Place to store any panic value.
-	var p any
-
-	// Step 1: increment the nesting count.
-	inc()
-
-	// Step 2: call helper. The helper just calls f
-	// and captures (recovers) any panic result.
-	p = doHelper(f)
-
-	// Step 3: erase everything used by f (stack, registers).
-	eraseSecrets()
-
-	// Step 4: decrement the nesting count.
-	dec()
-
-	// Step 5: re-raise any caught panic.
-	// This will make the panic appear to come
-	// from a stack whose bottom frame is
-	// runtime/secret.Do.
-	// Anything below that to do with f will be gone.
-	//
-	// Note that the panic value is not erased. It behaves
-	// like any other value that escapes from f. If it is
-	// heap allocated, it will be erased when the garbage
-	// collector notices it is no longer referenced.
-	if p != nil {
-		panic(p)
-	}
-
-	// Note: if f calls runtime.Goexit, step 3 and above will not
-	// happen, as Goexit is unrecoverable. We handle that case in
-	// runtime/proc.go:goexit0.
+func Do(f func())
+{
+    const osArch = runtime.GOOS + "/" + runtime.GOARCH switch osArch
+    {
+        default: // unsupported, just invoke f directly.
+        f() return case "linux/amd64", "linux/arm64", "linux/loong64": 
+    }
+    // Place to store any panic value.
+    var p any // Step 1: increment the nesting count.
+    inc() // Step 2: call helper. The helper just calls f
+    // and captures (recovers) any panic result.
+    p = doHelper(f) // Step 3: erase everything used by f (stack, registers).
+    eraseSecrets() // Step 4: decrement the nesting count.
+    dec() // Step 5: re-raise any caught panic.
+    // This will make the panic appear to come
+    // from a stack whose bottom frame is
+    // runtime/secret.Do.
+    // Anything below that to do with f will be gone.
+    //
+    // Note that the panic value is not erased. It behaves
+    // like any other value that escapes from f. If it is
+    // heap allocated, it will be erased when the garbage
+    // collector notices it is no longer referenced.
+    if p != nil { panic(p) }
+    // Note: if f calls runtime.Goexit, step 3 and above will not
+    // happen, as Goexit is unrecoverable. We handle that case in
+    // runtime/proc.go:goexit0.
 }
 
-func doHelper(f func()) (p any) {
-	// Step 2b: Pop the stack up to the secret.doHelper frame
-	// if we are in the process of panicking.
-	// (It is a no-op if we are not panicking.)
-	// We return any panicked value to secret.Do, who will
-	// re-panic it.
-	defer func() {
-		// Note: we rely on the go1.21+ behavior that
-		// if we are panicking, recover returns non-nil.
-		p = recover()
-	}()
-
-	// Step 2a: call the secret function.
-	f()
-
-	return
+func doHelper(f func())(p any)
+{
+    // Step 2b: Pop the stack up to the secret.doHelper frame
+    // if we are in the process of panicking.
+    // (It is a no-op if we are not panicking.)
+    // We return any panicked value to secret.Do, who will
+    // re-panic it.
+    defer func()
+    {
+        // Note: we rely on the go1.21+ behavior that
+        // if we are panicking, recover returns non-nil.
+        p = recover()
+    }
+() // Step 2a: call the secret function.
+    f() return 
 }
-
 // Enabled reports whether the current goroutine
 // is running in secret mode. This is usually through a call to
 // [Do], but can also occur when a goroutine already running in
 // secret mode launches another goroutine.
-func Enabled() bool {
-	return count() > 0
-}
-
+func Enabled() bool { return count() > 0 }
 // implemented in runtime
-
 //go:linkname count
-func count() int32
-
-//go:linkname inc
-func inc()
-
-//go:linkname dec
-func dec()
-
-//go:linkname eraseSecrets
+func count() int32 //go:linkname inc
+func inc() //go:linkname dec
+func dec() //go:linkname eraseSecrets
 func eraseSecrets()

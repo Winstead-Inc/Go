@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -14,10 +12,7 @@ void test(int *a) {
 	// We shouldn't get here; asan should stop us first.
 	printf("a[5]=%d\n", c);
 }
-*/
-import "C"
-
-func main() {
-	cIntSlice := []C.int{200, 201, 203, 203, 204}
-	C.test(&cIntSlice[0])
-}
+*/ import"C" func main
+(
+)
+{ cIntSlice: = [] C.int { 200, 201, 203, 203, 204 } C.test( & cIntSlice[0]) }

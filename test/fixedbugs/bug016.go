@@ -1,14 +1,11 @@
 // errorcheck
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-func main() {
-	var i int = 100
-	i = i << -3 // ERROR "overflows|negative"
+package main func main()
+{
+    var i int = 100 i = i << - 3 // ERROR "overflows|negative"
 }
 
 /*

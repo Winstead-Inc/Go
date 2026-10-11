@@ -1,9 +1,7 @@
 // Copyright 2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.jsonv2
-
 // Package json implements encoding and decoding of JSON as defined in
 // RFC 7159. The mapping between JSON and Go values is described
 // in the documentation for the Marshal and Unmarshal functions.
@@ -19,16 +17,7 @@
 // New usages of JSON in Go are encouraged to use [encoding/json/v2] instead.
 //
 // [JSON and Go]: https://go.dev/blog/json
-package json
-
-import (
-	"reflect"
-	"strconv"
-
-	jsonv2 "encoding/json/v2"
-)
-
-// Marshal returns the JSON encoding of v.
+package json import("reflect""strconv" jsonv2"encoding/json/v2") // Marshal returns the JSON encoding of v.
 //
 // Marshal traverses the value v recursively.
 //
@@ -177,81 +166,48 @@ import (
 // JSON cannot represent cyclic data structures and Marshal does not
 // handle them. Passing cyclic structures to Marshal will result in
 // an error.
-func Marshal(v any) ([]byte, error) {
-	return jsonv2.Marshal(v, DefaultOptionsV1())
-}
-
+func Marshal(v any)([] byte, error) { return jsonv2.Marshal(v, DefaultOptionsV1()) }
 // MarshalIndent is like [Marshal] but applies [Indent] to format the output.
 // Each JSON element in the output will begin on a new line beginning with prefix
 // followed by one or more copies of indent according to the indentation nesting.
-func MarshalIndent(v any, prefix, indent string) ([]byte, error) {
-	b, err := Marshal(v)
-	if err != nil {
-		return nil, err
-	}
-	b, err = appendIndent(nil, b, prefix, indent)
-	if err != nil {
-		return nil, err
-	}
-	return b, nil
+func MarshalIndent(v any, prefix, indent string)([] byte, error)
+{
+    b, err: = Marshal(v) if err != nil { return nil, err }
+    b, err = appendIndent(nil, b, prefix, indent) if err != nil { return nil, err }
+    return b, nil
 }
-
 // Marshaler is the interface implemented by types that
 // can marshal themselves into valid JSON.
-type Marshaler = jsonv2.Marshaler
-
-// An UnsupportedTypeError is returned by [Marshal] when attempting
+type Marshaler = jsonv2.Marshaler // An UnsupportedTypeError is returned by [Marshal] when attempting
 // to encode an unsupported value type.
-type UnsupportedTypeError struct {
-	Type reflect.Type
-}
+type UnsupportedTypeError struct { Type reflect.Type }
 
-func (e *UnsupportedTypeError) Error() string {
-	return "json: unsupported type: " + e.Type.String()
-}
-
+func(e * UnsupportedTypeError) Error() string { return "json: unsupported type: " + e.Type.String() }
 // An UnsupportedValueError is returned by [Marshal] when attempting
 // to encode an unsupported value.
-type UnsupportedValueError struct {
-	Value reflect.Value
-	Str   string
-}
+type UnsupportedValueError struct { Value reflect.Value Str string }
 
-func (e *UnsupportedValueError) Error() string {
-	return "json: unsupported value: " + e.Str
-}
-
+func(e * UnsupportedValueError) Error() string { return "json: unsupported value: " + e.Str }
 // Before Go 1.2, an InvalidUTF8Error was returned by [Marshal] when
 // attempting to encode a string value with invalid UTF-8 sequences.
 // As of Go 1.2, [Marshal] instead coerces the string to valid UTF-8 by
 // replacing invalid bytes with the Unicode replacement rune U+FFFD.
 //
 // Deprecated: No longer used; kept for compatibility.
-type InvalidUTF8Error struct {
-	S string // the whole string value that caused the error
+type InvalidUTF8Error struct 
+{
+    S string // the whole string value that caused the error
 }
 
-func (e *InvalidUTF8Error) Error() string {
-	return "json: invalid UTF-8 in string: " + strconv.Quote(e.S)
-}
-
+func(e * InvalidUTF8Error) Error() string { return "json: invalid UTF-8 in string: " + strconv.Quote(e.S) }
 // A MarshalerError represents an error from calling a
 // [Marshaler.MarshalJSON] or [encoding.TextMarshaler.MarshalText] method.
-type MarshalerError struct {
-	Type       reflect.Type
-	Err        error
-	sourceFunc string
-}
+type MarshalerError struct { Type reflect.Type Err error sourceFunc string }
 
-func (e *MarshalerError) Error() string {
-	srcFunc := e.sourceFunc
-	if srcFunc == "" {
-		srcFunc = "MarshalJSON"
-	}
-	return "json: error calling " + srcFunc +
-		" for type " + e.Type.String() +
-		": " + e.Err.Error()
+func(e * MarshalerError) Error() string
+{
+    srcFunc: = e.sourceFunc if srcFunc == "" { srcFunc = "MarshalJSON" }
+    return "json: error calling " + srcFunc + " for type " + e.Type.String() + ": " + e.Err.Error()
 }
-
 // Unwrap returns the underlying error.
-func (e *MarshalerError) Unwrap() error { return e.Err }
+func(e * MarshalerError) Unwrap() error { return e.Err }

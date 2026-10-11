@@ -1,29 +1,18 @@
 // compile
-
 // Copyright 2022 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p import("sync/atomic") type I interface { M() }
 
-import (
-	"sync/atomic"
-)
+type S struct {}
 
-type I interface {
-	M()
-}
+func( * S) M() {}
 
-type S struct{}
+type T struct { I x atomic.Int64 }
 
-func (*S) M() {}
-
-type T struct {
-	I
-	x atomic.Int64
-}
-
-func F() {
-	t := &T{I: &S{}}
-	t.M()
+func F()
+{
+    t: = & T { I: & S {} }
+    t.M()
 }

@@ -2,285 +2,176 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-import (
-	"bytes"
-	"cmp"
-	"fmt"
-	"maps"
-	"slices"
-	"strings"
-	"text/template"
-	"unicode"
-
-	"simd/archsimd/_gen/sgutil"
-	"simd/archsimd/_gen/simdgen/types"
-	"simd/archsimd/_gen/specgen/specexpr"
+package main import
+(
+    "bytes""cmp""fmt""maps""slices""strings""text/template""unicode""simd/archsimd/_gen/sgutil""simd/archsimd/_gen/simdgen/types""simd/archsimd/_gen/specgen/specexpr"
 )
 
-type simdType struct {
-	Shape  specexpr.Vector // Shape represents the element type, element bits, and vector width.
-	Fields string          // The struct fields, it should be right formatted.
-	HasNot bool            // True when this mask type supports Not()
+type simdType struct 
+{
+    Shape specexpr.Vector // Shape represents the element type, element bits, and vector width.
+    Fields string // The struct fields, it should be right formatted.
+    HasNot bool // True when this mask type supports Not()
 }
 
-func (x simdType) IsMask() bool {
-	return strings.EqualFold(x.Shape.Elem.Base, "mask")
+func(x simdType) IsMask() bool { return strings.EqualFold(x.Shape.Elem.Base, "mask") }
+
+func(x simdType) Type() string { if x.IsMask() { return "mask" } return "vreg" }
+
+func(x simdType) Name() string { return x.Shape.String() }
+
+func(x simdType) Base() string
+{
+    if x.IsMask() { return fmt.Sprintf("int%d", x.ElemBits()) }
+    return fmt.Sprintf("%s%d", strings.ToLower(x.Shape.Elem.Base), x.ElemBits())
 }
 
-func (x simdType) Type() string {
-	if x.IsMask() {
-		return "mask"
-	}
-	return "vreg"
-}
-
-func (x simdType) Name() string {
-	return x.Shape.String()
-}
-
-func (x simdType) Base() string {
-	if x.IsMask() {
-		return fmt.Sprintf("int%d", x.ElemBits())
-	}
-	return fmt.Sprintf("%s%d", strings.ToLower(x.Shape.Elem.Base), x.ElemBits())
-}
-
-func (x simdType) ElemBits() int {
-	return int(x.Shape.Elem.Bits)
-}
-
+func(x simdType) ElemBits() int { return int (x.Shape.Elem.Bits) }
 // ElemBytes is the element width in bytes.
-func (x simdType) ElemBytes() int {
-	return x.ElemBits() / 8
-}
-
+func(x simdType) ElemBytes() int { return x.ElemBits() / 8 }
 // Lanes returns the number of elements in a fixed-width vector.
 // Panics if the vector is scalable.
-func (x simdType) Lanes() int {
-	if x.IsScalable() {
-		panic(fmt.Sprintf("cannot get fixed lane count of scalable type %s", x.Name()))
-	}
-	l, err := x.Shape.Width.Div(x.Shape.Elem.Bits)
-	if err != nil {
-		panic(err)
-	}
-	return int(l.(specexpr.Int))
+func(x simdType) Lanes() int
+{
+    if x.IsScalable() { panic(fmt.Sprintf("cannot get fixed lane count of scalable type %s", x.Name())) }
+    l, err: = x.Shape.Width.Div(x.Shape.Elem.Bits) if err != nil { panic(err) }
+    return int(l.(specexpr.Int))
 }
-
 // MaxLanes returns the maximum number of elements for scalable vectors (based on
 // MaxVectorBits) or the fixed lane count for fixed-width vectors.
-func (x simdType) MaxLanes() int {
-	if x.IsScalable() {
-		return types.MaxVectorBits / x.ElemBits()
-	}
-	return x.Lanes()
-}
-
+func(x simdType) MaxLanes() int { if x.IsScalable() { return types.MaxVectorBits / x.ElemBits() } return x.Lanes() }
 // Size returns the total bit width of a fixed-width vector.
 // Panics if the vector is scalable.
-func (x simdType) Size() int {
-	if x.IsScalable() {
-		panic(fmt.Sprintf("cannot get fixed bit width of scalable type %s", x.Name()))
-	}
-	return int(x.Shape.Width.(specexpr.Int))
+func(x simdType) Size() int
+{
+    if x.IsScalable() { panic(fmt.Sprintf("cannot get fixed bit width of scalable type %s", x.Name())) }
+    return int(x.Shape.Width.(specexpr.Int))
 }
-
 // VectorCounterpart returns the counterpart vector type name for a mask type.
-func (x simdType) VectorCounterpart() string {
-	v := specexpr.Vector{
-		Elem:  specexpr.Basic{Base: "int", Bits: x.Shape.Elem.Bits},
-		Width: x.Shape.Width,
-	}
-	return v.String()
+func(x simdType) VectorCounterpart() string
+{
+    v: = specexpr.Vector { Elem: specexpr.Basic { Base: "int", Bits: x.Shape.Elem.Bits }, Width: x.Shape.Width, }
+    return v.String()
 }
-
 // ReshapedVectorWithAndOr returns the 32-bit-element vector type name with matching width.
-func (x simdType) ReshapedVectorWithAndOr() string {
-	v := specexpr.Vector{
-		Elem:  specexpr.Basic{Base: "int", Bits: 32},
-		Width: x.Shape.Width,
-	}
-	return v.String()
+func(x simdType) ReshapedVectorWithAndOr() string
+{
+    v: = specexpr.Vector { Elem: specexpr.Basic { Base: "int", Bits: 32 }, Width: x.Shape.Width, }
+    return v.String()
 }
-
 // IsScalable reports whether this vector type's length is only known at run time.
-func (x simdType) IsScalable() bool {
-	return x.Shape.Scalable()
-}
-
+func(x simdType) IsScalable() bool { return x.Shape.Scalable() }
 // LenExpr is the body expression of the type's Len() method. A fixed-width type
 // has a constant lane count; a scalable vector's active lane count is the
 // runtime vector length (bytes) divided by the element size.
-func (x simdType) LenExpr() string {
-	if !x.IsScalable() {
-		return fmt.Sprint(x.Lanes())
-	}
-	if elemBytes := x.ElemBits() / 8; elemBytes > 1 {
-		return fmt.Sprintf("vl() / %d", elemBytes)
-	}
-	return "vl()"
+func(x simdType) LenExpr() string
+{
+    if ! x.IsScalable() { return fmt.Sprint(x.Lanes()) }
+    if elemBytes: = x.ElemBits() / 8;
+    elemBytes > 1 { return fmt.Sprintf("vl() / %d", elemBytes) }
+    return "vl()"
 }
-
 // Name_ implements sgutil.TforAsBits.
-func (x simdType) Name_() string {
-	return x.Name()
-}
+func(x simdType) Name_() string { return x.Name() }
 
-func (x simdType) Article() string {
-	if strings.HasPrefix(x.Name(), "Int") {
-		return "an"
-	}
-	return "a" // Float, Uint
+func(x simdType) Article() string
+{
+    if strings.HasPrefix(x.Name(),"Int") { return "an" }
+    return "a" // Float, Uint
 }
-
 // LanesContainer returns the smallest int/uint bit size that is
 // large enough to hold one bit for each lane.  E.g., Mask32x4
 // is 4 lanes, and a uint8 is the smallest uint that has 4 bits.
-func (x simdType) LanesContainer() int {
-	lanes := x.Lanes()
-	if lanes > 64 {
-		panic("too many lanes")
-	}
-	if lanes > 32 {
-		return 64
-	}
-	if lanes > 16 {
-		return 32
-	}
-	if lanes > 8 {
-		return 16
-	}
-	return 8
+func(x simdType) LanesContainer() int
+{
+    lanes: = x.Lanes() if lanes > 64 { panic("too many lanes") }
+    if lanes > 32 { return 64 }
+    if lanes > 16 { return 32 }
+    if lanes > 8 { return 16 }
+    return 8
 }
-
 // MaskedLoadStoreFilter encodes which simd type type currently
 // get masked loads/stores generated, it is used in two places,
 // this forces coordination.
-func (x simdType) MaskedLoadStoreFilter() bool {
-	if x.IsScalable() {
-		return false
-	}
-	return x.Size() == 512 || (x.ElemBits() >= 32 && !x.IsMask())
+func(x simdType) MaskedLoadStoreFilter() bool
+{
+    if x.IsScalable() { return false }
+    return x.Size() == 512 || (x.ElemBits() >= 32 && ! x.IsMask())
 }
 
-func (x simdType) IntelSizeSuffix() string {
-	switch x.ElemBits() {
-	case 8:
-		return "B"
-	case 16:
-		return "W"
-	case 32:
-		return "D"
-	case 64:
-		return "Q"
-	}
-	panic("oops")
+func(x simdType) IntelSizeSuffix() string
+{
+    switch x.ElemBits() { case 8: return "B" case 16: return "W" case 32: return "D" case 64: return "Q" }
+    panic("oops")
 }
 
-func (x simdType) MaskedLoadDoc() string {
-	if x.Size() == 512 || x.ElemBits() < 32 {
-		return fmt.Sprintf("// Asm: VMOVDQU%d.Z, CPU Feature: AVX512", x.ElemBits())
-	} else {
-		return fmt.Sprintf("// Asm: VMASKMOV%s, CPU Feature: AVX2", x.IntelSizeSuffix())
-	}
+func(x simdType) MaskedLoadDoc() string
+{
+    if x.Size() == 512 || x.ElemBits() < 32 { return fmt.Sprintf("// Asm: VMOVDQU%d.Z, CPU Feature: AVX512", x.ElemBits()) }
+    else { return fmt.Sprintf("// Asm: VMASKMOV%s, CPU Feature: AVX2", x.IntelSizeSuffix()) }
 }
 
-func (x simdType) MaskedStoreDoc() string {
-	if x.Size() == 512 || x.ElemBits() < 32 {
-		return fmt.Sprintf("// Asm: VMOVDQU%d, CPU Feature: AVX512", x.ElemBits())
-	} else {
-		return fmt.Sprintf("// Asm: VMASKMOV%s, CPU Feature: AVX2", x.IntelSizeSuffix())
-	}
+func(x simdType) MaskedStoreDoc() string
+{
+    if x.Size() == 512 || x.ElemBits() < 32 { return fmt.Sprintf("// Asm: VMOVDQU%d, CPU Feature: AVX512", x.ElemBits()) }
+    else { return fmt.Sprintf("// Asm: VMASKMOV%s, CPU Feature: AVX2", x.IntelSizeSuffix()) }
 }
 
-func (x simdType) ToBitsDoc() string {
-	if x.IsScalable() {
-		panic("ToBitsDoc is not supported for scalable types")
-	}
-	if x.Size() == 512 || x.ElemBits() == 16 {
-		return fmt.Sprintf("// Asm: KMOV%s, CPU Feature: AVX512", x.IntelSizeSuffix())
-	}
-	// 128/256 bit vectors with 8, 32, 64 bit elements
-	var asm string
-	var feat string
-	switch x.ElemBits() {
-	case 8:
-		asm = "VPMOVMSKB"
-		if x.Size() == 256 {
-			feat = "AVX2"
-		} else {
-			feat = "AVX"
-		}
-	case 32:
-		asm = "VMOVMSKPS"
-		feat = "AVX"
-	case 64:
-		asm = "VMOVMSKPD"
-		feat = "AVX"
-	default:
-		panic("unexpected ElemBits")
-	}
-	return fmt.Sprintf("// Asm: %s, CPU Feature: %s", asm, feat)
+func(x simdType) ToBitsDoc() string
+{
+    if x.IsScalable() { panic("ToBitsDoc is not supported for scalable types") }
+    if x.Size() == 512 || x.ElemBits() == 16 { return fmt.Sprintf("// Asm: KMOV%s, CPU Feature: AVX512", x.IntelSizeSuffix()) }
+    // 128/256 bit vectors with 8, 32, 64 bit elements
+    var asm string var feat string switch x.ElemBits()
+    {
+        case 8: asm = "VPMOVMSKB" if x.Size() == 256 { feat = "AVX2" } else { feat = "AVX" }
+        case 32: asm = "VMOVMSKPS" feat = "AVX" case 64: asm = "VMOVMSKPD" feat = "AVX" default: panic("unexpected ElemBits")
+    }
+    return fmt.Sprintf("// Asm: %s, CPU Feature: %s", asm, feat)
 }
 
-func compareWidths(a, b specexpr.Num) int {
-	if c, ok := a.Compare(b); ok {
-		return c
-	}
-	_, aScale := a.(specexpr.ScalableWidth)
-	_, bScale := b.(specexpr.ScalableWidth)
-	if !aScale && bScale {
-		return -1
-	}
-	return 1
+func compareWidths(a, b specexpr.Num) int
+{
+    if c, ok: = a.Compare(b);
+    ok { return c }
+    _, aScale: = a.(specexpr.ScalableWidth) _, bScale: = b.(specexpr.ScalableWidth) if ! aScale && bScale { return - 1 }
+    return 1
 }
 
-func compareSimdTypes(x, y simdType) int {
-	// "vreg" then "mask"
-	if c := -compareNatural(x.Type(), y.Type()); c != 0 {
-		return c
-	}
-	// want "flo" < "int" < "uin" (and then 8 < 16 < 32 < 64),
-	// not "int16" < "int32" < "int64" < "int8")
-	// so limit comparison to first 3 bytes in string.
-	if c := compareNatural(x.Base()[:3], y.Base()[:3]); c != 0 {
-		return c
-	}
-	// base type size, 8 < 16 < 32 < 64
-	if c := x.ElemBits() - y.ElemBits(); c != 0 {
-		return c
-	}
-	// vector size last
-	return compareWidths(x.Shape.Width, y.Shape.Width)
+func compareSimdTypes(x, y simdType) int
+{
+    // "vreg" then "mask"
+    if c: = - compareNatural(x.Type(), y.Type());
+    c != 0 { return c }
+    // want "flo" < "int" < "uin" (and then 8 < 16 < 32 < 64),
+    // not "int16" < "int32" < "int64" < "int8")
+    // so limit comparison to first 3 bytes in string.
+    if c: = compareNatural(x.Base()[: 3], y.Base()[: 3]);
+    c != 0 { return c }
+    // base type size, 8 < 16 < 32 < 64
+    if c: = x.ElemBits() - y.ElemBits();
+    c != 0 { return c }
+    // vector size last
+    return compareWidths(x.Shape.Width, y.Shape.Width)
 }
 
-type simdTypeMap map[specexpr.Num][]simdType
+type simdTypeMap map[specexpr.Num][] simdType type simdTypePair struct { Tsrc simdType Tdst simdType }
 
-type simdTypePair struct {
-	Tsrc simdType
-	Tdst simdType
+func compareSimdTypePairs(x, y simdTypePair) int
+{
+    c: = compareSimdTypes(x.Tsrc, y.Tsrc) if c != 0 { return c }
+    return compareSimdTypes(x.Tdst, y.Tdst)
 }
 
-func compareSimdTypePairs(x, y simdTypePair) int {
-	c := compareSimdTypes(x.Tsrc, y.Tsrc)
-	if c != 0 {
-		return c
-	}
-	return compareSimdTypes(x.Tdst, y.Tdst)
-}
-
-func simdPackageHeader() string {
-	// A shared-package target's Go API files (SVE: types_sve.go, ops_sve.go) carry a
-	// "sve" name suffix, which is not a GOARCH, so unlike types_arm64.go they get
-	// no implicit build constraint. Add the GOARCH explicitly so they only build
-	// on their host arch and don't clash with other arches' tag types (e.g. v256).
-	constraint := "goexperiment.simd"
-	if a := CurrentArch(); a.sharesBackendPackage() {
-		constraint += " && " + a.Arch
-	}
-	return generatedHeader() + `
+func simdPackageHeader() string
+{
+    // A shared-package target's Go API files (SVE: types_sve.go, ops_sve.go) carry a
+    // "sve" name suffix, which is not a GOARCH, so unlike types_arm64.go they get
+    // no implicit build constraint. Add the GOARCH explicitly so they only build
+    // on their host arch and don't clash with other arches' tag types (e.g. v256).
+    constraint: = "goexperiment.simd" if a: = CurrentArch();
+    a.sharesBackendPackage() { constraint += " && " + a.Arch }
+    return generatedHeader() + `
 //go:build ` + constraint + `
 
 package archsimd
@@ -414,9 +305,7 @@ func (x {{.Name}}) String() string {
 }
 {{- end}}
 {{end}}
-`
-
-const simdFeaturesTemplate = `
+` const simdFeaturesTemplate = `
 import "internal/cpu"
 
 type X86Features struct {}
@@ -450,9 +339,7 @@ func ({{.FeatureVar}}Features) {{.Feature}}() bool {
 {{- end}}
 }
 {{end}}
-`
-
-const simdLoadStoreTemplate = `
+` const simdLoadStoreTemplate = `
 // Len returns the number of elements in {{.Article}} {{.Name}}.
 func (x {{.Name}}) Len() int { return {{.LenExpr}} }
 
@@ -465,9 +352,7 @@ func Load{{.Name}}Array(x *[{{.Lanes}}]{{.Base}}) {{.Name}}
 //
 //go:noescape
 func (x {{.Name}}) StoreArray(y *[{{.Lanes}}]{{.Base}})
-`
-
-// simdScalableLoadStoreTemplate is the load/store surface for scalable (SVE)
+` // simdScalableLoadStoreTemplate is the load/store surface for scalable (SVE)
 // types: partial and slice-based rather than fixed-array. The exported Load/Store
 // functions are ordinary Go (the "emulation"): they compute how many elements to
 // move — min(len(s), Len()), and nothing for an empty or nil slice — and call the
@@ -535,9 +420,7 @@ func (x {{.Name}}) StorePart(s []{{.Base}}) int {
 
 //go:noescape
 func (x {{.Name}}) storePart(s []{{.Base}})
-`
-
-const simdMaskFromValTemplate = `
+` const simdMaskFromValTemplate = `
 // {{.Name}}FromBits constructs a {{.Name}} from a bitmap value, where 1 means set for the indexed element, 0 means unset.
 {{- if ne .Lanes .LanesContainer}}
 // Only the lower {{.Lanes}} bits of x are used.
@@ -553,9 +436,7 @@ func {{.Name}}FromBits(x uint{{.LanesContainer}}) {{.Name}}
 //
 {{.ToBitsDoc}}
 func (x {{.Name}}) ToBits() uint{{.LanesContainer}}
-`
-
-const simdMaskedLoadStoreTemplate = `
+` const simdMaskedLoadStoreTemplate = `
 // load{{.Name}}ArrayMasked loads {{.Article}} {{.Name}} from an array,
 // at those elements enabled by mask, and zeroes the other elements.
 // The memory of the elements that are not enabled need not be
@@ -574,193 +455,265 @@ func load{{.Name}}ArrayMasked(y *[{{.Lanes}}]{{.Base}}, mask Mask{{.ElemBits}}x{
 //
 //go:noescape
 func (x {{.Name}}) StoreArrayMasked(y *[{{.Lanes}}]{{.Base}}, mask Mask{{.ElemBits}}x{{.Lanes}})
-`
-
-// Helper type to make template map initialization less repetitive
+` // Helper type to make template map initialization less repetitive
 // (and also remove a chance for errors.)
-type stubTemplateMap struct {
-	sgutil.InsertMap[string, *template.Template]
-}
-
+type stubTemplateMap struct { sgutil.InsertMap[string, * template.Template] }
 // Add creates a template named "name" after appending "\n" to the
 // template, and returns the input so that additions may be chained.
 // This helps make template initialization easy to order and easy to read.
-func (rtm *stubTemplateMap) Add(name string, templ string) *stubTemplateMap {
-	// Wrap in newlines.
-	templ = "\n" + templ + "\n"
-	ct := sgutil.TemplateNamed(name, templ)
-	rtm.InsertMap.Put(name, ct)
-	return rtm
+func(rtm * stubTemplateMap) Add(name string, templ string) * stubTemplateMap
+{
+    // Wrap in newlines.
+    templ = "\n" + templ + "\n" ct: = sgutil.TemplateNamed(name, templ) rtm.InsertMap.Put(name, ct) return rtm
 }
 
-var stubTemplates = new(stubTemplateMap)
-
-func init() {
-	st := stubTemplates
-
-	st.Add("op1", `{{if .Documentation}}{{.Documentation}}
+var stubTemplates = new (stubTemplateMap) func init()
+{
+    st: = stubTemplates st.Add
+    (
+        "op1", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op0NameAndType "x"}}) {{.Go}}() {{.GoType}}`)
+func ({{.Op0NameAndType "x"}}) {{.Go}}() {{.GoType}}`
+    )
 
-	st.Add("op2", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op2", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}) {{.GoType}}`)
+func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}) {{.GoType}}`
+    )
 
-	st.Add("op2_21", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op2_21", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op0NameAndType "y"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op0NameAndType "y"}}) {{.GoType}}`
+    )
 
-	st.Add("op2_21Type1", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op2_21Type1", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op0NameAndType "y"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op0NameAndType "y"}}) {{.GoType}}`
+    )
 
-	st.Add("op3", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op3", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}, {{.Op2NameAndType "z"}}) {{.GoType}}`)
+func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}, {{.Op2NameAndType "z"}}) {{.GoType}}`
+    )
 
-	st.Add("op3_31Zero3", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op3_31Zero3", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op2NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}) {{.GoType}}`)
+func ({{.Op2NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}) {{.GoType}}`
+    )
 
-	st.Add("op3_21", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op3_21", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op0NameAndType "y"}}, {{.Op2NameAndType "z"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op0NameAndType "y"}}, {{.Op2NameAndType "z"}}) {{.GoType}}`
+    )
 
-	st.Add("op3_21Type1", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op3_21Type1", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op0NameAndType "y"}}, {{.Op2NameAndType "z"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op0NameAndType "y"}}, {{.Op2NameAndType "z"}}) {{.GoType}}`
+    )
 
-	st.Add("op3_231Type1", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op3_231Type1", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.Op0NameAndType "z"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.Op0NameAndType "z"}}) {{.GoType}}`
+    )
 
-	st.Add("op2VecAsScalar", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op2VecAsScalar", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1Name "y"}} uint{{(index .In 1).TreatLikeAScalarOfSize}}) {{(index .Out 0).Go}}`)
+func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1Name "y"}} uint{{(index .In 1).TreatLikeAScalarOfSize}}) {{(index .Out 0).Go}}`
+    )
 
-	st.Add("op2ImmVecAsScalar", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op2ImmVecAsScalar", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Performance: {{.ImmName}} results in better performance when it's a constant, a non-constant value will be translated into a jump table.
 //
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op2NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, v float{{(index .In 3).ElemBits}}) {{(index .Out 0).Go}}`)
+func ({{.Op2NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, v float{{(index .In 3).ElemBits}}) {{(index .Out 0).Go}}`
+    )
 
-	st.Add("op3VecAsScalar", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op3VecAsScalar", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1Name "y"}} uint{{(index .In 1).TreatLikeAScalarOfSize}}, {{.Op2NameAndType "z"}}) {{(index .Out 0).Go}}`)
+func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1Name "y"}} uint{{(index .In 1).TreatLikeAScalarOfSize}}, {{.Op2NameAndType "z"}}) {{(index .Out 0).Go}}`
+    )
 
-	st.Add("op4", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op4", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}, {{.Op2NameAndType "z"}}, {{.Op3NameAndType "u"}}) {{.GoType}}`)
+func ({{.Op0NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}, {{.Op2NameAndType "z"}}, {{.Op3NameAndType "u"}}) {{.GoType}}`
+    )
 
-	st.Add("op4_231Type1", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op4_231Type1", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.Op0NameAndType "z"}}, {{.Op3NameAndType "u"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.Op0NameAndType "z"}}, {{.Op3NameAndType "u"}}) {{.GoType}}`
+    )
 
-	st.Add("op4_31", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op4_31", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op2NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}, {{.Op0NameAndType "z"}}, {{.Op3NameAndType "u"}}) {{.GoType}}`)
+func ({{.Op2NameAndType "x"}}) {{.Go}}({{.Op1NameAndType "y"}}, {{.Op0NameAndType "z"}}, {{.Op3NameAndType "u"}}) {{.GoType}}`
+    )
 
-	st.Add("op1Imm", `{{if .Documentation}}{{.Documentation}}
-//{{end}}
-// Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
-//
-// Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}) {{.GoType}}`)
-
-	st.Add("op1Imm8", `{{if .Documentation}}{{.Documentation}}
-//{{end}}
-// Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
-//
-// Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}) {{.GoType}}`)
-
-	st.Add("op2Imm", `{{if .Documentation}}{{.Documentation}}
-//{{end}}
-// Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
-//
-// Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}) {{.GoType}}`)
-
-	st.Add("op2Imm8", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op1Imm", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
 //
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}) {{.GoType}}`
+    )
 
-	// Special case for the instruction (in some versions at least) takes an immediate but treat it as a regular operand
-	st.Add("op1Imm8_rotate", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op1Imm8", `{{if .Documentation}}{{.Documentation}}
+//{{end}}
+// Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
+//
+// Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}) {{.GoType}}`
+    )
+
+    st.Add
+    (
+        "op2Imm", `{{if .Documentation}}{{.Documentation}}
+//{{end}}
+// Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
+//
+// Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}) {{.GoType}}`
+    )
+
+    st.Add
+    (
+        "op2Imm8", `{{if .Documentation}}{{.Documentation}}
+//{{end}}
+// Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
+//
+// Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}) {{.GoType}}`
+    )
+    // Special case for the instruction (in some versions at least) takes an immediate but treat it as a regular operand
+    st.Add
+    (
+        "op1Imm8_rotate", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Emulated
-func ({{.Op1NameAndType "x"}}) {{.Go}}(dist uint64) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}(dist uint64) {{.GoType}}`
+    )
 
-	st.Add("op2Imm8_2I", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op2Imm8_2I", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
 //
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.ImmName}} {{.ImmType}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.ImmName}} {{.ImmType}}) {{.GoType}}`
+    )
 
-	st.Add("op2Imm_2I", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op2Imm_2I", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
 //
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.ImmName}} {{.ImmType}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.ImmName}} {{.ImmType}}) {{.GoType}}`
+    )
 
-	st.Add("op2Imm8_II", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op2Imm8_II", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // {{.ImmName}} should be between 0 and 3, inclusive; other values may result in a runtime panic.
 //
 // Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
 //
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}) {{.GoType}}`
+    )
 
-	st.Add("op2Imm8_SHA1RNDS4", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op2Imm8_SHA1RNDS4", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
 //
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}) {{.GoType}}`
+    )
 
-	st.Add("op3Imm8", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op3Imm8", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
 //
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}, {{.Op3NameAndType "z"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}, {{.Op3NameAndType "z"}}) {{.GoType}}`
+    )
 
-	st.Add("op3Imm8_2I", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op3Imm8_2I", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
 //
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.ImmName}} {{.ImmType}}, {{.Op3NameAndType "z"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.Op2NameAndType "y"}}, {{.ImmName}} {{.ImmType}}, {{.Op3NameAndType "z"}}) {{.GoType}}`
+    )
 
-	st.Add("op4Imm8", `{{if .Documentation}}{{.Documentation}}
+    st.Add
+    (
+        "op4Imm8", `{{if .Documentation}}{{.Documentation}}
 //{{end}}
 // Performance: A non-constant value of {{.ImmName}} may result in significantly worse performance for this operation.
 //
 // Asm: {{.Asm}}, CPU Feature: {{.CPUFeature}}
-func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}, {{.Op3NameAndType "z"}}, {{.Op4NameAndType "u"}}) {{.GoType}}`)
+func ({{.Op1NameAndType "x"}}) {{.Go}}({{.ImmName}} {{.ImmType}}, {{.Op2NameAndType "y"}}, {{.Op3NameAndType "z"}}, {{.Op4NameAndType "u"}}) {{.GoType}}`
+    )
 
-	st.Add("mask", `// To{{.VectorCounterpart}} converts from {{.Name}} to {{.VectorCounterpart}}.
+    st.Add
+    (
+        "mask", `// To{{.VectorCounterpart}} converts from {{.Name}} to {{.VectorCounterpart}}.
 // If element i in the mask is "true", all bits in element i of the resulting
 // vector will be set.
 func (x {{.Name}}) To{{.VectorCounterpart}}() (z {{.VectorCounterpart}})
@@ -773,443 +726,353 @@ func (x {{.Name}}) And(y {{.Name}}) {{.Name}}
 func (x {{.Name}}) Or(y {{.Name}}) {{.Name}}
 {{if .HasNot}}
 func (x {{.Name}}) Not() {{.Name}}
-{{end}}`)
-
+{{end}}`
+    )
 }
 
-func structFields(shape specexpr.Vector) string {
-	if shape.Elem.Base == "mask" && CurrentArch().isSVE() {
-		return fmt.Sprintf("\t%s psve\n\tvals uint64", strings.ToLower(shape.String()))
-	}
-	elemBits := int(shape.Elem.Bits)
-	base := strings.ToLower(shape.Elem.Base)
-	if shape.Elem.Base == "mask" {
-		base = "int"
-	}
-	elemBase := fmt.Sprintf("%s%d", base, elemBits)
-	lanes, width := types.MaxVectorBits/elemBits, types.MaxVectorBits
-	if !shape.Scalable() {
-		width = int(shape.Width.(specexpr.Int))
-		lanes = width / elemBits
-	}
-	tagFieldNameS := fmt.Sprintf("%sx%d", elemBase, lanes)
-	tagFieldS := fmt.Sprintf("%s v%d", tagFieldNameS, width)
-	valFieldS := fmt.Sprintf("vals%s[%d]%s", strings.Repeat(" ", len(tagFieldNameS)-3), lanes, elemBase)
-	return fmt.Sprintf("\t%s\n\t%s", tagFieldS, valFieldS)
+func structFields(shape specexpr.Vector) string
+{
+    if shape.Elem.Base == "mask" && CurrentArch().isSVE() { return fmt.Sprintf("\t%s psve\n\tvals uint64", strings.ToLower(shape.String())) }
+    elemBits: = int(shape.Elem.Bits) base: = strings.ToLower(shape.Elem.Base) if shape.Elem.Base == "mask" { base = "int" }
+    elemBase: = fmt.Sprintf("%s%d", base, elemBits) lanes, width: = types.MaxVectorBits / elemBits, types.MaxVectorBits if ! shape.Scalable()
+    {
+        width = int(shape.Width.(specexpr.Int)) lanes = width / elemBits
+    }
+    tagFieldNameS: = fmt.Sprintf("%sx%d", elemBase, lanes) tagFieldS: = fmt.Sprintf("%s v%d", tagFieldNameS, width) valFieldS: = fmt.Sprintf
+    (
+        "vals%s[%d]%s", strings.Repeat(" ", len(tagFieldNameS) - 3), lanes, elemBase
+    )
+    return fmt.Sprintf("\t%s\n\t%s", tagFieldS, valFieldS)
 }
-
 // parseSIMDTypes groups go simd types by their vector widths, and
 // returns a map whose key is the vector width (specexpr.Num), value is the simd type.
-func parseSIMDTypes(ops []Operation) simdTypeMap {
-	// TODO: maybe instead of going over ops, let's try go over types.yaml.
-	ret := map[specexpr.Num][]simdType{}
-	seen := map[string]struct{}{}
-	processArg := func(arg types.Operand) {
-		if arg.Class == "immediate" || arg.Class == "greg" {
-			// Immediates and general-purpose registers are not encoded as vector types.
-			return
-		}
-		if arg.Lanes != nil && *arg.Lanes <= 1 {
-			// Scalar vreg operands (e.g. float32/float64) are not SIMD vector types.
-			return
-		}
-		if _, ok := seen[*arg.Go]; ok {
-			return
-		}
-		seen[*arg.Go] = struct{}{}
+func parseSIMDTypes(ops[] Operation) simdTypeMap
+{
+    // TODO: maybe instead of going over ops, let's try go over types.yaml.
+    ret: = map[specexpr.Num][] simdType {}
+    seen: = map[string] struct {}
+{}
+    processArg: = func(arg types.Operand)
+    {
+        if arg.Class == "immediate" || arg.Class == "greg"
+        {
+            // Immediates and general-purpose registers are not encoded as vector types.
+            return 
+        }
+        if arg.Lanes != nil && * arg.Lanes <= 1
+        {
+            // Scalar vreg operands (e.g. float32/float64) are not SIMD vector types.
+            return 
+        }
+        if _, ok: = seen[ * arg.Go];
+        ok { return }
+        seen[ * arg.Go] = struct {}
+{}
 
-		base := *arg.Base
-		if arg.Class == "mask" {
-			base = "mask"
-		}
-		elem := specexpr.Basic{
-			Base: base,
-			Bits: specexpr.Int(*arg.ElemBits),
-		}
-		width := arg.Bits.Num()
-		shape := specexpr.Vector{Elem: elem, Width: width}
+        base: = * arg.Base if arg.Class == "mask" { base = "mask" }
+        elem: = specexpr.Basic { Base: base, Bits: specexpr.Int( * arg.ElemBits), }
+        width: = arg.Bits.Num() shape: = specexpr.Vector { Elem: elem, Width: width }
 
-		fields := structFields(shape)
-		hasNot := CurrentArch().Arch == "arm64"
-		ret[width] = append(ret[width], simdType{Shape: shape, Fields: fields, HasNot: hasNot})
-		if !shape.Scalable() && shape.Elem.Base == "mask" {
-			// In case the vector counterpart of a fixed-width mask is not present, put its vector counterpart typedef into the map as well.
-			vCounterpartShape := specexpr.Vector{
-				Elem:  specexpr.Basic{Base: "int", Bits: elem.Bits},
-				Width: width,
-			}
-			vcName := vCounterpartShape.String()
-			if _, ok := seen[vcName]; !ok {
-				seen[vcName] = struct{}{}
-				ret[width] = append(ret[width], simdType{
-					Shape:  vCounterpartShape,
-					Fields: structFields(vCounterpartShape),
-					HasNot: hasNot,
-				})
-			}
-		}
-	}
-	for _, op := range ops {
-		for _, arg := range op.In {
-			processArg(arg)
-		}
-		for _, arg := range op.Out {
-			processArg(arg)
-		}
-	}
-	for _, v := range ret {
-		slices.SortFunc(v, compareSimdTypes)
-	}
+        fields: = structFields(shape) hasNot: = CurrentArch().Arch == "arm64" ret[width] = append
+        (
+            ret[width], simdType { Shape: shape, Fields: fields, HasNot: hasNot }
+        )
+        if ! shape.Scalable() && shape.Elem.Base == "mask"
+        {
+            // In case the vector counterpart of a fixed-width mask is not present, put its vector counterpart typedef into the map as well.
+            vCounterpartShape: = specexpr.Vector { Elem: specexpr.Basic { Base: "int", Bits: elem.Bits }, Width: width, }
+            vcName: = vCounterpartShape.String() if _, ok: = seen[vcName];
+            ! ok
+            {
+                seen[vcName] = struct {}
+{}
+                ret[width] = append(ret[width], simdType { Shape: vCounterpartShape, Fields: structFields(vCounterpartShape), HasNot: hasNot, })
+            }
+        }
+    }
+    for _, op: = range ops { for _, arg: = range op.In { processArg(arg) } for _, arg: = range op.Out { processArg(arg) } }
+    for _, v: = range ret { slices.SortFunc(v, compareSimdTypes) }
 
-	return ret
+    return ret
 }
 
-func vConvertFromTypeMap(typeMap simdTypeMap) []simdTypePair {
-	v := []simdTypePair{}
-	for _, ts := range typeMap {
-		for i, tsrc := range ts {
-			for j, tdst := range ts {
-				if i != j && !tsrc.IsMask() && !tdst.IsMask() {
-					v = append(v, simdTypePair{tsrc, tdst})
-				}
-			}
-		}
-	}
-	slices.SortFunc(v, compareSimdTypePairs)
-	return v
+func vConvertFromTypeMap(typeMap simdTypeMap)[] simdTypePair
+{
+    v: = [] simdTypePair {}
+    for _, ts: = range typeMap
+    {
+        for i, tsrc: = range ts
+        {
+            for j, tdst: = range ts
+            {
+                if i != j && ! tsrc.IsMask() && ! tdst.IsMask() { v = append(v, simdTypePair { tsrc, tdst }) }
+            }
+        }
+    }
+    slices.SortFunc(v, compareSimdTypePairs) return v
 }
 
-func masksFromTypeMap(typeMap simdTypeMap) []simdType {
-	m := []simdType{}
-	for _, ts := range typeMap {
-		for _, tsrc := range ts {
-			if tsrc.IsMask() {
-				m = append(m, tsrc)
-			}
-		}
-	}
-	slices.SortFunc(m, compareSimdTypes)
-	return m
+func masksFromTypeMap(typeMap simdTypeMap)[] simdType
+{
+    m: = [] simdType {}
+    for _, ts: = range typeMap
+    {
+        for _, tsrc: = range ts { if tsrc.IsMask() { m = append(m, tsrc) } }
+    }
+    slices.SortFunc(m, compareSimdTypes) return m
 }
 
-func typesFromTypeMap(typeMap simdTypeMap) []simdType {
-	m := []simdType{}
-	for _, ts := range typeMap {
-		m = append(m, ts...)
-	}
-	slices.SortFunc(m, compareSimdTypes)
-	return m
+func typesFromTypeMap(typeMap simdTypeMap)[] simdType
+{
+    m: = [] simdType {}
+    for _, ts: = range typeMap { m = append(m, ts ...) }
+    slices.SortFunc(m, compareSimdTypes) return m
 }
-
 // writeSIMDTypes generates the simd vector types into a bytes.Buffer
-func writeSIMDTypes(buffer *bytes.Buffer, typeMap simdTypeMap) {
-	t := templateOf(simdTypesTemplates, "types_amd64")
-	loadStore := templateOf(simdLoadStoreTemplate, "loadstore_amd64")
-	scalableLoadStore := templateOf(simdScalableLoadStoreTemplate, "loadstore_scalable")
-	maskedLoadStore := templateOf(simdMaskedLoadStoreTemplate, "maskedloadstore_amd64")
-	maskFromVal := templateOf(simdMaskFromValTemplate, "maskFromVal_amd64")
+func writeSIMDTypes(buffer * bytes.Buffer, typeMap simdTypeMap)
+{
+    t: = templateOf(simdTypesTemplates, "types_amd64") loadStore: = templateOf(simdLoadStoreTemplate, "loadstore_amd64") scalableLoadStore: = templateOf
+    (
+        simdScalableLoadStoreTemplate, "loadstore_scalable"
+    )
+    maskedLoadStore: = templateOf(simdMaskedLoadStoreTemplate, "maskedloadstore_amd64") maskFromVal: = templateOf
+    (
+        simdMaskFromValTemplate, "maskFromVal_amd64"
+    )
 
-	buffer.WriteString(simdPackageHeader())
-
-	if CurrentArch().isSVE() {
-		// SVE predicates are represented as-is (a P register), not as data vectors,
-		// so their Go types are tagged with psve rather than a v<N> vector tag.
-		buffer.WriteString(`
+    buffer.WriteString(simdPackageHeader()) if CurrentArch().isSVE()
+    {
+        // SVE predicates are represented as-is (a P register), not as data vectors,
+        // so their Go types are tagged with psve rather than a v<N> vector tag.
+        buffer.WriteString
+        (
+            `
 import "unsafe"
 
 // psve is a tag type that tells the compiler that this is an SVE predicate.
 type psve struct {
 	_sve [0]func() // uncomparable
 }
-`)
-	}
+`
+        )
+    }
 
-	widths := slices.SortedFunc(maps.Keys(typeMap), compareWidths)
-
-	for _, width := range widths {
-		if wInt, ok := width.(specexpr.Int); ok {
-			if err := t.ExecuteTemplate(buffer, "sizeTmpl", int(wInt)); err != nil {
-				panic(fmt.Errorf("failed to execute size template for size %d: %w", wInt, err))
-			}
-		} else if CurrentArch().isSVE() {
-			if err := t.ExecuteTemplate(buffer, "sizeTmpl", types.MaxVectorBits); err != nil {
-				panic(fmt.Errorf("failed to execute size template for size %d: %w", types.MaxVectorBits, err))
-			}
-		}
-		for _, typeDef := range typeMap[width] {
-			typeTmplName := "typeTmpl"
-			if typeDef.IsScalable() {
-				typeTmplName = "scalableTypeTmpl"
-			}
-			if err := t.ExecuteTemplate(buffer, typeTmplName, typeDef); err != nil {
-				panic(fmt.Errorf("failed to execute type template for type %s: %w", typeDef.Name(), err))
-			}
-			if !typeDef.IsMask() {
-				// Scalable (SVE) types get a partial, slice-based load/store; the
-				// fixed-width types get the array load/store.
-				ls, lsName := loadStore, "loadstore_amd64"
-				if typeDef.IsScalable() {
-					ls, lsName = scalableLoadStore, "loadstore_scalable"
-				}
-				if err := ls.ExecuteTemplate(buffer, lsName, typeDef); err != nil {
-					panic(fmt.Errorf("failed to execute loadstore template for type %s: %w", typeDef.Name(), err))
-				}
-				// restrict to AVX2 masked loads/stores first.
-				if CurrentArch().Arch == "amd64" && typeDef.MaskedLoadStoreFilter() {
-					if err := maskedLoadStore.ExecuteTemplate(buffer, "maskedloadstore_amd64", typeDef); err != nil {
-						panic(fmt.Errorf("failed to execute maskedloadstore template for type %s: %w", typeDef.Name(), err))
-					}
-				}
-			} else if CurrentArch().isSVE() {
-				if err := t.ExecuteTemplate(buffer, "sveMaskTmpl", typeDef); err != nil {
-					panic(fmt.Errorf("failed to execute sveMaskTmpl template for type %s: %w", typeDef.Name(), err))
-				}
-			} else {
-				// ARM64 NEON comparisons produce all-0/all-1 per lane, so
-				// FromBits/ToBits (x86 mask register conversions) are not needed.
-				if CurrentArch().Arch != "arm64" {
-					if err := maskFromVal.ExecuteTemplate(buffer, "maskFromVal_amd64", typeDef); err != nil {
-						panic(fmt.Errorf("failed to execute maskFromVal template for type %s: %w", typeDef.Name(), err))
-					}
-				}
-			}
-			// TODO: these type utility methods can also be generated by tmplgen, or we can move other arches from
-			// tmplgen to here.
-			if typeDef.IsScalable() && typeDef.Type() != "mask" {
-				if err := t.ExecuteTemplate(buffer, "sveIfElseTmpl", typeDef); err != nil {
-					panic(fmt.Errorf("failed to execute sveIfElseTmpl template for type %s: %w", typeDef.Name(), err))
-				}
-				if err := t.ExecuteTemplate(buffer, "sveBroadcastTmpl", typeDef); err != nil {
-					panic(fmt.Errorf("failed to execute sveBroadcastTmpl template for type %s: %w", typeDef.Name(), err))
-				}
-			}
-			if typeDef.IsScalable() {
-				if err := t.ExecuteTemplate(buffer, "sveStringTmpl", typeDef); err != nil {
-					panic(fmt.Errorf("failed to execute sveStringTmpl template for type %s: %w", typeDef.Name(), err))
-				}
-			}
-		}
-	}
+    widths: = slices.SortedFunc(maps.Keys(typeMap), compareWidths) for _, width: = range widths
+    {
+        if wInt, ok: = width.(specexpr.Int);
+        ok
+        {
+            if err: = t.ExecuteTemplate(buffer, "sizeTmpl", int (wInt));
+            err != nil { panic(fmt.Errorf("failed to execute size template for size %d: %w", wInt, err)) }
+        }
+        else if CurrentArch().isSVE()
+        {
+            if err: = t.ExecuteTemplate(buffer, "sizeTmpl", types.MaxVectorBits);
+            err != nil { panic(fmt.Errorf("failed to execute size template for size %d: %w", types.MaxVectorBits, err)) }
+        }
+        for _, typeDef: = range typeMap[width]
+        {
+            typeTmplName: = "typeTmpl" if typeDef.IsScalable() { typeTmplName = "scalableTypeTmpl" }
+            if err: = t.ExecuteTemplate(buffer, typeTmplName, typeDef);
+            err != nil { panic(fmt.Errorf("failed to execute type template for type %s: %w", typeDef.Name(), err)) }
+            if ! typeDef.IsMask()
+            {
+                // Scalable (SVE) types get a partial, slice-based load/store; the
+                // fixed-width types get the array load/store.
+                ls, lsName: = loadStore, "loadstore_amd64" if typeDef.IsScalable() { ls, lsName = scalableLoadStore, "loadstore_scalable" }
+                if err: = ls.ExecuteTemplate(buffer, lsName, typeDef);
+                err != nil { panic(fmt.Errorf("failed to execute loadstore template for type %s: %w", typeDef.Name(), err)) }
+                // restrict to AVX2 masked loads/stores first.
+                if CurrentArch().Arch == "amd64" && typeDef.MaskedLoadStoreFilter()
+                {
+                    if err: = maskedLoadStore.ExecuteTemplate(buffer, "maskedloadstore_amd64", typeDef);
+                    err != nil { panic(fmt.Errorf("failed to execute maskedloadstore template for type %s: %w", typeDef.Name(), err)) }
+                }
+            }
+            else if CurrentArch().isSVE()
+            {
+                if err: = t.ExecuteTemplate(buffer, "sveMaskTmpl", typeDef);
+                err != nil { panic(fmt.Errorf("failed to execute sveMaskTmpl template for type %s: %w", typeDef.Name(), err)) }
+            }
+            else
+            {
+                // ARM64 NEON comparisons produce all-0/all-1 per lane, so
+                // FromBits/ToBits (x86 mask register conversions) are not needed.
+                if CurrentArch().Arch != "arm64"
+                {
+                    if err: = maskFromVal.ExecuteTemplate(buffer, "maskFromVal_amd64", typeDef);
+                    err != nil { panic(fmt.Errorf("failed to execute maskFromVal template for type %s: %w", typeDef.Name(), err)) }
+                }
+            }
+            // TODO: these type utility methods can also be generated by tmplgen, or we can move other arches from
+            // tmplgen to here.
+            if typeDef.IsScalable() && typeDef.Type() != "mask"
+            {
+                if err: = t.ExecuteTemplate(buffer, "sveIfElseTmpl", typeDef);
+                err != nil { panic(fmt.Errorf("failed to execute sveIfElseTmpl template for type %s: %w", typeDef.Name(), err)) }
+                if err: = t.ExecuteTemplate(buffer, "sveBroadcastTmpl", typeDef);
+                err != nil { panic(fmt.Errorf("failed to execute sveBroadcastTmpl template for type %s: %w", typeDef.Name(), err)) }
+            }
+            if typeDef.IsScalable()
+            {
+                if err: = t.ExecuteTemplate(buffer, "sveStringTmpl", typeDef);
+                err != nil { panic(fmt.Errorf("failed to execute sveStringTmpl template for type %s: %w", typeDef.Name(), err)) }
+            }
+        }
+    }
 }
 
-type goarchFeatures struct {
-	// featureVar is the name of the exported feature-check variable for this
-	// architecture.
-	featureVar string
-
-	// features records per-feature information.
-	features map[string]featureInfo
+type goarchFeatures struct 
+{
+    // featureVar is the name of the exported feature-check variable for this
+    // architecture.
+    featureVar string // features records per-feature information.
+    features map[string] featureInfo
 }
 
-type featureInfo struct {
-	// Implies is a list of other CPU features that are required for this
-	// feature. These are allowed to chain.
-	//
-	// For example, if the Frob feature lists "Baz", then if X.Frob() returns
-	// true, it must also be true that the CPU has feature Baz.
-	Implies []string
-
-	// Virtual means this feature is not represented directly in internal/cpu,
-	// but is instead the logical AND of the features in Implies.
-	Virtual bool
+type featureInfo struct 
+{
+    // Implies is a list of other CPU features that are required for this
+    // feature. These are allowed to chain.
+    //
+    // For example, if the Frob feature lists "Baz", then if X.Frob() returns
+    // true, it must also be true that the CPU has feature Baz.
+    Implies[] string // Virtual means this feature is not represented directly in internal/cpu,
+    // but is instead the logical AND of the features in Implies.
+    Virtual bool
 }
-
 // goarchFeatureInfo maps from GOARCH to CPU feature to additional information
 // about that feature. Not all features need to be in this map.
-var goarchFeatureInfo = make(map[string]goarchFeatures)
-
-func registerFeatureInfo(goArch string, features goarchFeatures) {
-	goarchFeatureInfo[goArch] = features
+var goarchFeatureInfo = make(map[string] goarchFeatures) func registerFeatureInfo(goArch string, features goarchFeatures)
+{
+    goarchFeatureInfo[goArch] = features
 }
 
-func featureImplies(goarch string, base string) string {
-	// Compute the transitive closure of base.
-	var list []string
-	var visit func(f string)
-	visit = func(f string) {
-		list = append(list, f)
-		for _, dep := range goarchFeatureInfo[goarch].features[f].Implies {
-			visit(dep)
-		}
-	}
-	visit(base)
-	// Drop base
-	list = list[1:]
-	// Put in "nice" order
-	slices.Reverse(list)
-	// Combine into a comment-ready form
-	switch len(list) {
-	case 0:
-		return ""
-	case 1:
-		return list[0]
-	case 2:
-		return list[0] + " and " + list[1]
-	default:
-		list[len(list)-1] = "and " + list[len(list)-1]
-		return strings.Join(list, ", ")
-	}
+func featureImplies(goarch string, base string) string
+{
+    // Compute the transitive closure of base.
+    var list[] string var visit func(f string) visit = func(f string)
+    {
+        list = append(list, f) for _, dep: = range goarchFeatureInfo[goarch].features[f].Implies { visit(dep) }
+    }
+    visit(base) // Drop base
+    list = list[1:] // Put in "nice" order
+    slices.Reverse(list) // Combine into a comment-ready form
+    switch len(list)
+    {
+        case 0: return "" case 1: return list[0] case 2: return list[0] + " and " + list[1] default: list[len(list) - 1] = "and " + list[len(list) - 1] return strings.Join
+        (
+            list, ", "
+        )
+    }
 }
 
-func writeSIMDFeatures(buffer *bytes.Buffer, ops []Operation) {
-	// Gather all features
-	type featureKey struct {
-		GoArch  string
-		Feature string
-	}
-	featureSet := make(map[featureKey]struct{})
-	for _, op := range ops {
-		// Generate a feature check for each independant feature in a
-		// composite feature.
-		for feature := range strings.SplitSeq(op.CPUFeature, ",") {
-			feature = strings.TrimSpace(feature)
-			featureSet[featureKey{op.GOARCH, feature}] = struct{}{}
-		}
-	}
-	featureKeys := slices.SortedFunc(maps.Keys(featureSet), func(a, b featureKey) int {
-		if c := cmp.Compare(a.GoArch, b.GoArch); c != 0 {
-			return c
-		}
-		return compareNatural(a.Feature, b.Feature)
-	})
-
-	// TODO: internal/cpu doesn't enforce these at all. You can even do
-	// GODEBUG=cpu.avx=off and it will happily turn off AVX without turning off
-	// AVX2. We need to push these dependencies into it somehow.
-	type feature struct {
-		featureKey
-		FeatureVar string
-		Virtual    bool
-		Implies    []string
-		ImpliesAll string
-	}
-	var features []feature
-	for _, k := range featureKeys {
-		featureVar := goarchFeatureInfo[k.GoArch].featureVar
-		fi := goarchFeatureInfo[k.GoArch].features[k.Feature]
-		features = append(features, feature{
-			featureKey: k,
-			FeatureVar: featureVar,
-			Virtual:    fi.Virtual,
-			Implies:    fi.Implies,
-			ImpliesAll: featureImplies(k.GoArch, k.Feature),
-		})
-	}
-
-	// If we ever have the same feature name on more than one GOARCH, we'll have
-	// to be more careful about this.
-	t := templateOf(simdFeaturesTemplate, "features")
-
-	buffer.WriteString(simdPackageHeader())
-
-	if err := t.Execute(buffer, features); err != nil {
-		panic(fmt.Errorf("failed to execute features template: %w", err))
-	}
+func writeSIMDFeatures(buffer * bytes.Buffer, ops[] Operation)
+{
+    // Gather all features
+    type featureKey struct { GoArch string Feature string }
+    featureSet: = make(map[featureKey] struct {}) for _, op: = range ops
+    {
+        // Generate a feature check for each independant feature in a
+        // composite feature.
+        for feature: = range strings.SplitSeq(op.CPUFeature, ",")
+        {
+            feature = strings.TrimSpace(feature) featureSet[featureKey { op.GOARCH, feature }] = struct {}
+{}
+        }
+    }
+    featureKeys: = slices.SortedFunc
+    (
+        maps.Keys(featureSet), func(a, b featureKey) int
+        {
+            if c: = cmp.Compare(a.GoArch, b.GoArch);
+            c != 0 { return c }
+            return compareNatural(a.Feature, b.Feature)
+        }
+    )
+    // TODO: internal/cpu doesn't enforce these at all. You can even do
+    // GODEBUG=cpu.avx=off and it will happily turn off AVX without turning off
+    // AVX2. We need to push these dependencies into it somehow.
+    type feature struct { featureKey FeatureVar string Virtual bool Implies[] string ImpliesAll string }
+    var features[] feature for _, k: = range featureKeys
+    {
+        featureVar: = goarchFeatureInfo[k.GoArch].featureVar fi: = goarchFeatureInfo[k.GoArch].features[k.Feature] features = append
+        (
+            features, feature
+            {
+                featureKey: k, FeatureVar: featureVar, Virtual: fi.Virtual, Implies: fi.Implies, ImpliesAll: featureImplies(k.GoArch, k.Feature),
+            }
+        )
+    }
+    // If we ever have the same feature name on more than one GOARCH, we'll have
+    // to be more careful about this.
+    t: = templateOf(simdFeaturesTemplate, "features") buffer.WriteString(simdPackageHeader()) if err: = t.Execute(buffer, features);
+    err != nil { panic(fmt.Errorf("failed to execute features template: %w", err)) }
 }
-
 // writeSIMDStubs returns two bytes.Buffers containing the declarations for the public
 // and internal-use vector intrinsics.
-func writeSIMDStubs(f, fI *bytes.Buffer, ops []Operation, typeMap simdTypeMap, doDeprecatedPuns bool) {
-	f.WriteString(simdPackageHeader())
-	fI.WriteString(simdPackageHeader())
+func writeSIMDStubs(f, fI * bytes.Buffer, ops[] Operation, typeMap simdTypeMap, doDeprecatedPuns bool)
+{
+    f.WriteString(simdPackageHeader()) fI.WriteString(simdPackageHeader()) slices.SortFunc(ops, compareOperations) for i, op: = range ops
+    {
+        if op.NoTypes != nil && * op.NoTypes == "true" { continue }
+        if op.SkipMaskedMethod() { continue }
+        idxVecAsScalar, err: = checkVecAsScalar(op) if err != nil { panic(err) }
+        if s, op, err: = classifyOp(op);
+        err == nil
+        {
+            if op.NoGenericOps != nil && * op.NoGenericOps == "true" { continue }
+            if idxVecAsScalar != - 1
+            {
+                if s == "op2" || s == "op3" || s == "op2Imm" { s += "VecAsScalar" }
+                else { panic(fmt.Errorf("simdgen only supports op2, op2Imm or op3, not %s with TreatLikeAScalarOfSize", s)) }
+            }
+            if i == 0 || op.Go != ops[i - 1].Go
+            {
+                if unicode.IsUpper([] rune(op.Go)[0]) { fmt.Fprintf(f, "\n/* %s */\n", op.Go) } else { fmt.Fprintf(fI, "\n/* %s */\n", op.Go) }
+            }
+            tpl: = stubTemplates.Get(s) if tpl == nil { panic(fmt.Errorf("template %s not found", s)) }
+            if unicode.IsUpper([] rune(op.Go)[0])
+            {
+                if err: = tpl.Execute(f, op);
+                err != nil { panic(fmt.Errorf("failed to execute template %s for op %v: %w", s, op, err)) }
+            }
+            else { if err: = tpl.Execute(fI, op); err != nil { panic(fmt.Errorf("failed to execute template %s for op %v: %w", s, op, err)) } }
+        }
+        else { panic(fmt.Errorf("failed to classify op %v: %w", op.Go, err)) }
+    }
 
-	slices.SortFunc(ops, compareOperations)
-
-	for i, op := range ops {
-		if op.NoTypes != nil && *op.NoTypes == "true" {
-			continue
-		}
-		if op.SkipMaskedMethod() {
-			continue
-		}
-		idxVecAsScalar, err := checkVecAsScalar(op)
-		if err != nil {
-			panic(err)
-		}
-		if s, op, err := classifyOp(op); err == nil {
-			if op.NoGenericOps != nil && *op.NoGenericOps == "true" {
-				continue
-			}
-			if idxVecAsScalar != -1 {
-				if s == "op2" || s == "op3" || s == "op2Imm" {
-					s += "VecAsScalar"
-				} else {
-					panic(fmt.Errorf("simdgen only supports op2, op2Imm or op3, not %s with TreatLikeAScalarOfSize", s))
-				}
-			}
-			if i == 0 || op.Go != ops[i-1].Go {
-				if unicode.IsUpper([]rune(op.Go)[0]) {
-					fmt.Fprintf(f, "\n/* %s */\n", op.Go)
-				} else {
-					fmt.Fprintf(fI, "\n/* %s */\n", op.Go)
-				}
-			}
-			tpl := stubTemplates.Get(s)
-			if tpl == nil {
-				panic(fmt.Errorf("template %s not found", s))
-			}
-			if unicode.IsUpper([]rune(op.Go)[0]) {
-				if err := tpl.Execute(f, op); err != nil {
-					panic(fmt.Errorf("failed to execute template %s for op %v: %w", s, op, err))
-				}
-			} else {
-				if err := tpl.Execute(fI, op); err != nil {
-					panic(fmt.Errorf("failed to execute template %s for op %v: %w", s, op, err))
-				}
-			}
-		} else {
-			panic(fmt.Errorf("failed to classify op %v: %w", op.Go, err))
-		}
-	}
-
-	vectorConversions := vConvertFromTypeMap(typeMap)
-	for _, conv := range vectorConversions {
-		from, to := &conv.Tsrc, &conv.Tdst
-
-		if doDeprecatedPuns {
-			if err := sgutil.AsOp.Execute(f, sgutil.Conversion(from, to)); err != nil {
-				panic(fmt.Errorf("failed to execute vectorConversion template: %w", err))
-			}
-		}
-
-		// New style factored conversion intrinsics
-		if from.Name()[0] != 'U' && to.Name()[0] != 'U' {
-			continue
-		}
-		// Only emit the intrinsic if element sizes are equal OR both are unsigned
-		if from.ElemBits() != to.ElemBits() && (from.Name()[0] != 'U' || to.Name()[0] != 'U') {
-			continue
-		}
-		switch to.Name()[0] {
-		case 'F': // U -> F
-			sgutil.ToFloatsDcl.Execute(f, sgutil.Conversion(from, to))
-			sgutil.ToBitsDcl.Execute(f, sgutil.Conversion(to, from))
-		case 'I': // U -> I
-			sgutil.ToIntsDcl.Execute(f, sgutil.Conversion(from, to))
-			sgutil.ToBitsDcl.Execute(f, sgutil.Conversion(to, from))
-		case 'U': // U -> U
-			if from.Name()[0] != 'U' {
-				continue
-			}
-			sgutil.ReshapeDcl.Execute(f, sgutil.Conversion(from, to))
-		default:
-			panic("unexpected type in reinterpret-declaration")
-		}
-	}
-
-	// The AVX mask stub declares mask methods (To/asMask/And/Or/Not) that treat a
-	// mask as its data-vector counterpart. An SVE predicate is a P-register with no
-	// such counterpart; its raw-bit memory APIs (Load/Store) are generated into
-	// types_sve.go instead, so nothing is emitted here for SVE masks.
-	if !CurrentArch().isSVE() {
-		for _, mask := range masksFromTypeMap(typeMap) {
-			tpl := stubTemplates.Get("mask")
-			if tpl == nil {
-				panic(fmt.Errorf("template mask not found"))
-			}
-			if err := tpl.Execute(f, mask); err != nil {
-				panic(fmt.Errorf("failed to execute mask template for mask %s: %w", mask.Name(), err))
-			}
-		}
-	}
+    vectorConversions: = vConvertFromTypeMap(typeMap) for _, conv: = range vectorConversions
+    {
+        from, to: = & conv.Tsrc, & conv.Tdst if doDeprecatedPuns
+        {
+            if err: = sgutil.AsOp.Execute(f, sgutil.Conversion(from, to));
+            err != nil { panic(fmt.Errorf("failed to execute vectorConversion template: %w", err)) }
+        }
+        // New style factored conversion intrinsics
+        if from.Name()[0] != 'U' && to.Name()[0] != 'U' { continue }
+        // Only emit the intrinsic if element sizes are equal OR both are unsigned
+        if from.ElemBits() != to.ElemBits() && (from.Name()[0] != 'U' || to.Name()[0] != 'U') { continue }
+        switch to.Name()[0]
+        {
+            case 'F': // U -> F
+            sgutil.ToFloatsDcl.Execute(f, sgutil.Conversion(from, to)) sgutil.ToBitsDcl.Execute(f, sgutil.Conversion(to, from)) case 'I': // U -> I
+            sgutil.ToIntsDcl.Execute(f, sgutil.Conversion(from, to)) sgutil.ToBitsDcl.Execute(f, sgutil.Conversion(to, from)) case 'U': // U -> U
+            if from.Name()[0] != 'U' { continue }
+            sgutil.ReshapeDcl.Execute(f, sgutil.Conversion(from, to)) default: panic("unexpected type in reinterpret-declaration")
+        }
+    }
+    // The AVX mask stub declares mask methods (To/asMask/And/Or/Not) that treat a
+    // mask as its data-vector counterpart. An SVE predicate is a P-register with no
+    // such counterpart; its raw-bit memory APIs (Load/Store) are generated into
+    // types_sve.go instead, so nothing is emitted here for SVE masks.
+    if ! CurrentArch().isSVE()
+    {
+        for _, mask: = range masksFromTypeMap(typeMap)
+        {
+            tpl: = stubTemplates.Get("mask") if tpl == nil { panic(fmt.Errorf("template mask not found")) }
+            if err: = tpl.Execute(f, mask);
+            err != nil { panic(fmt.Errorf("failed to execute mask template for mask %s: %w", mask.Name(), err)) }
+        }
+    }
 }

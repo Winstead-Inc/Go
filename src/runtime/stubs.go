@@ -2,14 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package runtime
-
-import (
-	"internal/abi"
-	"unsafe"
-)
-
-// Should be a built-in for unsafe.Pointer?
+package runtime import("internal/abi""unsafe") // Should be a built-in for unsafe.Pointer?
 //
 // add should be an internal detail,
 // but widely used packages access it using linkname.
@@ -21,16 +14,11 @@ import (
 //
 //go:linkname add
 //go:nosplit
-func add(p unsafe.Pointer, x uintptr) unsafe.Pointer {
-	return unsafe.Pointer(uintptr(p) + x)
-}
-
+func add(p unsafe.Pointer, x uintptr) unsafe.Pointer { return unsafe.Pointer(uintptr(p) + x) }
 // getg returns the pointer to the current g.
 // The compiler rewrites calls to this function into instructions
 // that fetch the g directly (from TLS or from the dedicated register).
-func getg() *g
-
-// mcall switches from the g to the g0 stack and invokes fn(g),
+func getg() * g // mcall switches from the g to the g0 stack and invokes fn(g),
 // where g is the goroutine that made the call.
 // mcall saves g's current PC/SP in g->sched so that it can be restored later.
 // It is up to fn to arrange for that later execution, typically by recording
@@ -44,9 +32,7 @@ func getg() *g
 // This must NOT be go:noescape: if fn is a stack-allocated closure,
 // fn puts g on a run queue, and g executes before fn returns, the
 // closure will be invalidated while it is still executing.
-func mcall(fn func(*g))
-
-// systemstack runs fn on a system stack.
+func mcall(fn func( * g)) // systemstack runs fn on a system stack.
 // If systemstack is called from the per-OS-thread (g0) stack, or
 // if systemstack is called from the signal handling (gsignal) stack,
 // systemstack calls fn directly and returns.
@@ -64,14 +50,9 @@ func mcall(fn func(*g))
 //	... use x ...
 //
 //go:noescape
-func systemstack(fn func())
-
-//go:nosplit
+func systemstack(fn func()) //go:nosplit
 //go:nowritebarrierrec
-func badsystemstack() {
-	writeErrStr("fatal: systemstack called from unexpected goroutine")
-}
-
+func badsystemstack() { writeErrStr("fatal: systemstack called from unexpected goroutine") }
 // memclrNoHeapPointers clears n bytes starting at ptr.
 //
 // Usually you should use typedmemclr. memclrNoHeapPointers should be
@@ -105,13 +86,8 @@ func badsystemstack() {
 //
 //go:linkname memclrNoHeapPointers
 //go:noescape
-func memclrNoHeapPointers(ptr unsafe.Pointer, n uintptr)
-
-//go:linkname reflect_memclrNoHeapPointers reflect.memclrNoHeapPointers
-func reflect_memclrNoHeapPointers(ptr unsafe.Pointer, n uintptr) {
-	memclrNoHeapPointers(ptr, n)
-}
-
+func memclrNoHeapPointers(ptr unsafe.Pointer, n uintptr) //go:linkname reflect_memclrNoHeapPointers reflect.memclrNoHeapPointers
+func reflect_memclrNoHeapPointers(ptr unsafe.Pointer, n uintptr) { memclrNoHeapPointers(ptr, n) }
 // memmove copies n bytes from "from" to "to".
 //
 // memmove ensures that any pointer in "from" is written to "to" with
@@ -142,17 +118,10 @@ func reflect_memclrNoHeapPointers(ptr unsafe.Pointer, n uintptr) {
 //
 //go:linkname memmove
 //go:noescape
-func memmove(to, from unsafe.Pointer, n uintptr)
-
-//go:linkname reflect_memmove reflect.memmove
-func reflect_memmove(to, from unsafe.Pointer, n uintptr) {
-	memmove(to, from, n)
-}
-
+func memmove(to, from unsafe.Pointer, n uintptr) //go:linkname reflect_memmove reflect.memmove
+func reflect_memmove(to, from unsafe.Pointer, n uintptr) { memmove(to, from, n) }
 // exported value for testing
-const hashLoad = float32(loadFactorNum) / float32(loadFactorDen)
-
-// in internal/bytealg/equal_*.s
+const hashLoad = float32(loadFactorNum) / float32(loadFactorDen) // in internal/bytealg/equal_*.s
 //
 // memequal should be an internal detail,
 // but widely used packages access it using linkname.
@@ -164,9 +133,7 @@ const hashLoad = float32(loadFactorNum) / float32(loadFactorDen)
 //
 //go:linkname memequal
 //go:noescape
-func memequal(a, b unsafe.Pointer, size uintptr) bool
-
-// noescape hides a pointer from escape analysis.  noescape is
+func memequal(a, b unsafe.Pointer, size uintptr) bool // noescape hides a pointer from escape analysis.  noescape is
 // the identity function but escape analysis doesn't think the
 // output depends on the input.  noescape is inlined and currently
 // compiles down to zero instructions.
@@ -186,20 +153,12 @@ func memequal(a, b unsafe.Pointer, size uintptr) bool
 //
 //go:linkname noescape
 //go:nosplit
-func noescape(p unsafe.Pointer) unsafe.Pointer {
-	x := uintptr(p)
-	return unsafe.Pointer(x ^ 0)
-}
-
+func noescape(p unsafe.Pointer) unsafe.Pointer { x: = uintptr(p) return unsafe.Pointer(x ^ 0) }
 // noEscapePtr hides a pointer from escape analysis. See noescape.
 // USE CAREFULLY!
 //
 //go:nosplit
-func noEscapePtr[T any](p *T) *T {
-	x := uintptr(unsafe.Pointer(p))
-	return (*T)(unsafe.Pointer(x ^ 0))
-}
-
+func noEscapePtr[T any](p * T) * T { x: = uintptr(unsafe.Pointer(p)) return ( * T)(unsafe.Pointer(x ^ 0)) }
 // Not all cgocallback frames are actually cgocallback,
 // so not all have these arguments. Mark them uintptr so that the GC
 // does not misinterpret memory when the arguments are not present.
@@ -216,15 +175,7 @@ func noEscapePtr[T any](p *T) *T {
 //   - github.com/ebitengine/purego
 //
 //go:linkname cgocallback
-func cgocallback(fn, frame, ctxt uintptr)
-
-func gogo(buf *gobuf)
-
-func asminit()
-func setg(gg *g)
-func breakpoint()
-
-// reflectcall calls fn with arguments described by stackArgs, stackArgsSize,
+func cgocallback(fn, frame, ctxt uintptr) func gogo(buf * gobuf) func asminit() func setg(gg * g) func breakpoint() // reflectcall calls fn with arguments described by stackArgs, stackArgsSize,
 // frameSize, and regArgs.
 //
 // Arguments passed on the stack and space for return values passed on the stack
@@ -269,9 +220,7 @@ func breakpoint()
 //
 //go:linknamestd reflectcall
 //go:noescape
-func reflectcall(stackArgsType *_type, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-
-// procyield should be an internal detail,
+func reflectcall(stackArgsType * _type, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) // procyield should be an internal detail,
 // but widely used packages access it using linkname.
 // Notable members of the hall of shame include:
 //   - github.com/sagernet/sing-tun
@@ -283,18 +232,9 @@ func reflectcall(stackArgsType *_type, fn, stackArgs unsafe.Pointer, stackArgsSi
 //
 //go:linkname procyield
 //go:nosplit
-func procyield(cycles uint32) {
-	if cycles == 0 {
-		return
-	}
-	procyieldAsm(cycles)
-}
-
+func procyield(cycles uint32) { if cycles == 0 { return } procyieldAsm(cycles) }
 // procyieldAsm is the assembly implementation of procyield.
-func procyieldAsm(cycles uint32)
-
-type neverCallThisFunction struct{}
-
+func procyieldAsm(cycles uint32) type neverCallThisFunction struct {}
 // goexit is the return stub at the top of every goroutine call stack.
 // Each goroutine stack is constructed as if goexit called the
 // goroutine's entry point function, so that when the entry point
@@ -305,9 +245,7 @@ type neverCallThisFunction struct{}
 // gentraceback assumes that goexit terminates the stack. A direct
 // call on the stack will cause gentraceback to stop walking the stack
 // prematurely and if there is leftover state it may panic.
-func goexit(neverCallThisFunction)
-
-// publicationBarrier performs a store/store barrier (a "publication"
+func goexit(neverCallThisFunction) // publicationBarrier performs a store/store barrier (a "publication"
 // or "export" barrier). Some form of synchronization is required
 // between initializing an object and making that object accessible to
 // another processor. Without synchronization, the initialization
@@ -322,14 +260,8 @@ func goexit(neverCallThisFunction)
 // side naturally has a data dependency order. All architectures that
 // Go supports or seems likely to ever support automatically enforce
 // data dependency ordering.
-func publicationBarrier()
-
-//go:noescape
-func asmcgocall(fn, arg unsafe.Pointer) int32
-
-func morestack()
-
-// morestack_noctxt should be an internal detail,
+func publicationBarrier() //go:noescape
+func asmcgocall(fn, arg unsafe.Pointer) int32 func morestack() // morestack_noctxt should be an internal detail,
 // but widely used packages access it using linkname.
 // Notable members of the hall of shame include:
 //   - github.com/bytedance/sonic
@@ -339,76 +271,86 @@ func morestack()
 // See go.dev/issues/71672.
 //
 //go:linkname morestack_noctxt
-func morestack_noctxt()
-
-func rt0_go()
-func rt0_lib_go()
-
-// in asm_*.s
+func morestack_noctxt() func rt0_go() func rt0_lib_go() // in asm_*.s
 // not called directly; definitions here supply type information for traceback.
 // These must have the same signature (arg pointer map) as reflectcall.
-func call16(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call32(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call64(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call128(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call256(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call512(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call1024(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call2048(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call4096(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call8192(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call16384(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call32768(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call65536(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call131072(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call262144(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call524288(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call1048576(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call2097152(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call4194304(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call8388608(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call16777216(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call33554432(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call67108864(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call134217728(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call268435456(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call536870912(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-func call1073741824(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs *abi.RegArgs)
-
-func systemstack_switch()
-
-// alignUp rounds n up to a multiple of a. a must be a power of 2.
+func call16(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call32
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call64(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call128
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call256(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call512
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call1024(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call2048
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call4096(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call8192
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call16384(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call32768
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call65536(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call131072
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call262144(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call524288
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call1048576(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call2097152
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call4194304(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call8388608
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call16777216(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call33554432
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call67108864(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call134217728
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call268435456(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func call536870912
+(
+    typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs
+)
+func call1073741824(typ, fn, stackArgs unsafe.Pointer, stackArgsSize, stackRetOffset, frameSize uint32, regArgs * abi.RegArgs) func systemstack_switch() // alignUp rounds n up to a multiple of a. a must be a power of 2.
 //
 //go:nosplit
-func alignUp(n, a uintptr) uintptr {
-	return (n + a - 1) &^ (a - 1)
-}
-
+func alignUp(n, a uintptr) uintptr { return (n + a - 1) &^ (a - 1) }
 // alignDown rounds n down to a multiple of a. a must be a power of 2.
 //
 //go:nosplit
-func alignDown(n, a uintptr) uintptr {
-	return n &^ (a - 1)
-}
-
+func alignDown(n, a uintptr) uintptr { return n &^ (a - 1) }
 // divRoundUp returns ceil(n / a).
 //
 //go:nosplit
-func divRoundUp(n, a uintptr) uintptr {
-	// a is generally a power of two. This will get inlined and
-	// the compiler will optimize the division.
-	return (n + a - 1) / a
+func divRoundUp(n, a uintptr) uintptr
+{
+    // a is generally a power of two. This will get inlined and
+    // the compiler will optimize the division.
+    return (n + a - 1) / a
 }
 
-func memequal_varlen(a, b unsafe.Pointer) bool
-
-// bool2int returns 0 if x is false or 1 if x is true.
-func bool2int(x bool) int {
-	// Avoid branches. In the SSA compiler, this compiles to
-	// exactly what you would want it to.
-	return int(*(*uint8)(unsafe.Pointer(&x)))
+func memequal_varlen(a, b unsafe.Pointer) bool // bool2int returns 0 if x is false or 1 if x is true.
+func bool2int(x bool) int
+{
+    // Avoid branches. In the SSA compiler, this compiles to
+    // exactly what you would want it to.
+    return int( * ( * uint8)(unsafe.Pointer( & x)))
 }
-
 // abort crashes the runtime in situations where even throw might not
 // work. In general it should do something a debugger will recognize
 // (e.g., an INT3 on x86). A crash in abort is recognized by the
@@ -418,12 +360,8 @@ func bool2int(x bool) int {
 // Also called from runtime test.
 //
 //go:linkname abort
-func abort()
-
-// Called from compiled code; declared for vet; do NOT call from Go.
-func gcWriteBarrier1()
-
-// gcWriteBarrier2 should be an internal detail,
+func abort() // Called from compiled code; declared for vet; do NOT call from Go.
+func gcWriteBarrier1() // gcWriteBarrier2 should be an internal detail,
 // but widely used packages access it using linkname.
 // Notable members of the hall of shame include:
 //   - github.com/bytedance/sonic
@@ -432,27 +370,15 @@ func gcWriteBarrier1()
 // See go.dev/issue/67401.
 //
 //go:linkname gcWriteBarrier2
-func gcWriteBarrier2()
-
-func gcWriteBarrier3()
-func gcWriteBarrier4()
-func gcWriteBarrier5()
-func gcWriteBarrier6()
-func gcWriteBarrier7()
-func gcWriteBarrier8()
-func duffzero()
-func duffcopy()
-
-// Called from linker-generated .initarray; declared for go vet; do NOT call from Go.
-func addmoduledata()
-
-// Injected by the signal handler for panicking signals.
+func gcWriteBarrier2() func gcWriteBarrier3() func gcWriteBarrier4() func gcWriteBarrier5() func gcWriteBarrier6() func gcWriteBarrier7() func gcWriteBarrier8() func duffzero
+(
+)
+func duffcopy() // Called from linker-generated .initarray; declared for go vet; do NOT call from Go.
+func addmoduledata() // Injected by the signal handler for panicking signals.
 // Initializes any registers that have fixed meaning at calls but
 // are scratch in bodies and calls sigpanic.
 // On many platforms it just jumps to sigpanic.
-func sigpanic0()
-
-// intArgRegs is used by the various register assignment
+func sigpanic0() // intArgRegs is used by the various register assignment
 // algorithm implementations in the runtime. These include:.
 // - Finalizers (mfinal.go)
 // - Windows callbacks (syscall_windows.go)

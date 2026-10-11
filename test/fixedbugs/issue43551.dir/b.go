@@ -2,13 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
-
-import "./a"
-
-type S a.S
-type Key a.Key
-
-func (s S) A() Key {
-	return Key(a.S(s).A())
-}
+package b import"./a" type S a.S type Key a.Key func(s S) A() Key { return Key(a.S(s).A()) }

@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// Regression test to verify that cgocallback restores X15 = 0 as required by
+package main // Regression test to verify that cgocallback restores X15 = 0 as required by
 // ABIInternal.
 
 /*
@@ -23,28 +21,12 @@ static void call_go_callback_amd64() {
 
 	go_callback_amd64();
 }
-*/
-import "C"
-
-import (
-	"runtime/testdata/testprogcgo/goasm"
+*/ import"C" import
+(
+    "runtime/testdata/testprogcgo/goasm"
 )
-
-func init() {
-	register("CgoCallbackX15", CgoCallbackX15)
-}
-
+func init() { register("CgoCallbackX15", CgoCallbackX15) }
 //export go_callback_amd64
-func go_callback_amd64() {
-	v := goasm.ReadX15()
-	if v != 0 {
-		println("X15 =", v)
-		panic("non-zero X15")
-	}
-}
+func go_callback_amd64() { v: = goasm.ReadX15() if v != 0 { println("X15 =", v) panic("non-zero X15") } }
 
-func CgoCallbackX15() {
-	C.call_go_callback_amd64()
-
-	println("OK")
-}
+func CgoCallbackX15() { C.call_go_callback_amd64() println("OK") }

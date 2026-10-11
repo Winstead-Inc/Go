@@ -2,15 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 const int sizeofLongDouble = sizeof(long double);
-*/
-import "C"
-
-import "fmt"
-
-func main() {
-	fmt.Println(C.sizeofLongDouble)
-}
+*/ import"C" import"fmt" func main() { fmt.Println(C.sizeofLongDouble) }

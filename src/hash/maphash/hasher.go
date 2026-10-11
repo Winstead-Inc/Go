@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package maphash
-
-// A Hasher defines the interface between a hash-based container and its elements.
+package maphash // A Hasher defines the interface between a hash-based container and its elements.
 // It provides a hash function and an equivalence relation over values
 // of type T, enabling those values to be inserted in hash tables
 // and similar data structures.
@@ -119,11 +117,7 @@ package maphash
 // The code example above calls SetSeed on the element's sub-Hasher
 // so that it uses the same hash function as for the Set itself, and
 // not a random one.
-type Hasher[T any] interface {
-	Hash(*Hash, T)
-	Equal(x, y T) bool
-}
-
+type Hasher[T any] interface { Hash( * Hash, T) Equal(x, y T) bool }
 // ComparableHasher is an implementation of [Hasher] whose
 // Equal(x, y) method is consistent with x == y.
 //
@@ -131,9 +125,10 @@ type Hasher[T any] interface {
 // The type system will not prevent you from instantiating a type
 // such as ComparableHasher[any]; nonetheless you must not pass
 // non-comparable argument values to its Hash or Equal methods.
-type ComparableHasher[T comparable] struct {
-	_ [0]func(T) // disallow comparison, and conversion between ComparableHasher[X] and ComparableHasher[Y]
+type ComparableHasher[T comparable] struct 
+{
+    _[0] func(T) // disallow comparison, and conversion between ComparableHasher[X] and ComparableHasher[Y]
 }
 
-func (ComparableHasher[T]) Hash(h *Hash, v T) { WriteComparable(h, v) }
-func (ComparableHasher[T]) Equal(x, y T) bool { return x == y }
+func(ComparableHasher[T]) Hash(h * Hash, v T) { WriteComparable(h, v) }
+func(ComparableHasher[T]) Equal(x, y T) bool { return x == y }

@@ -2,14 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cgo
-
-import (
-	"sync"
-	"sync/atomic"
-)
-
-// Handle provides a way to pass values that contain Go pointers
+package cgo import("sync""sync/atomic") // Handle provides a way to pass values that contain Go pointers
 // (pointers to memory allocated by Go) between Go and C without
 // breaking the cgo pointer passing rules. A Handle is an integer
 // value that can represent any Go value. A Handle can be passed
@@ -103,9 +96,7 @@ import (
 //		C.myprint(unsafe.Pointer(&h))
 //		// Output: hello Go
 //	}
-type Handle uintptr
-
-// NewHandle returns a handle for a given value.
+type Handle uintptr // NewHandle returns a handle for a given value.
 //
 // The handle is valid until the program calls Delete on it. The handle
 // uses resources, and this package assumes that C code may hold on to
@@ -114,40 +105,26 @@ type Handle uintptr
 //
 // The intended use is to pass the returned handle to C code, which
 // passes it back to Go, which calls Value.
-func NewHandle(v any) Handle {
-	h := handleIdx.Add(1)
-	if h == 0 {
-		panic("runtime/cgo: ran out of handle space")
-	}
+func NewHandle(v any) Handle
+{
+    h: = handleIdx.Add(1) if h == 0 { panic("runtime/cgo: ran out of handle space") }
 
-	handles.Store(h, v)
-	return Handle(h)
+    handles.Store(h, v) return Handle(h)
 }
-
 // Value returns the associated Go value for a valid handle.
 //
 // The method panics if the handle is invalid.
-func (h Handle) Value() any {
-	v, ok := handles.Load(uintptr(h))
-	if !ok {
-		panic("runtime/cgo: misuse of an invalid Handle")
-	}
-	return v
-}
-
+func(h Handle) Value() any { v, ok: = handles.Load(uintptr(h)) if ! ok { panic("runtime/cgo: misuse of an invalid Handle") } return v }
 // Delete invalidates a handle. This method should only be called once
 // the program no longer needs to pass the handle to C and the C code
 // no longer has a copy of the handle value.
 //
 // The method panics if the handle is invalid.
-func (h Handle) Delete() {
-	_, ok := handles.LoadAndDelete(uintptr(h))
-	if !ok {
-		panic("runtime/cgo: misuse of an invalid Handle")
-	}
-}
+func(h Handle) Delete() { _, ok: = handles.LoadAndDelete(uintptr(h)) if ! ok { panic("runtime/cgo: misuse of an invalid Handle") } }
 
-var (
-	handles   = sync.Map{} // map[Handle]interface{}
-	handleIdx atomic.Uintptr
+var
+(
+    handles = sync.Map {}
+    // map[Handle]interface{}
+    handleIdx atomic.Uintptr
 )

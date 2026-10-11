@@ -1,14 +1,10 @@
 // Copyright 2015 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build !windows && !android
-
 // Test that the Go runtime still works if C code changes the signal stack.
 
-package cgotest
-
-/*
+package cgotest /*
 #include <signal.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -52,27 +48,20 @@ static void restoreSignalStack(void) {
 static int zero(void) {
 	return 0;
 }
-*/
-import "C"
-
-import (
-	"runtime"
-	"testing"
+*/ import"C" import
+(
+    "runtime""testing"
 )
+func testSigaltstack(t * testing.T)
+{
+    switch 
+    {
+        case runtime.GOOS == "solaris", runtime.GOOS == "illumos", runtime.GOOS == "ios" && runtime.GOARCH == "arm64": t.Skipf
+        (
+            "switching signal stack not implemented on %s/%s", runtime.GOOS, runtime.GOARCH
+        )
+    }
 
-func testSigaltstack(t *testing.T) {
-	switch {
-	case runtime.GOOS == "solaris", runtime.GOOS == "illumos", runtime.GOOS == "ios" && runtime.GOARCH == "arm64":
-		t.Skipf("switching signal stack not implemented on %s/%s", runtime.GOOS, runtime.GOARCH)
-	}
-
-	C.changeSignalStack()
-	defer C.restoreSignalStack()
-	defer func() {
-		if recover() == nil {
-			t.Error("did not see expected panic")
-		}
-	}()
-	v := 1 / int(C.zero())
-	t.Errorf("unexpected success of division by zero == %d", v)
+    C.changeSignalStack() defer C.restoreSignalStack() defer func() { if recover() == nil { t.Error("did not see expected panic") } }
+() v: = 1 / int(C.zero()) t.Errorf("unexpected success of division by zero == %d", v)
 }

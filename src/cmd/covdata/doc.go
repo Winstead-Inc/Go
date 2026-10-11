@@ -76,5 +76,4 @@ specifics on usage of a given mode):
 	$ go tool covdata debugdump -i=indir
 	<human readable output>
 	$
-*/
-package main
+*/ package main

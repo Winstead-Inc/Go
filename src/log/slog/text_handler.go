@@ -2,60 +2,28 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package slog
-
-import (
-	"context"
-	"encoding"
-	"fmt"
-	"io"
-	"log/slog/internal/buffer"
-	"reflect"
-	"strconv"
-	"sync"
-	"unicode"
-	"unicode/utf8"
-)
-
-// TextHandler is a [Handler] that writes Records to an [io.Writer] as a
+package slog import("context""encoding""fmt""io""log/slog/internal/buffer""reflect""strconv""sync""unicode""unicode/utf8") // TextHandler is a [Handler] that writes Records to an [io.Writer] as a
 // sequence of key=value pairs separated by spaces and followed by a newline.
-type TextHandler struct {
-	*commonHandler
-}
-
+type TextHandler struct { * commonHandler }
 // NewTextHandler creates a [TextHandler] that writes to w,
 // using the given options.
 // If opts is nil, the default options are used.
-func NewTextHandler(w io.Writer, opts *HandlerOptions) *TextHandler {
-	if opts == nil {
-		opts = &HandlerOptions{}
-	}
-	return &TextHandler{
-		&commonHandler{
-			json: false,
-			w:    w,
-			opts: *opts,
-			mu:   &sync.Mutex{},
-		},
-	}
+func NewTextHandler(w io.Writer, opts * HandlerOptions) * TextHandler
+{
+    if opts == nil { opts = & HandlerOptions {} }
+    return & TextHandler
+    {
+        & commonHandler { json: false, w: w, opts: * opts, mu: & sync.Mutex {}, },
+    }
 }
-
 // Enabled reports whether the handler handles records at the given level.
 // The handler ignores records whose level is lower.
-func (h *TextHandler) Enabled(_ context.Context, level Level) bool {
-	return h.commonHandler.enabled(level)
-}
-
+func(h * TextHandler) Enabled(_ context.Context, level Level) bool { return h.commonHandler.enabled(level) }
 // WithAttrs returns a new [TextHandler] whose attributes consists
 // of h's attributes followed by attrs.
-func (h *TextHandler) WithAttrs(attrs []Attr) Handler {
-	return &TextHandler{commonHandler: h.commonHandler.withAttrs(attrs)}
-}
+func(h * TextHandler) WithAttrs(attrs[] Attr) Handler { return & TextHandler { commonHandler: h.commonHandler.withAttrs(attrs) } }
 
-func (h *TextHandler) WithGroup(name string) Handler {
-	return &TextHandler{commonHandler: h.commonHandler.withGroup(name)}
-}
-
+func(h * TextHandler) WithGroup(name string) Handler { return & TextHandler { commonHandler: h.commonHandler.withGroup(name) } }
 // Handle formats its argument [Record] as a single line of space-separated
 // key=value items.
 //
@@ -90,84 +58,63 @@ func (h *TextHandler) WithGroup(name string) Handler {
 //
 // Each call to Handle results in a single serialized call to
 // io.Writer.Write.
-func (h *TextHandler) Handle(_ context.Context, r Record) error {
-	return h.commonHandler.handle(r)
-}
+func(h * TextHandler) Handle(_ context.Context, r Record) error { return h.commonHandler.handle(r) }
 
-func appendTextValue(s *handleState, v Value) error {
-	switch v.Kind() {
-	case KindString:
-		s.appendString(v.str())
-	case KindTime:
-		s.appendTime(v.time())
-	case KindAny:
-		if ta, ok := v.any.(encoding.TextAppender); ok {
-			buf := buffer.New()
-			defer buf.Free()
-			var err error
-			*buf, err = ta.AppendText(*buf)
-			if err != nil {
-				return err
-			}
-			// TODO: append directly to buffer when possible
-			s.appendString(buf.String())
-			return nil
-		} else if tm, ok := v.any.(encoding.TextMarshaler); ok {
-			data, err := tm.MarshalText()
-			if err != nil {
-				return err
-			}
-			// TODO: avoid the conversion to string.
-			s.appendString(string(data))
-			return nil
-		}
-		if bs, ok := byteSlice(v.any); ok {
-			// As of Go 1.19, this only allocates for strings longer than 32 bytes.
-			s.buf.WriteString(strconv.Quote(string(bs)))
-			return nil
-		}
-		s.appendString(fmt.Sprintf("%+v", v.Any()))
-	default:
-		*s.buf = v.append(*s.buf)
-	}
-	return nil
+func appendTextValue(s * handleState, v Value) error
+{
+    switch v.Kind()
+    {
+        case KindString: s.appendString(v.str()) case KindTime: s.appendTime(v.time()) case KindAny: if ta, ok: = v.any.(encoding.TextAppender);
+        ok
+        {
+            buf: = buffer.New() defer buf.Free() var err error * buf, err = ta.AppendText( * buf) if err != nil { return err }
+            // TODO: append directly to buffer when possible
+            s.appendString(buf.String()) return nil
+        }
+        else if tm, ok: = v.any.(encoding.TextMarshaler);
+        ok
+        {
+            data, err: = tm.MarshalText() if err != nil { return err }
+            // TODO: avoid the conversion to string.
+            s.appendString(string(data)) return nil
+        }
+        if bs, ok: = byteSlice(v.any);
+        ok
+        {
+            // As of Go 1.19, this only allocates for strings longer than 32 bytes.
+            s.buf.WriteString(strconv.Quote(string(bs))) return nil
+        }
+        s.appendString(fmt.Sprintf("%+v", v.Any())) default: * s.buf = v.append( * s.buf)
+    }
+    return nil
 }
-
 // byteSlice returns its argument as a []byte if the argument's
 // underlying type is []byte, along with a second return value of true.
 // Otherwise it returns nil, false.
-func byteSlice(a any) ([]byte, bool) {
-	if bs, ok := a.([]byte); ok {
-		return bs, true
-	}
-	// Like Printf's %s, we allow both the slice type and the byte element type to be named.
-	t := reflect.TypeOf(a)
-	if t != nil && t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 {
-		return reflect.ValueOf(a).Bytes(), true
-	}
-	return nil, false
+func byteSlice(a any)([] byte, bool)
+{
+    if bs, ok: = a.([] byte);
+    ok { return bs, true }
+    // Like Printf's %s, we allow both the slice type and the byte element type to be named.
+    t: = reflect.TypeOf(a) if t != nil && t.Kind() == reflect.Slice && t.Elem().Kind() == reflect.Uint8 { return reflect.ValueOf(a).Bytes(), true }
+    return nil, false
 }
 
-func needsQuoting(s string) bool {
-	if len(s) == 0 {
-		return true
-	}
-	for i := 0; i < len(s); {
-		b := s[i]
-		if b < utf8.RuneSelf {
-			// Quote anything except a backslash that would need quoting in a
-			// JSON string, as well as space and '='
-			if b != '\\' && (b == ' ' || b == '=' || !safeSet[b]) {
-				return true
-			}
-			i++
-			continue
-		}
-		r, size := utf8.DecodeRuneInString(s[i:])
-		if r == utf8.RuneError || unicode.IsSpace(r) || !unicode.IsPrint(r) {
-			return true
-		}
-		i += size
-	}
-	return false
+func needsQuoting(s string) bool
+{
+    if len(s) == 0 { return true }
+    for i: = 0;
+    i < len(s);
+    {
+        b: = s[i] if b < utf8.RuneSelf
+        {
+            // Quote anything except a backslash that would need quoting in a
+            // JSON string, as well as space and '='
+            if b != '\\' && (b == ' ' || b == '=' || ! safeSet[b]) { return true }
+            i++ continue
+        }
+        r, size: = utf8.DecodeRuneInString(s[i:]) if r == utf8.RuneError || unicode.IsSpace(r) || ! unicode.IsPrint(r) { return true }
+        i += size
+    }
+    return false
 }

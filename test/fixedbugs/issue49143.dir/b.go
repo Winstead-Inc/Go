@@ -2,15 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
+package b import"./a" type Loaders struct { Loader * a.Loader[int , int] }
 
-import "./a"
-
-
-type Loaders struct {
-	Loader *a.Loader[int, int]
-}
-
-func NewLoaders() *Loaders {
-	return new(Loaders)
-}
+func NewLoaders() * Loaders { return new (Loaders) }

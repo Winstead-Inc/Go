@@ -98,9 +98,6 @@ When invoked with -s gofmt will make the following source transformations where 
 		for range v {...}
 
 This may result in changes that are incompatible with earlier versions of Go.
-*/
-package main
-
-// BUG(rsc): The implementation of -r is a bit slow.
+*/ package main // BUG(rsc): The implementation of -r is a bit slow.
 // BUG(gri): If -w fails, the restored original file may not have some of the
 // original file attributes.

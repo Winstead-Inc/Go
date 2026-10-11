@@ -2,17 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type Builder struct { x int }
 
-type Builder struct {
-	x int
-}
-
-func (tb Builder) Build() (out struct {
-	x interface{}
-	s string
-}) {
-	out.x = nil
-	out.s = "hello!"
-	return
-}
+func(tb Builder) Build()(out struct { x interface {} s string }) { out.x = nil out.s = "hello!" return }

@@ -2,36 +2,18 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type Interaction[DataT InteractionDataConstraint] struct {}
 
-type Interaction[DataT InteractionDataConstraint] struct {
-}
+type InteractionDataConstraint interface { [] byte | UserCommandInteractionData }
 
-type InteractionDataConstraint interface {
-	[]byte |
-		UserCommandInteractionData
-}
+type UserCommandInteractionData struct { resolvedInteractionWithOptions }
 
-type UserCommandInteractionData struct {
-	resolvedInteractionWithOptions
-}
+type resolvedInteractionWithOptions struct { Resolved Resolved`json:"resolved,omitempty"` }
 
-type resolvedInteractionWithOptions struct {
-	Resolved Resolved `json:"resolved,omitempty"`
-}
+type Resolved struct { Users ResolvedData[User]`json:"users,omitempty"` }
 
-type Resolved struct {
-	Users ResolvedData[User] `json:"users,omitempty"`
-}
+type ResolvedData[T ResolvedDataConstraint] map[uint64] T type ResolvedDataConstraint interface { User | Message }
 
-type ResolvedData[T ResolvedDataConstraint] map[uint64]T
+type User struct {}
 
-type ResolvedDataConstraint interface {
-	User | Message
-}
-
-type User struct{}
-
-type Message struct {
-	Interaction *Interaction[[]byte] `json:"interaction,omitempty"`
-}
+type Message struct { Interaction * Interaction[[] byte]`json:"interaction,omitempty"` }

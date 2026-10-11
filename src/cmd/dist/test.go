@@ -730,7 +730,7 @@ func (t *tester) registerTests() {
 		// Test that earlier FIPS snapshots build.
 		// In long mode, test that they work too.
 		for _, version := range fips140Versions() {
-			suffix := " # (build and vet only)"
+			suffix := "# (build and vet only)"
 			run := "^$" // only ensure they compile
 			if !t.short {
 				suffix = ""

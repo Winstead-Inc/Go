@@ -1,9 +1,1 @@
-package main
-
-import (
-	"./a"
-)
-
-func main() {
-	_ = a.OrdOption(a.Given[int]())
-}
+package main import("./a") func main() { _ = a.OrdOption(a.Given[int]()) }

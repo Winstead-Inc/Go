@@ -2,25 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p func f1[_ comparable]() {}
+func f2[_ interface { comparable }]() {}
 
-func f1[_ comparable]()              {}
-func f2[_ interface{ comparable }]() {}
+type T interface { m() }
 
-type T interface{ m() }
-
-func _[P comparable, Q ~int, R any]() {
-	_ = f1[int]
-	_ = f1[T]
-	_ = f1[any]
-	_ = f1[P]
-	_ = f1[Q]
-	_ = f1[R /* ERROR "R does not satisfy comparable" */]
-
-	_ = f2[int]
-	_ = f2[T]
-	_ = f2[any]
-	_ = f2[P]
-	_ = f2[Q]
-	_ = f2[R /* ERROR "R does not satisfy comparable" */]
+func _[P comparable, Q ~ int , R any]()
+{
+    _ = f1[int] _ = f1[T] _ = f1[any] _ = f1[P] _ = f1[Q] _ = f1[R/* ERROR "R does not satisfy comparable" */] _ = f2[int] _ = f2[T] _ = f2[any] _ = f2[P] _ = f2
+    [
+        Q
+    ]
+    _ = f2[R/* ERROR "R does not satisfy comparable" */]
 }

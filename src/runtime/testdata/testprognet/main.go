@@ -2,34 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"os" var cmds = map[string] func() {}
 
-import "os"
+func register(name string, f func()) { if cmds[name] != nil { panic("duplicate registration: " + name) } cmds[name] = f }
 
-var cmds = map[string]func(){}
+func registerInit(name string, f func()) { if len(os.Args) >= 2 && os.Args[1] == name { f() } }
 
-func register(name string, f func()) {
-	if cmds[name] != nil {
-		panic("duplicate registration: " + name)
-	}
-	cmds[name] = f
-}
-
-func registerInit(name string, f func()) {
-	if len(os.Args) >= 2 && os.Args[1] == name {
-		f()
-	}
-}
-
-func main() {
-	if len(os.Args) < 2 {
-		println("usage: " + os.Args[0] + " name-of-test")
-		return
-	}
-	f := cmds[os.Args[1]]
-	if f == nil {
-		println("unknown function: " + os.Args[1])
-		return
-	}
-	f()
+func main()
+{
+    if len(os.Args) < 2 { println("usage: " + os.Args[0] + " name-of-test") return }
+    f: = cmds[os.Args[1]] if f == nil { println("unknown function: " + os.Args[1]) return }
+    f()
 }

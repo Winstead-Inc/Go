@@ -2,11 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-import "./a"
-
-type s a.Struct
-
-func main() {
-}
+package main import"./a" type s a.Struct func main() {}

@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p1
-
-import "runtime"
-
-func E() func() int { return runtime.NumCPU }
+package p1 import"runtime" func E() func() int { return runtime.NumCPU }
 
 func F() func() { return runtime.Gosched }
 

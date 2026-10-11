@@ -1,7 +1,1 @@
-package p
-
-import "indirect"
-
-var in = []algo{
-	{indirect.F},
-}
+package p import"indirect" var in = [] algo { { indirect.F }, }

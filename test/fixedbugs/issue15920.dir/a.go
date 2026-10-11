@@ -2,8 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
-
-type Error error
-
-func F() Error { return nil }
+package a type Error error func F() Error { return nil }

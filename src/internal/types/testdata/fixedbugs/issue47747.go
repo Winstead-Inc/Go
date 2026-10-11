@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-// For now, a lone type parameter is not permitted as RHS in a type declaration (issue #45639).
+package p // For now, a lone type parameter is not permitted as RHS in a type declaration (issue #45639).
 // type T1[P any] P
 // 
 // func (T1[_]) m() {}
@@ -15,32 +13,25 @@ package p
 //         x.m()
 // }
 
-
-func _[P interface{ m() }](x P) {
-        x.m()
-        // (&x).m doesn't exist because &x is of type *P
-        // and pointers to type parameters don't have methods
-        (&x).m /* ERROR "type *P is pointer to type parameter, not type parameter" */ ()
+func _[P interface { m() }](x P)
+{
+    x.m() // (&x).m doesn't exist because &x is of type *P
+    // and pointers to type parameters don't have methods
+( & x).m /* ERROR "type *P is pointer to type parameter, not type parameter" */()
 }
 
+type T2 interface { m() }
 
-type T2 interface{ m() }
-
-func _(x *T2) {
-        // x.m doesn't exists because x is of type *T2
-        // and pointers to interfaces don't have methods
-        x.m /* ERROR "type *T2 is pointer to interface, not interface" */()
+func _(x * T2)
+{
+    // x.m doesn't exists because x is of type *T2
+    // and pointers to interfaces don't have methods
+    x.m /* ERROR "type *T2 is pointer to interface, not interface" */()
 }
-
 // Test case 1 from issue
 
-type Fooer1[t any] interface {
-	Foo(Barer[t])
-}
-type Barer[t any] interface {
-	Bar(t)
-}
-
+type Fooer1[t any] interface { Foo(Barer[t]) }
+type Barer[t any] interface { Bar(t) }
 // For now, a lone type parameter is not permitted as RHS in a type declaration (issue #45639).
 // type Foo1[t any] t
 // type Bar[t any] t
@@ -53,9 +44,7 @@ type Barer[t any] interface {
 // 	f.Foo(&b)
 // 	return t(b)
 // }
-
 // Test case 2 from issue
-
 // For now, a lone type parameter is not permitted as RHS in a type declaration (issue #45639).
 // type Fooer2[t any] interface {
 // 	Foo()

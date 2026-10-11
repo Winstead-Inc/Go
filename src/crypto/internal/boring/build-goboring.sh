@@ -16,8 +16,8 @@ export LANG=C
 unset LANGUAGE
 
 case $(uname -m) in
-x86_64)  export GOARCH=amd64 ;;
-aarch64) export GOARCH=arm64 ;;
+x86_64) export GOARCH=amd64;;
+aarch64) export GOARCH=arm64;;
 *)
 	echo 'unknown uname -m:' $(uname -m) >&2
 	exit 2
@@ -29,11 +29,11 @@ export CGO_ENABLED=0
 # Also collect list of checked symbols in syms.txt
 set -e
 cd /boring/godriver
-cat >goboringcrypto.cc <<'EOF'
+cat > goboringcrypto.cc << 'EOF'
 #include <cassert>
 #include "goboringcrypto0.h"
 #include "goboringcrypto1.h"
-#define check_size(t) if(sizeof(t) != sizeof(GO_ ## t)) {printf("sizeof(" #t ")=%d, but sizeof(GO_" #t ")=%d\n", (int)sizeof(t), (int)sizeof(GO_ ## t)); ret=1;}
+#define check_size(t) if(sizeof(t) != sizeof(GO_ ## t)) {printf("sizeof("#t ")=%d, but sizeof(GO_"#t ")=%d\n", (int)sizeof(t), (int)sizeof(GO_ ## t)); ret=1;}
 #define check_func(f) { auto x = f; x = _goboringcrypto_ ## f ; }
 #define check_value(n, v) if(n != v) {printf(#n "=%d, but goboringcrypto.h defines it as %d\n", (int)n, (int)v); ret=1;}
 int main() {
@@ -43,7 +43,7 @@ return ret;
 }
 EOF
 
-cat >boringx.awk <<'EOF'
+cat > boringx.awk << 'EOF'
 BEGIN {
 	exitcode = 0
 }
@@ -112,7 +112,7 @@ END {
 }
 EOF
 
-cat >boringh.awk <<'EOF'
+cat > boringh.awk << 'EOF'
 /^\/\/ #include/ {sub(/\/\//, ""); print > "goboringcrypto0.h"; next}
 /typedef struct|enum ([a-z_]+ )?{|^[ \t]/ {print >"goboringcrypto1.h";next}
 {gsub(/GO_/, ""); gsub(/enum go_/, "enum "); gsub(/go_point_conv/, "point_conv"); print >"goboringcrypto1.h"}
@@ -122,7 +122,7 @@ awk -f boringx.awk goboringcrypto.h # writes goboringcrypto.x
 awk -f boringh.awk goboringcrypto.h # writes goboringcrypto[01].h
 
 ls -l ../boringssl/include
-clang++ -fPIC -I../boringssl/include -O2 -o a.out  goboringcrypto.cc
+clang++ -fPIC -I../boringssl/include -O2 -o a.out goboringcrypto.cc
 ./a.out || exit 2
 
 # clang implements u128 % u128 -> u128 by calling __umodti3,
@@ -130,7 +130,7 @@ clang++ -fPIC -I../boringssl/include -O2 -o a.out  goboringcrypto.cc
 # against a different compiler version, link our own __umodti3 into the syso.
 # This one is specialized so it only expects divisors below 2^64,
 # which is all BoringCrypto uses. (Otherwise it will seg fault.)
-cat >umod-amd64.s <<'EOF'
+cat > umod-amd64.s << 'EOF'
 # tu_int __umodti3(tu_int x, tu_int y)
 # x is rsi:rdi, y is rcx:rdx, return result is rdx:rax.
 .globl __umodti3
@@ -168,7 +168,7 @@ __umodti3:
 .section .note.GNU-stack,"",@progbits
 EOF
 
-cat >umod-arm64.c <<'EOF'
+cat > umod-arm64.c << 'EOF'
 typedef unsigned int u128 __attribute__((mode(TI)));
 
 static u128 div(u128 x, u128 y, u128 *rp) {
@@ -218,17 +218,17 @@ esac
 
 # Prepare copy of libcrypto.a with only the checked functions renamed and exported.
 # All other symbols are left alone and hidden.
-echo BORINGSSL_bcm_power_on_self_test >>syms.txt
-awk '{print "_goboringcrypto_" $0 }' syms.txt >globals.txt
-awk '{print $0 " _goboringcrypto_" $0 }' syms.txt >renames.txt
+echo BORINGSSL_bcm_power_on_self_test >> syms.txt
+awk '{print "_goboringcrypto_" $0 }' syms.txt > globals.txt
+awk '{print $0 " _goboringcrypto_" $0 }' syms.txt > renames.txt
 objcopy --globalize-symbol=BORINGSSL_bcm_power_on_self_test \
 	../boringssl/build/crypto/libcrypto.a libcrypto.a
 
 # Link together bcm.o and libcrypto.a into a single object.
 ld -r -nostdlib --whole-archive -o goboringcrypto.o libcrypto.a $extra
 
-echo __umodti3 _goboringcrypto___umodti3 >>renames.txt
-echo __udivti3 _goboringcrypto___udivti3 >>renames.txt
+echo __umodti3 _goboringcrypto___umodti3 >> renames.txt
+echo __udivti3 _goboringcrypto___udivti3 >> renames.txt
 objcopy --remove-section=.llvm_addrsig goboringcrypto.o goboringcrypto1.o # b/179161016
 objcopy --redefine-syms=renames.txt goboringcrypto1.o goboringcrypto2.o
 objcopy --keep-global-symbols=globals.txt --strip-unneeded goboringcrypto2.o goboringcrypto_linux_$GOARCH.syso

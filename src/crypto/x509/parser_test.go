@@ -2,139 +2,68 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package x509
-
-import (
-	"bytes"
-	"crypto/ecdsa"
-	"crypto/elliptic"
-	"crypto/rand"
-	"crypto/x509/pkix"
-	"encoding/asn1"
-	"encoding/pem"
-	"os"
-	"reflect"
-	"strings"
-	"testing"
-	"time"
-
-	"golang.org/x/crypto/cryptobyte"
-	cryptobyte_asn1 "golang.org/x/crypto/cryptobyte/asn1"
+package x509 import
+(
+    "bytes""crypto/ecdsa""crypto/elliptic""crypto/rand""crypto/x509/pkix""encoding/asn1""encoding/pem""os""reflect""strings""testing""time""golang.org/x/crypto/cryptobyte" cryptobyte_asn1"golang.org/x/crypto/cryptobyte/asn1"
 )
 
-func TestParseASN1String(t *testing.T) {
-	tests := []struct {
-		name        string
-		tag         cryptobyte_asn1.Tag
-		value       []byte
-		expected    string
-		expectedErr string
-	}{
-		{
-			name:     "T61String",
-			tag:      cryptobyte_asn1.T61String,
-			value:    []byte{0xbf, 0x61, 0x3f},
-			expected: string("¿a?"),
-		},
-		{
-			name:     "PrintableString",
-			tag:      cryptobyte_asn1.PrintableString,
-			value:    []byte{80, 81, 82},
-			expected: string("PQR"),
-		},
-		{
-			name:        "PrintableString (invalid)",
-			tag:         cryptobyte_asn1.PrintableString,
-			value:       []byte{1, 2, 3},
-			expectedErr: "invalid PrintableString",
-		},
-		{
-			name:     "UTF8String",
-			tag:      cryptobyte_asn1.UTF8String,
-			value:    []byte{80, 81, 82},
-			expected: string("PQR"),
-		},
-		{
-			name:        "UTF8String (invalid)",
-			tag:         cryptobyte_asn1.UTF8String,
-			value:       []byte{255},
-			expectedErr: "invalid UTF-8 string",
-		},
-		{
-			name:     "BMPString",
-			tag:      cryptobyte_asn1.Tag(asn1.TagBMPString),
-			value:    []byte{80, 81},
-			expected: string("偑"),
-		},
-		{
-			name:        "BMPString (invalid length)",
-			tag:         cryptobyte_asn1.Tag(asn1.TagBMPString),
-			value:       []byte{255},
-			expectedErr: "invalid BMPString",
-		},
-		{
-			name:        "BMPString (invalid surrogate)",
-			tag:         cryptobyte_asn1.Tag(asn1.TagBMPString),
-			value:       []byte{80, 81, 216, 1},
-			expectedErr: "invalid BMPString",
-		},
-		{
-			name:        "BMPString (invalid noncharacter 0xfdd1)",
-			tag:         cryptobyte_asn1.Tag(asn1.TagBMPString),
-			value:       []byte{80, 81, 253, 209},
-			expectedErr: "invalid BMPString",
-		},
-		{
-			name:        "BMPString (invalid noncharacter 0xffff)",
-			tag:         cryptobyte_asn1.Tag(asn1.TagBMPString),
-			value:       []byte{80, 81, 255, 255},
-			expectedErr: "invalid BMPString",
-		},
-		{
-			name:        "BMPString (invalid noncharacter 0xfffe)",
-			tag:         cryptobyte_asn1.Tag(asn1.TagBMPString),
-			value:       []byte{80, 81, 255, 254},
-			expectedErr: "invalid BMPString",
-		},
-		{
-			name:     "IA5String",
-			tag:      cryptobyte_asn1.IA5String,
-			value:    []byte{80, 81},
-			expected: string("PQ"),
-		},
-		{
-			name:        "IA5String (invalid)",
-			tag:         cryptobyte_asn1.IA5String,
-			value:       []byte{255},
-			expectedErr: "invalid IA5String",
-		},
-		{
-			name:     "NumericString",
-			tag:      cryptobyte_asn1.Tag(asn1.TagNumericString),
-			value:    []byte{49, 50},
-			expected: string("12"),
-		},
-		{
-			name:        "NumericString (invalid)",
-			tag:         cryptobyte_asn1.Tag(asn1.TagNumericString),
-			value:       []byte{80},
-			expectedErr: "invalid NumericString",
-		},
-	}
+func TestParseASN1String(t * testing.T)
+{
+    tests: = [] struct { name string tag cryptobyte_asn1.Tag value[] byte expected string expectedErr string }
+    {
+{ name: "T61String", tag: cryptobyte_asn1.T61String, value: [] byte { 0xbf, 0x61, 0x3f }, expected: string("¿a?"), },
+{ name: "PrintableString", tag: cryptobyte_asn1.PrintableString, value: [] byte { 80, 81, 82 }, expected: string("PQR"), },
+        {
+            name: "PrintableString (invalid)", tag: cryptobyte_asn1.PrintableString, value: [] byte { 1, 2, 3 },
+            expectedErr: "invalid PrintableString", 
+        },
+{ name: "UTF8String", tag: cryptobyte_asn1.UTF8String, value: [] byte { 80, 81, 82 }, expected: string("PQR"), },
+{ name: "UTF8String (invalid)", tag: cryptobyte_asn1.UTF8String, value: [] byte { 255 }, expectedErr: "invalid UTF-8 string", },
+{ name: "BMPString", tag: cryptobyte_asn1.Tag(asn1.TagBMPString), value: [] byte { 80, 81 }, expected: string("偑"), },
+        {
+            name: "BMPString (invalid length)", tag: cryptobyte_asn1.Tag(asn1.TagBMPString), value: [] byte { 255 },
+            expectedErr: "invalid BMPString", 
+        },
+        {
+            name: "BMPString (invalid surrogate)", tag: cryptobyte_asn1.Tag(asn1.TagBMPString), value: [] byte { 80, 81, 216, 1 },
+            expectedErr: "invalid BMPString", 
+        },
+        {
+            name: "BMPString (invalid noncharacter 0xfdd1)", tag: cryptobyte_asn1.Tag(asn1.TagBMPString), value: [] byte { 80, 81, 253, 209 },
+            expectedErr: "invalid BMPString", 
+        },
+        {
+            name: "BMPString (invalid noncharacter 0xffff)", tag: cryptobyte_asn1.Tag(asn1.TagBMPString), value: [] byte { 80, 81, 255, 255 },
+            expectedErr: "invalid BMPString", 
+        },
+        {
+            name: "BMPString (invalid noncharacter 0xfffe)", tag: cryptobyte_asn1.Tag(asn1.TagBMPString), value: [] byte { 80, 81, 255, 254 },
+            expectedErr: "invalid BMPString", 
+        },
+{ name: "IA5String", tag: cryptobyte_asn1.IA5String, value: [] byte { 80, 81 }, expected: string("PQ"), },
+{ name: "IA5String (invalid)", tag: cryptobyte_asn1.IA5String, value: [] byte { 255 }, expectedErr: "invalid IA5String", },
+{ name: "NumericString", tag: cryptobyte_asn1.Tag(asn1.TagNumericString), value: [] byte { 49, 50 }, expected: string("12"), },
+        {
+            name: "NumericString (invalid)", tag: cryptobyte_asn1.Tag(asn1.TagNumericString), value: [] byte { 80 },
+            expectedErr: "invalid NumericString", 
+        },
+    }
 
-	for _, tc := range tests {
-		t.Run(tc.name, func(t *testing.T) {
-			out, err := parseASN1String(tc.tag, tc.value)
-			if err != nil && err.Error() != tc.expectedErr {
-				t.Fatalf("parseASN1String returned unexpected error: got %q, want %q", err, tc.expectedErr)
-			} else if err == nil && tc.expectedErr != "" {
-				t.Fatalf("parseASN1String didn't fail, expected: %s", tc.expectedErr)
-			}
-			if out != tc.expected {
-				t.Fatalf("parseASN1String returned unexpected value: got %q, want %q", out, tc.expected)
-			}
-		})
-	}
+    for _, tc: = range tests
+    {
+        t.Run
+        (
+            tc.name, func(t * testing.T)
+            {
+                out, err: = parseASN1String(tc.tag, tc.value) if err != nil && err.Error() != tc.expectedErr
+                {
+                    t.Fatalf("parseASN1String returned unexpected error: got %q, want %q", err, tc.expectedErr)
+                }
+                else if err == nil && tc.expectedErr != "" { t.Fatalf("parseASN1String didn't fail, expected: %s", tc.expectedErr) }
+                if out != tc.expected { t.Fatalf("parseASN1String returned unexpected value: got %q, want %q", out, tc.expected) }
+            }
+        )
+    }
 }
 
 const policyPEM = `-----BEGIN CERTIFICATE-----
@@ -174,54 +103,40 @@ BTZMdZmvoNtjemqmgcBXHsf0ctVm0m6tH5uYqyVxu8tfyUis6Cf303PHj+spWP1k
 gc5PYnVF0ot7qAmNFENIpbKg3BdusBkF9rGxLaDSUBvSc7+s9iQz9d/iRuAebrYu
 +eqUlJ2lsjS1U8qyPmlH+spfPNbAEQEsuP32Aw==
 -----END CERTIFICATE-----
-`
-
-func TestPolicyParse(t *testing.T) {
-	b, _ := pem.Decode([]byte(policyPEM))
-	c, err := ParseCertificate(b.Bytes)
-	if err != nil {
-		t.Fatal(err)
-	}
-	if len(c.Policies) != 9 {
-		t.Errorf("unexpected number of policies: got %d, want %d", len(c.Policies), 9)
-	}
-	if len(c.PolicyMappings) != 9 {
-		t.Errorf("unexpected number of policy mappings: got %d, want %d", len(c.PolicyMappings), 9)
-	}
-	if !c.RequireExplicitPolicyZero {
-		t.Error("expected RequireExplicitPolicyZero to be set")
-	}
-	if !c.InhibitPolicyMappingZero {
-		t.Error("expected InhibitPolicyMappingZero to be set")
-	}
-	if !c.InhibitAnyPolicyZero {
-		t.Error("expected InhibitAnyPolicyZero to be set")
-	}
+` func TestPolicyParse
+(
+    t * testing.T
+)
+{
+    b, _: = pem.Decode([] byte(policyPEM)) c, err: = ParseCertificate(b.Bytes) if err != nil { t.Fatal(err) }
+    if len(c.Policies) != 9 { t.Errorf("unexpected number of policies: got %d, want %d", len(c.Policies), 9) }
+    if len(c.PolicyMappings) != 9 { t.Errorf("unexpected number of policy mappings: got %d, want %d", len(c.PolicyMappings), 9) }
+    if ! c.RequireExplicitPolicyZero { t.Error("expected RequireExplicitPolicyZero to be set") }
+    if ! c.InhibitPolicyMappingZero { t.Error("expected InhibitPolicyMappingZero to be set") }
+    if ! c.InhibitAnyPolicyZero { t.Error("expected InhibitAnyPolicyZero to be set") }
 }
 
-func TestParsePolicies(t *testing.T) {
-	for _, tc := range []string{
-		"testdata/policy_leaf_duplicate.pem",
-		"testdata/policy_leaf_invalid.pem",
-	} {
-		t.Run(tc, func(t *testing.T) {
-			b, err := os.ReadFile(tc)
-			if err != nil {
-				t.Fatal(err)
-			}
-			p, _ := pem.Decode(b)
-			_, err = ParseCertificate(p.Bytes)
-			if err == nil {
-				t.Error("parsing should've failed")
-			}
-		})
-	}
+func TestParsePolicies(t * testing.T)
+{
+    for _, tc: = range[] string { "testdata/policy_leaf_duplicate.pem", "testdata/policy_leaf_invalid.pem", }
+    {
+        t.Run
+        (
+            tc, func(t * testing.T)
+            {
+                b, err: = os.ReadFile(tc) if err != nil { t.Fatal(err) }
+                p, _: = pem.Decode(b) _, err = ParseCertificate(p.Bytes) if err == nil { t.Error("parsing should've failed") }
+            }
+        )
+    }
 }
 
-func TestParseCertificateNegativeMaxPathLength(t *testing.T) {
-	certs := []string{
-		// Certificate with MaxPathLen set to -1.
-		`
+func TestParseCertificateNegativeMaxPathLength(t * testing.T)
+{
+    certs: = [] string
+    {
+        // Certificate with MaxPathLen set to -1.
+        `
 -----BEGIN CERTIFICATE-----
 MIIByTCCATKgAwIBAgIBATANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDEwRURVNU
 MB4XDTcwMDEwMTAwMTY0MFoXDTcwMDEwMjAzNDY0MFowDzENMAsGA1UEAxMEVEVT
@@ -234,9 +149,8 @@ ZBj1ThT+eyh50XsoU570NUysTg3Nj/3lbkEolzdcE+wu0CPXvgxLRM6Y62u1ey82
 8d5VQHstzF4dXgc3W+O9UySa+CKdcHx/q7o7seOGXdysT0IJtAY3w66mFkuF7PIn
 y9b7M5t6pmWjb7N0QqGuWeNqi4ZvS8gLKmVEgGY=
 -----END CERTIFICATE-----
-`,
-		// Certificate with MaxPathLen set to -2.
-		`
+`, // Certificate with MaxPathLen set to -2.
+        `
 -----BEGIN CERTIFICATE-----
 MIIByTCCATKgAwIBAgIBATANBgkqhkiG9w0BAQsFADAPMQ0wCwYDVQQDEwRURVNU
 MB4XDTcwMDEwMTAwMTY0MFoXDTcwMDEwMjAzNDY0MFowDzENMAsGA1UEAxMEVEVT
@@ -249,258 +163,230 @@ YGQc7Ods+BuKck7p+vpAMONM8SLEuUtKorCP3ecsO51MoA4/niLbgMHaOGNHwzMp
 ajg0zLbY0Dj6Ml0VZ+lS3rjgTEhYXc626eZkoQqgUzL1jhe3S0ZbSxxmHMBKjJFl
 d5l1tRhScKu2NBgm74nYmJxJYgvuTA38wGhRrGU=
 -----END CERTIFICATE-----
-`,
-	}
+`, 
+    }
 
-	for _, cert := range certs {
-		b, _ := pem.Decode([]byte(cert))
-		_, err := ParseCertificate(b.Bytes)
-		if err == nil || err.Error() != "x509: invalid basic constraints" {
-			t.Errorf(`ParseCertificate() = %v; want = "x509: invalid basic constraints"`, err)
-		}
-	}
+    for _, cert: = range certs
+    {
+        b, _: = pem.Decode([] byte(cert)) _, err: = ParseCertificate(b.Bytes) if err == nil || err.Error() != "x509: invalid basic constraints"
+        {
+            t.Errorf(`ParseCertificate() = %v; want = "x509: invalid basic constraints"`, err)
+        }
+    }
 }
 
-func TestParseNameConstraintsExtensionEmptySubtrees(t *testing.T) {
-	permittedTag := cryptobyte_asn1.Tag(0).ContextSpecific().Constructed()
-	excludedTag := cryptobyte_asn1.Tag(1).ContextSpecific().Constructed()
-	dnsNameTag := cryptobyte_asn1.Tag(2).ContextSpecific()
-	tests := []struct {
-		name     string
-		emptyTag cryptobyte_asn1.Tag
-	}{
-		{
-			name:     "permittedSubtrees",
-			emptyTag: permittedTag,
-		},
-		{
-			name:     "excludedSubtrees",
-			emptyTag: excludedTag,
-		},
-	}
+func TestParseNameConstraintsExtensionEmptySubtrees(t * testing.T)
+{
+    permittedTag: = cryptobyte_asn1.Tag(0).ContextSpecific().Constructed() excludedTag: = cryptobyte_asn1.Tag(1).ContextSpecific().Constructed() dnsNameTag: = cryptobyte_asn1.Tag
+    (
+        2
+    )
+    .ContextSpecific() tests: = [] struct { name string emptyTag cryptobyte_asn1.Tag }
+{ { name: "permittedSubtrees", emptyTag: permittedTag, }, { name: "excludedSubtrees", emptyTag: excludedTag, }, }
 
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			var builder cryptobyte.Builder
-			builder.AddASN1(cryptobyte_asn1.SEQUENCE, func(builder *cryptobyte.Builder) {
-				for _, tag := range []cryptobyte_asn1.Tag{permittedTag, excludedTag} {
-					builder.AddASN1(tag, func(builder *cryptobyte.Builder) {
-						if tag == test.emptyTag {
-							return
-						}
-						builder.AddASN1(cryptobyte_asn1.SEQUENCE, func(builder *cryptobyte.Builder) {
-							builder.AddASN1(dnsNameTag, func(builder *cryptobyte.Builder) {
-								builder.AddBytes([]byte("example.com"))
-							})
-						})
-					})
-				}
-			})
-			der, err := builder.Bytes()
-			if err != nil {
-				t.Fatal(err)
-			}
+    for _, test: = range tests
+    {
+        t.Run
+        (
+            test.name, func(t * testing.T)
+            {
+                var builder cryptobyte.Builder builder.AddASN1
+                (
+                    cryptobyte_asn1.SEQUENCE, func(builder * cryptobyte.Builder)
+                    {
+                        for _, tag: = range[] cryptobyte_asn1.Tag { permittedTag, excludedTag }
+                        {
+                            builder.AddASN1
+                            (
+                                tag, func(builder * cryptobyte.Builder)
+                                {
+                                    if tag == test.emptyTag { return }
+                                    builder.AddASN1
+                                    (
+                                        cryptobyte_asn1.SEQUENCE, func(builder * cryptobyte.Builder)
+                                        {
+                                            builder.AddASN1
+                                            (
+                                                dnsNameTag, func(builder * cryptobyte.Builder) { builder.AddBytes([] byte("example.com")) }
+                                            )
+                                        }
+                                    )
+                                }
+                            )
+                        }
+                    }
+                )
+                der, err: = builder.Bytes() if err != nil { t.Fatal(err) }
 
-			_, err = parseNameConstraintsExtension(&Certificate{}, pkix.Extension{
-				Value: der,
-			})
-			if err == nil {
-				t.Fatal("unexpected success")
-			}
-			if got, want := err.Error(), "x509: empty name constraints subtree sequence"; got != want {
-				t.Fatalf("unexpected error: got %q, want %q", got, want)
-			}
-		})
-	}
+                _, err = parseNameConstraintsExtension( & Certificate {}, pkix.Extension { Value: der, }) if err == nil { t.Fatal("unexpected success") }
+                if got, want: = err.Error(),"x509: empty name constraints subtree sequence";
+                got != want { t.Fatalf("unexpected error: got %q, want %q", got, want) }
+            }
+        )
+    }
 }
 
-func TestParseExtensionTrailingData(t *testing.T) {
-	// extnValue is the DER encoding of a single value (RFC 5280, Section
-	// 4.1), so bytes after the top-level value are rejected. Unknown
-	// elements inside a SEQUENCE (RFC 5280, Appendix B) stay tolerated.
-	tests := []struct {
-		name  string
-		value []byte
-		parse func([]byte) error
-		want  string
-	}{
-		{
-			name:  "KeyUsage",
-			value: []byte{0x03, 0x02, 0x07, 0x80},
-			parse: func(der []byte) error { _, err := parseKeyUsageExtension(der); return err },
-			want:  "x509: trailing data after key usage",
-		},
-		{
-			name:  "BasicConstraints",
-			value: []byte{0x30, 0x03, 0x01, 0x01, 0xff},
-			parse: func(der []byte) error { _, _, err := parseBasicConstraintsExtension(der); return err },
-			want:  "x509: trailing data after basic constraints",
-		},
-		{
-			name:  "SubjectAltName",
-			value: []byte{0x30, 0x05, 0x82, 0x03, 'a', 'b', 'c'},
-			parse: func(der []byte) error { _, _, _, _, err := parseSANExtension(der); return err },
-			want:  "x509: trailing data after subject alternative names",
-		},
-		{
-			name:  "ExtKeyUsage",
-			value: []byte{0x30, 0x0a, 0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01},
-			parse: func(der []byte) error { _, _, err := parseExtKeyUsageExtension(der); return err },
-			want:  "x509: trailing data after extended key usages",
-		},
-		{
-			name:  "CertificatePolicies",
-			value: []byte{0x30, 0x08, 0x30, 0x06, 0x06, 0x04, 0x55, 0x1d, 0x20, 0x00},
-			parse: func(der []byte) error { _, err := parseCertificatePoliciesExtension(der); return err },
-			want:  "x509: trailing data after certificate policies",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if err := test.parse(test.value); err != nil {
-				t.Fatalf("parse(valid) = %v, want nil", err)
-			}
-			trailing := append(append([]byte{}, test.value...), 0x00)
-			if err := test.parse(trailing); err == nil || err.Error() != test.want {
-				t.Errorf("parse(trailing) = %v, want %q", err, test.want)
-			}
-		})
-	}
-
-	// An unknown element inside the BasicConstraints SEQUENCE is still accepted.
-	extensible := []byte{0x30, 0x05, 0x01, 0x01, 0xff, 0x05, 0x00}
-	if _, _, err := parseBasicConstraintsExtension(extensible); err != nil {
-		t.Errorf("parseBasicConstraintsExtension(extensible) = %v, want nil", err)
-	}
+func TestParseExtensionTrailingData(t * testing.T)
+{
+    // extnValue is the DER encoding of a single value (RFC 5280, Section
+    // 4.1), so bytes after the top-level value are rejected. Unknown
+    // elements inside a SEQUENCE (RFC 5280, Appendix B) stay tolerated.
+    tests: = [] struct { name string value[] byte parse func([] byte) error want string }
+    {
+        {
+            name: "KeyUsage", value: [] byte { 0x03, 0x02, 0x07, 0x80 },
+            parse: func(der[] byte) error { _, err: = parseKeyUsageExtension(der); return err },
+            want: "x509: trailing data after key usage", 
+        },
+        {
+            name: "BasicConstraints", value: [] byte { 0x30, 0x03, 0x01, 0x01, 0xff },
+            parse: func(der[] byte) error { _, _, err: = parseBasicConstraintsExtension(der); return err },
+            want: "x509: trailing data after basic constraints", 
+        },
+        {
+            name: "SubjectAltName", value: [] byte { 0x30, 0x05, 0x82, 0x03, 'a', 'b', 'c' },
+            parse: func(der[] byte) error { _, _, _, _, err: = parseSANExtension(der); return err },
+            want: "x509: trailing data after subject alternative names", 
+        },
+        {
+            name: "ExtKeyUsage", value: [] byte { 0x30, 0x0a, 0x06, 0x08, 0x2b, 0x06, 0x01, 0x05, 0x05, 0x07, 0x03, 0x01 },
+            parse: func(der[] byte) error { _, _, err: = parseExtKeyUsageExtension(der); return err },
+            want: "x509: trailing data after extended key usages", 
+        },
+        {
+            name: "CertificatePolicies", value: [] byte { 0x30, 0x08, 0x30, 0x06, 0x06, 0x04, 0x55, 0x1d, 0x20, 0x00 },
+            parse: func(der[] byte) error { _, err: = parseCertificatePoliciesExtension(der); return err },
+            want: "x509: trailing data after certificate policies", 
+        },
+    }
+    for _, test: = range tests
+    {
+        t.Run
+        (
+            test.name, func(t * testing.T)
+            {
+                if err: = test.parse(test.value);
+                err != nil { t.Fatalf("parse(valid) = %v, want nil", err) }
+                trailing: = append(append([] byte {}, test.value ...), 0x00) if err: = test.parse(trailing);
+                err == nil || err.Error() != test.want { t.Errorf("parse(trailing) = %v, want %q", err, test.want) }
+            }
+        )
+    }
+    // An unknown element inside the BasicConstraints SEQUENCE is still accepted.
+    extensible: = [] byte { 0x30, 0x05, 0x01, 0x01, 0xff, 0x05, 0x00 }
+    if _, _, err: = parseBasicConstraintsExtension(extensible);
+    err != nil { t.Errorf("parseBasicConstraintsExtension(extensible) = %v, want nil", err) }
 }
 
-func TestParseCertificateExtensionTrailingData(t *testing.T) {
-	k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	tmpl := &Certificate{
-		ExtraExtensions: []pkix.Extension{{
-			Id:       asn1.ObjectIdentifier{2, 5, 29, 19},
-			Critical: true,
-			Value:    []byte{0x30, 0x03, 0x01, 0x01, 0xff, 0x00},
-		}},
-	}
-	der, err := CreateCertificate(rand.Reader, tmpl, tmpl, &k.PublicKey, k)
-	if err != nil {
-		t.Fatal(err)
-	}
-	want := "x509: trailing data after basic constraints"
-	if _, err := ParseCertificate(der); err == nil || err.Error() != want {
-		t.Errorf("ParseCertificate() = %v, want %q", err, want)
-	}
+func TestParseCertificateExtensionTrailingData(t * testing.T)
+{
+    k, err: = ecdsa.GenerateKey(elliptic.P256(), rand.Reader) if err != nil { t.Fatal(err) }
+    tmpl: = & Certificate
+    {
+        ExtraExtensions: [] pkix.Extension
+        {{
+            Id: asn1.ObjectIdentifier { 2, 5, 29, 19 },
+            Critical: true, Value: [] byte { 0x30, 0x03, 0x01, 0x01, 0xff, 0x00 },
+        }},
+    }
+    der, err: = CreateCertificate(rand.Reader, tmpl, tmpl, & k.PublicKey, k) if err != nil { t.Fatal(err) }
+    want: = "x509: trailing data after basic constraints" if _, err: = ParseCertificate(der);
+    err == nil || err.Error() != want { t.Errorf("ParseCertificate() = %v, want %q", err, want) }
 }
 
-func TestDomainNameValid(t *testing.T) {
-	for _, tc := range []struct {
-		name       string
-		dnsName    string
-		constraint bool
-		valid      bool
-	}{
-		// TODO(#75835): these tests are for stricter name validation, which we
-		// had to disable. Once we reenable these strict checks, behind a
-		// GODEBUG, we should add them back in.
-		// {"empty name, name", "", false, false},
-		// {"254 char label, name", strings.Repeat("a.a", 84) + "aaa", false, false},
-		// {"254 char label, constraint", strings.Repeat("a.a", 84) + "aaa", true, false},
-		// {"253 char label, name", strings.Repeat("a.a", 84) + "aa", false, false},
-		// {"253 char label, constraint", strings.Repeat("a.a", 84) + "aa", true, false},
-		// {"64 char single label, name", strings.Repeat("a", 64), false, false},
-		// {"64 char single label, constraint", strings.Repeat("a", 64), true, false},
-		// {"64 char label, name", "a." + strings.Repeat("a", 64), false, false},
-		// {"64 char label, constraint", "a." + strings.Repeat("a", 64), true, false},
-
-		// TODO(#75835): these are the inverse of the tests above, they should be removed
-		// once the strict checking is enabled.
-		{"254 char label, name", strings.Repeat("a.a", 84) + "aaa", false, true},
-		{"254 char label, constraint", strings.Repeat("a.a", 84) + "aaa", true, true},
-		{"253 char label, name", strings.Repeat("a.a", 84) + "aa", false, true},
-		{"253 char label, constraint", strings.Repeat("a.a", 84) + "aa", true, true},
-		{"64 char single label, name", strings.Repeat("a", 64), false, true},
-		{"64 char single label, constraint", strings.Repeat("a", 64), true, true},
-		{"64 char label, name", "a." + strings.Repeat("a", 64), false, true},
-		{"64 char label, constraint", "a." + strings.Repeat("a", 64), true, true},
-
-		// Check we properly enforce properties of domain names.
-		{"empty name, constraint", "", true, true},
-		{"empty label, name", "a..a", false, false},
-		{"empty label, constraint", "a..a", true, false},
-		{"period, name", ".", false, false},
-		{"period, constraint", ".", true, false}, // TODO(roland): not entirely clear if this is a valid constraint (require at least one label?)
-		{"valid, name", "a.b.c", false, true},
-		{"valid, constraint", "a.b.c", true, true},
-		{"leading period, name", ".a.b.c", false, false},
-		{"leading period, constraint", ".a.b.c", true, true},
-		{"trailing period, name", "a.", false, false},
-		{"trailing period, constraint", "a.", true, false},
-		{"bare label, name", "a", false, true},
-		{"bare label, constraint", "a", true, true},
-		{"63 char single label, name", strings.Repeat("a", 63), false, true},
-		{"63 char single label, constraint", strings.Repeat("a", 63), true, true},
-		{"63 char label, name", "a." + strings.Repeat("a", 63), false, true},
-		{"63 char label, constraint", "a." + strings.Repeat("a", 63), true, true},
-	} {
-		t.Run(tc.name, func(t *testing.T) {
-			valid := domainNameValid(tc.dnsName, tc.constraint)
-			if tc.valid != valid {
-				t.Errorf("domainNameValid(%q, %t) = %v; want %v", tc.dnsName, tc.constraint, !tc.valid, tc.valid)
-			}
-			// Also check that we enforce the same properties as domainToReverseLabels
-			trimmedName := tc.dnsName
-			if tc.constraint && len(trimmedName) > 1 && trimmedName[0] == '.' {
-				trimmedName = trimmedName[1:]
-			}
-			_, revValid := domainToReverseLabels(trimmedName)
-			if valid != revValid {
-				t.Errorf("domainNameValid(%q, %t) = %t != domainToReverseLabels(%q) = %t", tc.dnsName, tc.constraint, valid, trimmedName, revValid)
-			}
-		})
-	}
+func TestDomainNameValid(t * testing.T)
+{
+    for _, tc: = range[] struct { name string dnsName string constraint bool valid bool }
+    {
+        // TODO(#75835): these tests are for stricter name validation, which we
+        // had to disable. Once we reenable these strict checks, behind a
+        // GODEBUG, we should add them back in.
+        // {"empty name, name", "", false, false},
+        // {"254 char label, name", strings.Repeat("a.a", 84) + "aaa", false, false},
+        // {"254 char label, constraint", strings.Repeat("a.a", 84) + "aaa", true, false},
+        // {"253 char label, name", strings.Repeat("a.a", 84) + "aa", false, false},
+        // {"253 char label, constraint", strings.Repeat("a.a", 84) + "aa", true, false},
+        // {"64 char single label, name", strings.Repeat("a", 64), false, false},
+        // {"64 char single label, constraint", strings.Repeat("a", 64), true, false},
+        // {"64 char label, name", "a." + strings.Repeat("a", 64), false, false},
+        // {"64 char label, constraint", "a." + strings.Repeat("a", 64), true, false},
+        // TODO(#75835): these are the inverse of the tests above, they should be removed
+        // once the strict checking is enabled.
+{ "254 char label, name", strings.Repeat("a.a", 84) + "aaa", false, true },
+{ "254 char label, constraint", strings.Repeat("a.a", 84) + "aaa", true, true },
+{ "253 char label, name", strings.Repeat("a.a", 84) + "aa", false, true },
+{ "253 char label, constraint", strings.Repeat("a.a", 84) + "aa", true, true },
+{ "64 char single label, name", strings.Repeat("a", 64), false, true },
+{ "64 char single label, constraint", strings.Repeat("a", 64), true, true },
+{ "64 char label, name", "a." + strings.Repeat("a", 64), false, true },
+{ "64 char label, constraint", "a." + strings.Repeat("a", 64), true, true },
+        // Check we properly enforce properties of domain names.
+{ "empty name, constraint", "", true, true },
+{ "empty label, name", "a..a", false, false },
+{ "empty label, constraint", "a..a", true, false },
+{ "period, name", ".", false, false },
+{ "period, constraint", ".", true, false },
+        // TODO(roland): not entirely clear if this is a valid constraint (require at least one label?)
+{ "valid, name", "a.b.c", false, true },
+{ "valid, constraint", "a.b.c", true, true },
+{ "leading period, name", ".a.b.c", false, false },
+{ "leading period, constraint", ".a.b.c", true, true },
+{ "trailing period, name", "a.", false, false },
+{ "trailing period, constraint", "a.", true, false },
+{ "bare label, name", "a", false, true },
+{ "bare label, constraint", "a", true, true },
+{ "63 char single label, name", strings.Repeat("a", 63), false, true },
+{ "63 char single label, constraint", strings.Repeat("a", 63), true, true },
+{ "63 char label, name", "a." + strings.Repeat("a", 63), false, true },
+{ "63 char label, constraint", "a." + strings.Repeat("a", 63), true, true },
+    }
+    {
+        t.Run
+        (
+            tc.name, func(t * testing.T)
+            {
+                valid: = domainNameValid(tc.dnsName, tc.constraint) if tc.valid != valid
+                {
+                    t.Errorf("domainNameValid(%q, %t) = %v; want %v", tc.dnsName, tc.constraint, ! tc.valid, tc.valid)
+                }
+                // Also check that we enforce the same properties as domainToReverseLabels
+                trimmedName: = tc.dnsName if tc.constraint && len(trimmedName) > 1 && trimmedName[0] == '.' { trimmedName = trimmedName[1:] }
+                _, revValid: = domainToReverseLabels(trimmedName) if valid != revValid
+                {
+                    t.Errorf
+                    (
+                        "domainNameValid(%q, %t) = %t != domainToReverseLabels(%q) = %t", tc.dnsName, tc.constraint, valid, trimmedName, revValid
+                    )
+                }
+            }
+        )
+    }
 }
 
-func TestRoundtripWeirdSANs(t *testing.T) {
-	// TODO(#75835): check that certificates we create with CreateCertificate that have malformed SAN values
-	// can be parsed by ParseCertificate. We should eventually restrict this, but for now we have to maintain
-	// this property as people have been relying on it.
-	k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	badNames := []string{
-		"baredomain",
-		"baredomain.",
-		strings.Repeat("a", 255),
-		strings.Repeat("a", 65) + ".com",
-	}
-	tmpl := &Certificate{
-		EmailAddresses: badNames,
-		DNSNames:       badNames,
-	}
-	b, err := CreateCertificate(rand.Reader, tmpl, tmpl, &k.PublicKey, k)
-	if err != nil {
-		t.Fatal(err)
-	}
-	_, err = ParseCertificate(b)
-	if err != nil {
-		t.Fatalf("Couldn't roundtrip certificate: %v", err)
-	}
+func TestRoundtripWeirdSANs(t * testing.T)
+{
+    // TODO(#75835): check that certificates we create with CreateCertificate that have malformed SAN values
+    // can be parsed by ParseCertificate. We should eventually restrict this, but for now we have to maintain
+    // this property as people have been relying on it.
+    k, err: = ecdsa.GenerateKey(elliptic.P256(), rand.Reader) if err != nil { t.Fatal(err) }
+    badNames: = [] string { "baredomain", "baredomain.", strings.Repeat("a", 255), strings.Repeat("a", 65) + ".com", }
+    tmpl: = & Certificate { EmailAddresses: badNames, DNSNames: badNames, }
+    b, err: = CreateCertificate(rand.Reader, tmpl, tmpl, & k.PublicKey, k) if err != nil { t.Fatal(err) }
+    _, err = ParseCertificate(b) if err != nil { t.Fatalf("Couldn't roundtrip certificate: %v", err) }
 }
 
-func FuzzDomainNameValid(f *testing.F) {
-	f.Fuzz(func(t *testing.T, data string) {
-		domainNameValid(data, false)
-		domainNameValid(data, true)
-	})
+func FuzzDomainNameValid(f * testing.F)
+{
+    f.Fuzz(func(t * testing.T, data string) { domainNameValid(data, false) domainNameValid(data, true) })
 }
 
-func TestParseNameTypes(t *testing.T) {
-	block, _ := pem.Decode([]byte(`
+func TestParseNameTypes(t * testing.T)
+{
+    block, _: = pem.Decode
+    (
+[] byte
+        (
+            `
 -----BEGIN CERTIFICATE-----
 MIICGzCCAcGgAwIBAgIJAIZft7jy3RcpMAoGCCqGSM49BAMCMA8xDTALBgNVBAMM
 BFRlc3QwHhcNMjUwOTAyMTg0MzE3WhcNMjUxMDAyMTg0MzE3WjCCARUxIjAgBg0q
@@ -515,165 +401,131 @@ wbHjxgvmh/9aBg1LOj6kfsJIxULUmUpdzTAKBggqhkjOPQQDAgNIADBFAiBvKz3o
 ALhCqKrRFLUbax6+tI1s1B14IPVk2ZHbBEou5gIhAOpvJRNj5qluPXKLXmZvIK8u
 OjUhiZoowYvborSS1EBK
 -----END CERTIFICATE-----
-	`))
-	expected := map[string]any{
-		"1.2.840.113554.4.1.72585.2.1": "utf8-string🦊",
-		"1.2.840.113554.4.1.72585.2.2": []byte("octet-string"),
-		"1.2.840.113554.4.1.72585.2.3": asn1.RawValue{Tag: 13,
-			Bytes: []byte{1, 2, 3, 4, 5}, FullBytes: []byte{13, 5, 1, 2, 3, 4, 5}},
-		"1.2.840.113554.4.1.72585.2.4": nil,
-		"1.2.840.113554.4.1.72585.2.5": asn1.RawValue{Tag: asn1.TagSequence, IsCompound: true,
-			Bytes: []byte{1, 2}, FullBytes: []byte{0x30, 2, 1, 2}},
-		"1.2.840.113554.4.1.72585.2.6": int64(42),
-		"1.2.840.113554.4.1.72585.2.7": asn1.ObjectIdentifier{1, 2, 840, 113554, 4, 1, 72585, 2, 7},
-		"1.2.840.113554.4.1.72585.2.8": asn1.BitString{BitLength: 32,
-			Bytes: []byte{0xaa, 0xbb, 0xcc, 0xdd}},
-		"1.2.840.113554.4.1.72585.2.9":  time.Date(2025, 9, 2, 18, 43, 17, 0, time.UTC),
-		"1.2.840.113554.4.1.72585.2.10": true,
-	}
-	cert, err := ParseCertificate(block.Bytes)
-	if err != nil {
-		t.Fatalf("ParseCertificate failed: %v", err)
-	}
-	for _, attr := range cert.Subject.Names {
-		if val, ok := expected[attr.Type.String()]; ok {
-			if !reflect.DeepEqual(attr.Value, val) {
-				t.Errorf("unexpected value for %s: got %v (%T), want %v (%T)", attr.Type, attr.Value, attr.Value, val, val)
-			}
-		} else {
-			t.Errorf("unexpected attribute type: %s", attr.Type)
-		}
-	}
-	extra := pkix.Name{ExtraNames: cert.Subject.Names}
-	// asn1.Marshal does not encode NULL.
-	for i := range extra.ExtraNames {
-		if extra.ExtraNames[i].Value == nil {
-			extra.ExtraNames[i].Value = asn1.NullRawValue
-		}
-	}
-	got, err := asn1.Marshal(extra.ToRDNSequence())
-	if err != nil {
-		t.Fatalf("asn1.Marshal failed: %v", err)
-	}
-	if !bytes.Equal(got, cert.RawSubject) {
-		t.Errorf("unexpected marshaled RDNSequence: got %x, want %x", got, cert.RawSubject)
-	}
+	`
+        )
+    )
+    expected: = map[string] any
+    {
+        "1.2.840.113554.4.1.72585.2.1": "utf8-string🦊", "1.2.840.113554.4.1.72585.2.2": [] byte("octet-string"),"1.2.840.113554.4.1.72585.2.3": asn1.RawValue
+        {
+            Tag: 13, Bytes: [] byte { 1, 2, 3, 4, 5 },
+            FullBytes: [] byte { 13, 5, 1, 2, 3, 4, 5 }
+        },
+        "1.2.840.113554.4.1.72585.2.4": nil, "1.2.840.113554.4.1.72585.2.5": asn1.RawValue
+        {
+            Tag: asn1.TagSequence, IsCompound: true, Bytes: [] byte { 1, 2 },
+            FullBytes: [] byte { 0x30, 2, 1, 2 }
+        },
+        "1.2.840.113554.4.1.72585.2.6": int64(42),"1.2.840.113554.4.1.72585.2.7": asn1.ObjectIdentifier { 1, 2, 840, 113554, 4, 1, 72585, 2, 7 },
+        "1.2.840.113554.4.1.72585.2.8": asn1.BitString { BitLength: 32, Bytes: [] byte { 0xaa, 0xbb, 0xcc, 0xdd } },
+        "1.2.840.113554.4.1.72585.2.9": time.Date(2025, 9, 2, 18, 43, 17, 0, time.UTC),"1.2.840.113554.4.1.72585.2.10": true, 
+    }
+    cert, err: = ParseCertificate(block.Bytes) if err != nil { t.Fatalf("ParseCertificate failed: %v", err) }
+    for _, attr: = range cert.Subject.Names
+    {
+        if val, ok: = expected[attr.Type.String()];
+        ok
+        {
+            if ! reflect.DeepEqual(attr.Value, val)
+            {
+                t.Errorf("unexpected value for %s: got %v (%T), want %v (%T)", attr.Type, attr.Value, attr.Value, val, val)
+            }
+        }
+        else { t.Errorf("unexpected attribute type: %s", attr.Type) }
+    }
+    extra: = pkix.Name { ExtraNames: cert.Subject.Names }
+    // asn1.Marshal does not encode NULL.
+    for i: = range extra.ExtraNames { if extra.ExtraNames[i].Value == nil { extra.ExtraNames[i].Value = asn1.NullRawValue } }
+    got, err: = asn1.Marshal(extra.ToRDNSequence()) if err != nil { t.Fatalf("asn1.Marshal failed: %v", err) }
+    if ! bytes.Equal(got, cert.RawSubject) { t.Errorf("unexpected marshaled RDNSequence: got %x, want %x", got, cert.RawSubject) }
 }
 
-func TestParseAITrailingData(t *testing.T) {
-	var b cryptobyte.Builder
-	b.AddASN1ObjectIdentifier(oidPublicKeyRSA)
-	b.AddASN1NULL()
-	good, err := b.Bytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := parseAI(good); err != nil {
-		t.Fatalf("parseAI(valid) = %v, want nil", err)
-	}
-	// A second element after the parameters.
-	bad := append(append([]byte{}, good...), 0x05, 0x00)
-	want := "x509: trailing data after AlgorithmIdentifier parameters"
-	if _, err := parseAI(bad); err == nil || err.Error() != want {
-		t.Errorf("parseAI(trailing) = %v, want %q", err, want)
-	}
+func TestParseAITrailingData(t * testing.T)
+{
+    var b cryptobyte.Builder b.AddASN1ObjectIdentifier(oidPublicKeyRSA) b.AddASN1NULL() good, err: = b.Bytes() if err != nil { t.Fatal(err) }
+    if _, err: = parseAI(good);
+    err != nil { t.Fatalf("parseAI(valid) = %v, want nil", err) }
+    // A second element after the parameters.
+    bad: = append(append([] byte {}, good ...), 0x05, 0x00) want: = "x509: trailing data after AlgorithmIdentifier parameters" if _, err: = parseAI(bad);
+    err == nil || err.Error() != want { t.Errorf("parseAI(trailing) = %v, want %q", err, want) }
 }
 
-func TestParsePKIXPublicKeyRSATrailingData(t *testing.T) {
-	spki := func(mod func(*cryptobyte.Builder)) []byte {
-		var b cryptobyte.Builder
-		b.AddASN1(cryptobyte_asn1.SEQUENCE, func(b *cryptobyte.Builder) {
-			b.AddASN1(cryptobyte_asn1.SEQUENCE, func(b *cryptobyte.Builder) {
-				b.AddASN1ObjectIdentifier(oidPublicKeyRSA)
-				b.AddASN1NULL()
-			})
-			var key cryptobyte.Builder
-			mod(&key)
-			keyBytes, err := key.Bytes()
-			if err != nil {
-				t.Fatal(err)
-			}
-			b.AddASN1BitString(keyBytes)
-		})
-		out, err := b.Bytes()
-		if err != nil {
-			t.Fatal(err)
-		}
-		return out
-	}
-	pub := &testPrivateKey.PublicKey
-	rsaPublicKey := func(b *cryptobyte.Builder, extra func(*cryptobyte.Builder)) {
-		b.AddASN1(cryptobyte_asn1.SEQUENCE, func(b *cryptobyte.Builder) {
-			b.AddASN1BigInt(pub.N)
-			b.AddASN1Int64(int64(pub.E))
-			if extra != nil {
-				extra(b)
-			}
-		})
-	}
+func TestParsePKIXPublicKeyRSATrailingData(t * testing.T)
+{
+    spki: = func(mod func( * cryptobyte.Builder))[] byte
+    {
+        var b cryptobyte.Builder b.AddASN1
+        (
+            cryptobyte_asn1.SEQUENCE, func(b * cryptobyte.Builder)
+            {
+                b.AddASN1(cryptobyte_asn1.SEQUENCE, func(b * cryptobyte.Builder) { b.AddASN1ObjectIdentifier(oidPublicKeyRSA) b.AddASN1NULL() }) var key cryptobyte.Builder mod
+                (
+                    & key
+                )
+                keyBytes, err: = key.Bytes() if err != nil { t.Fatal(err) }
+                b.AddASN1BitString(keyBytes)
+            }
+        )
+        out, err: = b.Bytes() if err != nil { t.Fatal(err) }
+        return out
+    }
+    pub: = & testPrivateKey.PublicKey rsaPublicKey: = func(b * cryptobyte.Builder, extra func( * cryptobyte.Builder))
+    {
+        b.AddASN1
+        (
+            cryptobyte_asn1.SEQUENCE, func(b * cryptobyte.Builder)
+            {
+                b.AddASN1BigInt(pub.N) b.AddASN1Int64(int64(pub.E)) if extra != nil { extra(b) }
+            }
+        )
+    }
 
-	valid := spki(func(b *cryptobyte.Builder) { rsaPublicKey(b, nil) })
-	if _, err := ParsePKIXPublicKey(valid); err != nil {
-		t.Fatalf("ParsePKIXPublicKey(valid) = %v, want nil", err)
-	}
+    valid: = spki(func(b * cryptobyte.Builder) { rsaPublicKey(b, nil) }) if _, err: = ParsePKIXPublicKey(valid);
+    err != nil { t.Fatalf("ParsePKIXPublicKey(valid) = %v, want nil", err) }
 
-	tests := []struct {
-		name string
-		der  []byte
-		want string
-	}{
-		{
-			name: "element after the public exponent",
-			der:  spki(func(b *cryptobyte.Builder) { rsaPublicKey(b, (*cryptobyte.Builder).AddASN1NULL) }),
-			want: "x509: trailing data after RSA public exponent",
-		},
-		{
-			name: "element after the RSAPublicKey SEQUENCE",
-			der: spki(func(b *cryptobyte.Builder) {
-				rsaPublicKey(b, nil)
-				b.AddASN1NULL()
-			}),
-			want: "x509: trailing data after RSA public key",
-		},
-	}
-	for _, test := range tests {
-		t.Run(test.name, func(t *testing.T) {
-			if _, err := ParsePKIXPublicKey(test.der); err == nil || err.Error() != test.want {
-				t.Errorf("ParsePKIXPublicKey() = %v, want %q", err, test.want)
-			}
-		})
-	}
+    tests: = [] struct { name string der[] byte want string }
+    {
+        {
+            name: "element after the public exponent", der: spki
+            (
+                func(b * cryptobyte.Builder) { rsaPublicKey(b, ( * cryptobyte.Builder).AddASN1NULL) }
+            ),
+            want: "x509: trailing data after RSA public exponent", 
+        },
+        {
+            name: "element after the RSAPublicKey SEQUENCE", der: spki(func(b * cryptobyte.Builder) { rsaPublicKey(b, nil) b.AddASN1NULL() }), want: "x509: trailing data after RSA public key", 
+        },
+    }
+    for _, test: = range tests
+    {
+        t.Run
+        (
+            test.name, func(t * testing.T)
+            {
+                if _, err: = ParsePKIXPublicKey(test.der);
+                err == nil || err.Error() != test.want { t.Errorf("ParsePKIXPublicKey() = %v, want %q", err, test.want) }
+            }
+        )
+    }
 }
 
-func TestParsePublicKeyECDSATrailingData(t *testing.T) {
-	// The parameters value reaching parsePublicKey is always a single DER
-	// element, so this is a defense-in-depth check on the function itself.
-	k, err := ecdsa.GenerateKey(elliptic.P256(), rand.Reader)
-	if err != nil {
-		t.Fatal(err)
-	}
-	point, err := k.PublicKey.Bytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	keyInfo := func(params []byte) *publicKeyInfo {
-		return &publicKeyInfo{
-			Algorithm: pkix.AlgorithmIdentifier{Algorithm: oidPublicKeyECDSA, Parameters: asn1.RawValue{FullBytes: params}},
-			PublicKey: asn1.BitString{Bytes: point, BitLength: len(point) * 8},
-		}
-	}
-	var b cryptobyte.Builder
-	b.AddASN1ObjectIdentifier(oidNamedCurveP256)
-	good, err := b.Bytes()
-	if err != nil {
-		t.Fatal(err)
-	}
-	if _, err := parsePublicKey(keyInfo(good)); err != nil {
-		t.Fatalf("parsePublicKey(valid) = %v, want nil", err)
-	}
-	bad := append(append([]byte{}, good...), 0x05, 0x00)
-	want := "x509: trailing data after ECDSA parameters"
-	if _, err := parsePublicKey(keyInfo(bad)); err == nil || err.Error() != want {
-		t.Errorf("parsePublicKey(trailing) = %v, want %q", err, want)
-	}
+func TestParsePublicKeyECDSATrailingData(t * testing.T)
+{
+    // The parameters value reaching parsePublicKey is always a single DER
+    // element, so this is a defense-in-depth check on the function itself.
+    k, err: = ecdsa.GenerateKey(elliptic.P256(), rand.Reader) if err != nil { t.Fatal(err) }
+    point, err: = k.PublicKey.Bytes() if err != nil { t.Fatal(err) }
+    keyInfo: = func(params[] byte) * publicKeyInfo
+    {
+        return & publicKeyInfo
+        {
+            Algorithm: pkix.AlgorithmIdentifier { Algorithm: oidPublicKeyECDSA, Parameters: asn1.RawValue { FullBytes: params } },
+            PublicKey: asn1.BitString { Bytes: point, BitLength: len(point) * 8 },
+        }
+    }
+    var b cryptobyte.Builder b.AddASN1ObjectIdentifier(oidNamedCurveP256) good, err: = b.Bytes() if err != nil { t.Fatal(err) }
+    if _, err: = parsePublicKey(keyInfo(good));
+    err != nil { t.Fatalf("parsePublicKey(valid) = %v, want nil", err) }
+    bad: = append(append([] byte {}, good ...), 0x05, 0x00) want: = "x509: trailing data after ECDSA parameters" if _, err: = parsePublicKey(keyInfo(bad));
+    err == nil || err.Error() != want { t.Errorf("parsePublicKey(trailing) = %v, want %q", err, want) }
 }

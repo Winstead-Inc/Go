@@ -2,16 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
+package b import"./a" type S struct { a.I }
 
-import "./a"
-
-type S struct {
-	a.I
-}
-
-var V a.I
-
-func init() {
-	V = S{}
-}
+var V a.I func init() { V = S {} }

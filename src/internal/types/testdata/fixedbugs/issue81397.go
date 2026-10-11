@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-func f[P, Q any]() {}
-
+package p func f[P, Q any]() {}
 // Don't panic on the next line, produce a proper error instead.
-var _ any = f /* ERROR "cannot infer Q" */ [int]
+var _ any = f /* ERROR "cannot infer Q" */[int]

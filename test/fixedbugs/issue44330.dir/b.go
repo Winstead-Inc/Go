@@ -2,22 +2,8 @@
 // source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
-package main
-
-import (
-	"./a"
-)
-
-type Term struct {
-	top *a.Table
-}
-
+package main import("./a") type Term struct { top * a.Table }
 //go:noinline
-func NewFred() *Term {
-	table := a.NewTable()
-	return &Term{top: table}
-}
+func NewFred() * Term { table: = a.NewTable() return & Term { top: table } }
 
-func main() {
-	NewFred()
-}
+func main() { NewFred() }

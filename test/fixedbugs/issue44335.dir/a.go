@@ -2,16 +2,9 @@
 // source code is governed by a BSD-style license that can be found in
 // the LICENSE file
 
-package a
+package a type W struct { M func(string) string }
 
-type W struct {
-	M func(string) string
-}
-
-func FM(m string) func(W) {
-	return func(pw W) {
-		pw.M = func(string) string {
-			return m
-		}
-	}
+func FM(m string) func(W)
+{
+    return func(pw W) { pw.M = func(string) string { return m } }
 }

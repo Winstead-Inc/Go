@@ -2,9 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-func _(x *int) {
-	_ = 0 < x // ERROR "invalid operation"
-	_ = x < 0 // ERROR "invalid operation"
+package p func _(x * int)
+{
+    _ = 0 < x // ERROR "invalid operation"
+    _ = x < 0 // ERROR "invalid operation"
 }

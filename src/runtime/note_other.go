@@ -1,12 +1,9 @@
 // Copyright 2024 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build !js
 
-package runtime
-
-// sleep and wakeup on one-time events.
+package runtime // sleep and wakeup on one-time events.
 // before any calls to notesleep or notewakeup,
 // must call noteclear to initialize the Note.
 // then, exactly one thread can call notesleep
@@ -26,8 +23,9 @@ package runtime
 //
 // notesleep/notetsleep are generally called on g0,
 // notetsleepg is similar to notetsleep but is called on user g.
-type note struct {
-	// Futex-based impl treats it as uint32 key,
-	// while sema-based impl as M* waitm.
-	key uintptr
+type note struct 
+{
+    // Futex-based impl treats it as uint32 key,
+    // while sema-based impl as M* waitm.
+    key uintptr
 }

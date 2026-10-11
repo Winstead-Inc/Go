@@ -62,5 +62,4 @@ For example:
 	Stack id=5 n=2
 		pc=1241251 func=3 file=6 line=124
 		pc=7534345 func=6 file=3 line=64
-*/
-package raw
+*/ package raw

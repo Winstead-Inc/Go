@@ -167,8 +167,7 @@ directive can skip over a directive like any other comment.
 Other than the line directive, which is a historical special case;
 all other compiler directives are of the form
 //go:name, indicating that they are defined by the Go toolchain.
-*/
-// # Line Directives
+*/ // # Line Directives
 //
 // Line directives come in several forms:
 //
@@ -362,5 +361,4 @@ int32, uint32, int64, uint64, float32, float64, an array whose element type is
 a permitted pointer element type, or a struct, which, if non-empty, embeds
 [structs.HostLayout], and contains only fields whose types are permitted pointer
 element types.
-*/
-package main
+*/ package main

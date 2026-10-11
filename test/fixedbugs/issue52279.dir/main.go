@@ -1,5 +1,1 @@
-package main
-
-import "./lib"
-
-func main() { lib.FIRST.String() }
+package main import"./lib" func main() { lib.FIRST.String() }

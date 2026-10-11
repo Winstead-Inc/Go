@@ -2,10 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type A struct {}
 
-type A struct{}
-
-func (a *A) f() bool {
-	return true
-}
+func(a * A) f() bool { return true }

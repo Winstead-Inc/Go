@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package bugpara
-
-// BUG(rsc): Sometimes bugs have multiple paragraphs.
+package bugpara // BUG(rsc): Sometimes bugs have multiple paragraphs.
 //
 // Like this one.

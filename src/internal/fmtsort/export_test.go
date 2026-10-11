@@ -2,10 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package fmtsort
-
-import "reflect"
-
-func Compare(a, b reflect.Value) int {
-	return compare(a, b)
-}
+package fmtsort import"reflect" func Compare(a, b reflect.Value) int { return compare(a, b) }

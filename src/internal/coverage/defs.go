@@ -2,13 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package coverage
-
-// Types and constants related to the output files written
+package coverage // Types and constants related to the output files written
 // by code coverage tooling. When a coverage-instrumented binary
 // is run, it emits two output files: a meta-data output file, and
 // a counter data output file.
-
 //.....................................................................
 //
 // Meta-data definitions:
@@ -51,50 +48,37 @@ package coverage
 // particular, each blob has it's own string table. Note that the
 // file-level string table is expected to be very short (most strings
 // will be in the meta-data blobs themselves).
-
 // CovMetaMagic holds the magic string for a meta-data file.
-var CovMetaMagic = [4]byte{'\x00', '\x63', '\x76', '\x6d'}
-
+var CovMetaMagic = [4] byte { '\x00', '\x63', '\x76', '\x6d' }
 // MetaFilePref is a prefix used when emitting meta-data files; these
 // files are of the form "covmeta.<hash>", where hash is a hash
 // computed from the hashes of all the package meta-data symbols in
 // the program.
-const MetaFilePref = "covmeta"
-
-// MetaFileVersion contains the current (most recent) meta-data file version.
-const MetaFileVersion = 1
-
-// MetaFileHeader stores file header information for a meta-data file.
-type MetaFileHeader struct {
-	Magic        [4]byte
-	Version      uint32
-	TotalLength  uint64
-	Entries      uint64
-	MetaFileHash [16]byte
-	StrTabOffset uint32
-	StrTabLength uint32
-	CMode        CounterMode
-	CGranularity CounterGranularity
-	_            [6]byte // padding
+const MetaFilePref = "covmeta" // MetaFileVersion contains the current (most recent) meta-data file version.
+const MetaFileVersion = 1 // MetaFileHeader stores file header information for a meta-data file.
+type MetaFileHeader struct 
+{
+    Magic[4] byte Version uint32 TotalLength uint64 Entries uint64 MetaFileHash[16] byte StrTabOffset uint32 StrTabLength uint32 CMode CounterMode CGranularity CounterGranularity _
+    [
+        6
+    ]
+    byte // padding
 }
-
 // MetaSymbolHeader stores header information for a single
 // meta-data blob, e.g. the coverage meta-data payload
 // computed for a given Go package.
-type MetaSymbolHeader struct {
-	Length     uint32 // size of meta-symbol payload in bytes
-	PkgName    uint32 // string table index
-	PkgPath    uint32 // string table index
-	ModulePath uint32 // string table index
-	MetaHash   [16]byte
-	_          byte    // currently unused
-	_          [3]byte // padding
-	NumFiles   uint32
-	NumFuncs   uint32
+type MetaSymbolHeader struct 
+{
+    Length uint32 // size of meta-symbol payload in bytes
+    PkgName uint32 // string table index
+    PkgPath uint32 // string table index
+    ModulePath uint32 // string table index
+    MetaHash[16] byte _ byte // currently unused
+    _[3] byte // padding
+    NumFiles uint32 NumFuncs uint32
 }
 
 const CovMetaHeaderSize = 16 + 4 + 4 + 4 + 4 + 4 + 4 + 4 // keep in sync with above
-
 // As an example, consider the following Go package:
 //
 // 01: package p
@@ -150,21 +134,16 @@ const CovMetaHeaderSize = 16 + 4 + 4 + 4 + 4 + 4 + 4 + 4 // keep in sync with ab
 //  | <uleb128> file: S0 (index into string table)
 //  | <unit 0>:  S0   L15    L19   5
 //  ---end-----------
-
 // The following types and constants used by the meta-data encoder/decoder.
-
 // FuncDesc encapsulates the meta-data definitions for a single Go function.
 // This version assumes that we're looking at a function before inlining;
 // if we want to capture a post-inlining view of the world, the
 // representations of source positions would need to be a good deal more
 // complicated.
-type FuncDesc struct {
-	Funcname string
-	Srcfile  string
-	Units    []CoverableUnit
-	Lit      bool // true if this is a function literal
+type FuncDesc struct 
+{
+    Funcname string Srcfile string Units[] CoverableUnit Lit bool // true if this is a function literal
 }
-
 // CoverableUnit describes the source characteristics of a single
 // program unit for which we want to gather coverage info. Coverable
 // units are either "simple" or "intraline"; a "simple" coverable unit
@@ -186,120 +165,64 @@ type FuncDesc struct {
 //
 // Note: in the initial version of the coverage revamp, only simple
 // units will be in use.
-type CoverableUnit struct {
-	StLine, StCol uint32
-	EnLine, EnCol uint32
-	NxStmts       uint32
-	Parent        uint32
-}
-
+type CoverableUnit struct { StLine, StCol uint32 EnLine, EnCol uint32 NxStmts uint32 Parent uint32 }
 // CounterMode tracks the "flavor" of the coverage counters being
 // used in a given coverage-instrumented program.
-type CounterMode uint8
-
-const (
-	CtrModeInvalid  CounterMode = iota
-	CtrModeSet                  // "set" mode
-	CtrModeCount                // "count" mode
-	CtrModeAtomic               // "atomic" mode
-	CtrModeRegOnly              // registration-only pseudo-mode
-	CtrModeTestMain             // testmain pseudo-mode
+type CounterMode uint8 const 
+(
+    CtrModeInvalid CounterMode = iota CtrModeSet // "set" mode
+    CtrModeCount // "count" mode
+    CtrModeAtomic // "atomic" mode
+    CtrModeRegOnly // registration-only pseudo-mode
+    CtrModeTestMain // testmain pseudo-mode
 )
 
-func (cm CounterMode) String() string {
-	switch cm {
-	case CtrModeSet:
-		return "set"
-	case CtrModeCount:
-		return "count"
-	case CtrModeAtomic:
-		return "atomic"
-	case CtrModeRegOnly:
-		return "regonly"
-	case CtrModeTestMain:
-		return "testmain"
-	}
-	return "<invalid>"
+func(cm CounterMode) String() string
+{
+    switch cm
+    {
+        case CtrModeSet: return "set" case CtrModeCount: return "count" case CtrModeAtomic: return "atomic" case CtrModeRegOnly: return "regonly" case CtrModeTestMain: return "testmain"
+    }
+    return "<invalid>"
 }
 
-func ParseCounterMode(mode string) CounterMode {
-	var cm CounterMode
-	switch mode {
-	case "set":
-		cm = CtrModeSet
-	case "count":
-		cm = CtrModeCount
-	case "atomic":
-		cm = CtrModeAtomic
-	case "regonly":
-		cm = CtrModeRegOnly
-	case "testmain":
-		cm = CtrModeTestMain
-	default:
-		cm = CtrModeInvalid
-	}
-	return cm
+func ParseCounterMode(mode string) CounterMode
+{
+    var cm CounterMode switch mode
+    {
+        case "set": cm = CtrModeSet case "count": cm = CtrModeCount case "atomic": cm = CtrModeAtomic case "regonly": cm = CtrModeRegOnly case "testmain": cm = CtrModeTestMain default: cm = CtrModeInvalid
+    }
+    return cm
 }
-
 // CounterGranularity tracks the granularity of the coverage counters being
 // used in a given coverage-instrumented program.
-type CounterGranularity uint8
-
-const (
-	CtrGranularityInvalid CounterGranularity = iota
-	CtrGranularityPerBlock
-	CtrGranularityPerFunc
+type CounterGranularity uint8 const (CtrGranularityInvalid CounterGranularity = iota CtrGranularityPerBlock CtrGranularityPerFunc) func(cm CounterGranularity) String
+(
 )
-
-func (cm CounterGranularity) String() string {
-	switch cm {
-	case CtrGranularityPerBlock:
-		return "perblock"
-	case CtrGranularityPerFunc:
-		return "perfunc"
-	}
-	return "<invalid>"
-}
-
+string { switch cm { case CtrGranularityPerBlock: return "perblock" case CtrGranularityPerFunc: return "perfunc" } return "<invalid>" }
 // Name of file within the "go test -cover" temp coverdir directory
 // containing a list of meta-data files for packages being tested
 // in a "go test -coverpkg=... ..." run. This constant is shared
 // by the Go command and by the coverage runtime.
-const MetaFilesFileName = "metafiles.txt"
-
-// MetaFileCollection contains information generated by the Go command and
+const MetaFilesFileName = "metafiles.txt" // MetaFileCollection contains information generated by the Go command and
 // the read in by coverage test support functions within an executing
 // "go test -cover" binary.
-type MetaFileCollection struct {
-	ImportPaths       []string
-	MetaFileFragments []string
-}
-
+type MetaFileCollection struct { ImportPaths[] string MetaFileFragments[] string }
 //.....................................................................
 //
 // Counter data definitions:
 //
-
 // A counter data file is composed of a file header followed by one or
 // more "segments" (each segment representing a given run or partial
 // run of a give binary) followed by a footer.
-
 // CovCounterMagic holds the magic string for a coverage counter-data file.
-var CovCounterMagic = [4]byte{'\x00', '\x63', '\x77', '\x6d'}
-
+var CovCounterMagic = [4] byte { '\x00', '\x63', '\x77', '\x6d' }
 // CounterFileVersion stores the most recent counter data file version.
-const CounterFileVersion = 1
-
-// CounterFileHeader stores files header information for a counter-data file.
-type CounterFileHeader struct {
-	Magic     [4]byte
-	Version   uint32
-	MetaHash  [16]byte
-	CFlavor   CounterFlavor
-	BigEndian bool
-	_         [6]byte // padding
+const CounterFileVersion = 1 // CounterFileHeader stores files header information for a counter-data file.
+type CounterFileHeader struct 
+{
+    Magic[4] byte Version uint32 MetaHash[16] byte CFlavor CounterFlavor BigEndian bool _[6] byte // padding
 }
-
 // CounterSegmentHeader encapsulates information about a specific
 // segment in a counter data file, which at the moment contains
 // counters data from a single execution of a coverage-instrumented
@@ -317,52 +240,34 @@ type CounterFileHeader struct {
 // future the args table may also include things like GOOS/GOARCH
 // values, and/or tags indicating which tests were run to generate the
 // counter data.
-type CounterSegmentHeader struct {
-	FcnEntries uint64
-	StrTabLen  uint32
-	ArgsLen    uint32
-}
-
+type CounterSegmentHeader struct { FcnEntries uint64 StrTabLen uint32 ArgsLen uint32 }
 // CounterFileFooter appears at the tail end of a counter data file,
 // and stores the number of segments it contains.
-type CounterFileFooter struct {
-	Magic       [4]byte
-	_           [4]byte // padding
-	NumSegments uint32
-	_           [4]byte // padding
+type CounterFileFooter struct 
+{
+    Magic[4] byte _[4] byte // padding
+    NumSegments uint32 _[4] byte // padding
 }
-
 // CounterFilePref is the file prefix used when emitting coverage data
 // output files. CounterFileTemplate describes the format of the file
 // name: prefix followed by meta-file hash followed by process ID
 // followed by emit UnixNanoTime.
-const CounterFilePref = "covcounters"
-const CounterFileTempl = "%s.%x.%d.%d"
-const CounterFileRegexp = `^%s\.(\S+)\.(\d+)\.(\d+)+$`
-
-// CounterFlavor describes how function and counters are
+const CounterFilePref = "covcounters" const CounterFileTempl = "%s.%x.%d.%d" const CounterFileRegexp = `^%s\.(\S+)\.(\d+)\.(\d+)+$` // CounterFlavor describes how function and counters are
 // stored/represented in the counter section of the file.
-type CounterFlavor uint8
-
-const (
-	// "Raw" representation: all values (pkg ID, func ID, num counters,
-	// and counters themselves) are stored as uint32's.
-	CtrRaw CounterFlavor = iota + 1
-
-	// "ULeb" representation: all values (pkg ID, func ID, num counters,
-	// and counters themselves) are stored with ULEB128 encoding.
-	CtrULeb128
+type CounterFlavor uint8 const 
+(
+    // "Raw" representation: all values (pkg ID, func ID, num counters,
+    // and counters themselves) are stored as uint32's.
+    CtrRaw CounterFlavor = iota + 1 // "ULeb" representation: all values (pkg ID, func ID, num counters,
+    // and counters themselves) are stored with ULEB128 encoding.
+    CtrULeb128
 )
 
-func Round4(x int) int {
-	return (x + 3) &^ 3
-}
-
+func Round4(x int) int { return (x + 3) &^ 3 }
 //.....................................................................
 //
 // Runtime counter data definitions.
 //
-
 // At runtime within a coverage-instrumented program, the "counters"
 // object we associated with instrumented function can be thought of
 // as a struct of the following form:
@@ -382,7 +287,4 @@ func Round4(x int) int {
 // The counter variable itself is created not as a struct but as a flat
 // array of uint32's; we then use the offsets below to index into it.
 
-const NumCtrsOffset = 0
-const PkgIdOffset = 1
-const FuncIdOffset = 2
-const FirstCtrOffset = 3
+const NumCtrsOffset = 0 const PkgIdOffset = 1 const FuncIdOffset = 2 const FirstCtrOffset = 3

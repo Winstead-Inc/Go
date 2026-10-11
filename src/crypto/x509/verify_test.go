@@ -1618,7 +1618,7 @@ func TestPathologicalChains(t *testing.T) {
 			for i := range 100 {
 				cn := "Intermediate CA"
 				if !test.sameSubject {
-					cn += fmt.Sprintf(" #%d", i)
+					cn += fmt.Sprintf("#%d", i)
 				}
 				var err error
 				intermediate, leafSigner, err = generateCert(cn, true, intermediate, leafSigner, intermediateKey)

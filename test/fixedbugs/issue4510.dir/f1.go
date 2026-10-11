@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-import "fmt" // GCCGO_ERROR "fmt redeclared|imported"
+package p import"fmt" // GCCGO_ERROR "fmt redeclared|imported"
 
 var _ = fmt.Printf

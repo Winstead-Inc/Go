@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package time
+package time // in wasip1 zoneinfo is managed by the runtime.
+var platformZoneSources = [] string {}
 
-// in wasip1 zoneinfo is managed by the runtime.
-var platformZoneSources = []string{}
-
-func initLocal() {
-	localLoc.name = "Local"
-}
+func initLocal() { localLoc.name = "Local" }

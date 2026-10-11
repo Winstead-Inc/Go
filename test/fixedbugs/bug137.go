@@ -1,28 +1,19 @@
 // compile
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main func main()
+{
+    L1: L2: for i: = 0;
+    i < 10;
+    i++ { print(i) break L2 }
 
-func main() {
-L1:
-L2:
-	for i := 0; i < 10; i++ {
-		print(i)
-		break L2
-	}
-
-L3:
-	;
-L4:
-	for i := 0; i < 10; i++ {
-		print(i)
-		break L4
-	}
-	goto L1
-	goto L3
+    L3: ;
+    L4: for i: = 0;
+    i < 10;
+    i++ { print(i) break L4 }
+    goto L1 goto L3
 }
 
 /*

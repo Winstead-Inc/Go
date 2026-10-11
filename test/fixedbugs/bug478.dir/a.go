@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p1
+package p1 type S1 struct {}
 
-type S1 struct{}
-
-func (s S1) f() {}
+func(s S1) f() {}

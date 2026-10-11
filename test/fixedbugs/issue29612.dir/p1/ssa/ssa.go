@@ -2,17 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ssa
+package ssa type T struct {}
 
-type T struct{}
+func(T) foo() {}
 
-func (T) foo() {}
+type fooer interface { foo() }
 
-type fooer interface {
-	foo()
-}
-
-func Unused(v interface{}) {
-	v.(fooer).foo()
-	v.(interface{ foo() }).foo()
-}
+func Unused(v interface {}) { v.(fooer).foo() v.(interface { foo() }).foo() }

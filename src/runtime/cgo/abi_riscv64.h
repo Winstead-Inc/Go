@@ -1,7 +1,6 @@
 // Copyright 2026 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Macros for transitioning from the host ABI to Go ABI0.
 //
 // These macros save and restore the callee-saved registers
@@ -14,7 +13,6 @@
 // of ((offset)+0*8)(X2) ~ ((offset)+11*8)(X2).
 //
 // Note: g is X27
-
 #define SAVE_GPR(offset) \
 	MOV X8, ((offset)+0*8)(X2)   \
 	MOV X9, ((offset)+1*8)(X2)   \
@@ -28,7 +26,6 @@
 	MOV X25, ((offset)+9*8)(X2)  \
 	MOV X26, ((offset)+10*8)(X2) \
 	MOV g, ((offset)+11*8)(X2)
-
 #define RESTORE_GPR(offset) \
 	MOV ((offset)+0*8)(X2), X8   \
 	MOV ((offset)+1*8)(X2), X9   \
@@ -42,7 +39,6 @@
 	MOV ((offset)+9*8)(X2), X25  \
 	MOV ((offset)+10*8)(X2), X26 \
 	MOV ((offset)+11*8)(X2), g
-
 #define SAVE_FPR(offset) \
 	MOVD F8, ((offset)+0*8)(X2)   \
 	MOVD F9, ((offset)+1*8)(X2)   \
@@ -56,7 +52,6 @@
 	MOVD F25, ((offset)+9*8)(X2)  \
 	MOVD F26, ((offset)+10*8)(X2) \
 	MOVD F27, ((offset)+11*8)(X2)
-
 #define RESTORE_FPR(offset) \
 	MOVD ((offset)+0*8)(X2), F8   \
 	MOVD ((offset)+1*8)(X2), F9   \

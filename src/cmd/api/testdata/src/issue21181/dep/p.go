@@ -1,5 +1,1 @@
-package dep
-
-type Interface interface {
-	N([]byte)
-}
+package dep type Interface interface { N([] byte) }

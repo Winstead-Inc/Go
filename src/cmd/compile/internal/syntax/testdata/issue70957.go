@@ -2,8 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p func f() { goto /* ERROR syntax error: unexpected semicolon, expected name */; }
 
-func f() { goto /* ERROR syntax error: unexpected semicolon, expected name */ ;}
-
-func f() { goto } // ERROR syntax error: unexpected }, expected name
+func f() { goto }
+// ERROR syntax error: unexpected }, expected name

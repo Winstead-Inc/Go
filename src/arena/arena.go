@@ -1,7 +1,6 @@
 // Copyright 2022 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.arenas
 
 /*
@@ -25,14 +24,10 @@ error message, but this package reserves the right to not force a fault on
 freed memory. That means a valid implementation of this package is to just
 allocate all memory the way the runtime normally would, and in fact, it
 reserves the right to occasionally do so for some Go values.
-*/
-package arena
-
-import (
-	"internal/reflectlite"
-	"unsafe"
+*/ package arena import
+(
+    "internal/reflectlite""unsafe"
 )
-
 // Arena represents a collection of Go values allocated and freed together.
 // Arenas are useful for improving efficiency as they may be freed back to
 // the runtime manually, though any memory obtained from freed arenas must
@@ -41,68 +36,36 @@ import (
 // until any memory allocated from it is no longer needed.
 //
 // An Arena must never be used concurrently by multiple goroutines.
-type Arena struct {
-	a unsafe.Pointer
-}
-
+type Arena struct { a unsafe.Pointer }
 // NewArena allocates a new arena.
-func NewArena() *Arena {
-	return &Arena{a: runtime_arena_newArena()}
-}
-
+func NewArena() * Arena { return & Arena { a: runtime_arena_newArena() } }
 // Free frees the arena (and all objects allocated from the arena) so that
 // memory backing the arena can be reused fairly quickly without garbage
 // collection overhead. Applications must not call any method on this
 // arena after it has been freed.
-func (a *Arena) Free() {
-	runtime_arena_arena_Free(a.a)
-	a.a = nil
-}
-
+func(a * Arena) Free() { runtime_arena_arena_Free(a.a) a.a = nil }
 // New creates a new *T in the provided arena. The *T must not be used after
 // the arena is freed. Accessing the value after free may result in a fault,
 // but this fault is also not guaranteed.
-func New[T any](a *Arena) *T {
-	return runtime_arena_arena_New(a.a, reflectlite.TypeOf((*T)(nil))).(*T)
-}
-
+func New[T any](a * Arena) * T { return runtime_arena_arena_New(a.a, reflectlite.TypeOf(( * T)(nil))).( * T) }
 // MakeSlice creates a new []T with the provided capacity and length. The []T must
 // not be used after the arena is freed. Accessing the underlying storage of the
 // slice after free may result in a fault, but this fault is also not guaranteed.
-func MakeSlice[T any](a *Arena, len, cap int) []T {
-	var sl []T
-	runtime_arena_arena_Slice(a.a, &sl, cap)
-	return sl[:len]
-}
-
+func MakeSlice[T any](a * Arena, len, cap int)[] T { var sl[] T runtime_arena_arena_Slice(a.a, & sl, cap) return sl[: len] }
 // Clone makes a shallow copy of the input value that is no longer bound to any
 // arena it may have been allocated from, returning the copy. If it was not
 // allocated from an arena, it is returned untouched. This function is useful
 // to more easily let an arena-allocated value out-live its arena.
 // T must be a pointer, a slice, or a string, otherwise this function will panic.
-func Clone[T any](s T) T {
-	return runtime_arena_heapify(s).(T)
-}
-
+func Clone[T any](s T) T { return runtime_arena_heapify(s).(T) }
 //go:linkname reflect_arena_New reflect.arena_New
-func reflect_arena_New(a *Arena, typ any) any {
-	return runtime_arena_arena_New(a.a, typ)
-}
-
+func reflect_arena_New(a * Arena, typ any) any { return runtime_arena_arena_New(a.a, typ) }
 //go:linkname runtime_arena_newArena
-func runtime_arena_newArena() unsafe.Pointer
-
-//go:linkname runtime_arena_arena_New
-func runtime_arena_arena_New(arena unsafe.Pointer, typ any) any
-
-// Mark as noescape to avoid escaping the slice header.
+func runtime_arena_newArena() unsafe.Pointer //go:linkname runtime_arena_arena_New
+func runtime_arena_arena_New(arena unsafe.Pointer, typ any) any // Mark as noescape to avoid escaping the slice header.
 //
 //go:noescape
 //go:linkname runtime_arena_arena_Slice
-func runtime_arena_arena_Slice(arena unsafe.Pointer, slice any, cap int)
-
-//go:linkname runtime_arena_arena_Free
-func runtime_arena_arena_Free(arena unsafe.Pointer)
-
-//go:linkname runtime_arena_heapify
+func runtime_arena_arena_Slice(arena unsafe.Pointer, slice any, cap int) //go:linkname runtime_arena_arena_Free
+func runtime_arena_arena_Free(arena unsafe.Pointer) //go:linkname runtime_arena_heapify
 func runtime_arena_heapify(any) any

@@ -1,22 +1,9 @@
 // Copyright 2026 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build amd64 || arm64
 
-package maps_test
-
-import (
-	"fmt"
-	"testing"
-	"unsafe"
-
-	"internal/runtime/maps"
-)
-
-var sink uintptr
-
-// BenchmarkHashBakeoff measures the AES and scalar memory hashers at
+package maps_test import("fmt""testing""unsafe""internal/runtime/maps") var sink uintptr // BenchmarkHashBakeoff measures the AES and scalar memory hashers at
 // various sizes to try to empirically determine when one becomes better than
 // the other, for some target uarch. Results are very uarch-dependent!
 //
@@ -35,57 +22,42 @@ var sink uintptr
 // Conservatively, we treat throughput as more important. However, more study
 // is needed to determine if prioritizing latency (and thus picking a higher
 // cutoff, such as MinLen = 112 on Zen4) results in better macrobenchmarks.
-func BenchmarkHashBakeoff(b *testing.B) {
-	if !maps.AeshashEnabled() {
-		b.Skip("AES hashing not available on this machine")
-	}
+func BenchmarkHashBakeoff(b * testing.B)
+{
+    if ! maps.AeshashEnabled() { b.Skip("AES hashing not available on this machine") }
 
-	buf := make([]byte, 1024+8)
-	for i := range buf {
-		buf[i] = byte(i * 63)
-	}
-	p := unsafe.Pointer(unsafe.SliceData(buf))
+    buf: = make([] byte, 1024 + 8) for i: = range buf { buf[i] = byte(i * 63) }
+    p: = unsafe.Pointer(unsafe.SliceData(buf)) var sizes = [] uintptr
+    {
+        0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17, 20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 100, 104, 108, 112, 116, 120, 124, 128, 192, 256, 512, 1024, 
+    }
 
-	var sizes = []uintptr{
-		0, 1, 2, 3, 4, 5, 6, 7, 8, 9, 10, 11, 12, 13, 14, 15, 16, 17,
-		20, 24, 28, 32, 40, 48, 56, 64, 80, 96, 100, 104, 108, 112, 116,
-		120, 124, 128, 192, 256, 512, 1024,
-	}
-
-	for _, s := range sizes {
-		b.Run(fmt.Sprintf("scalar/latency/%d", s), func(b *testing.B) {
-			var h uintptr
-			for b.Loop() {
-				h = maps.MemHashFallback(p, h, s)
-			}
-			sink = h
-		})
-	}
-	for _, s := range sizes {
-		b.Run(fmt.Sprintf("scalar/throughput/%d", s), func(b *testing.B) {
-			var h uintptr
-			for b.Loop() {
-				h ^= maps.MemHashFallback(p, 0, s)
-			}
-			sink = h
-		})
-	}
-	for _, s := range sizes {
-		b.Run(fmt.Sprintf("aes/latency/%d", s), func(b *testing.B) {
-			var h uintptr
-			for b.Loop() {
-				h = maps.MemHashAES(p, h, s)
-			}
-			sink = h
-		})
-	}
-	for _, s := range sizes {
-		b.Run(fmt.Sprintf("aes/throughput/%d", s), func(b *testing.B) {
-			var h uintptr
-			for b.Loop() {
-				h ^= maps.MemHashAES(p, 0, s)
-			}
-			sink = h
-		})
-	}
+    for _, s: = range sizes
+    {
+        b.Run
+        (
+            fmt.Sprintf("scalar/latency/%d", s), func(b * testing.B) { var h uintptr for b.Loop() { h = maps.MemHashFallback(p, h, s) } sink = h }
+        )
+    }
+    for _, s: = range sizes
+    {
+        b.Run
+        (
+            fmt.Sprintf("scalar/throughput/%d", s), func(b * testing.B) { var h uintptr for b.Loop() { h ^= maps.MemHashFallback(p, 0, s) } sink = h }
+        )
+    }
+    for _, s: = range sizes
+    {
+        b.Run
+        (
+            fmt.Sprintf("aes/latency/%d", s), func(b * testing.B) { var h uintptr for b.Loop() { h = maps.MemHashAES(p, h, s) } sink = h }
+        )
+    }
+    for _, s: = range sizes
+    {
+        b.Run
+        (
+            fmt.Sprintf("aes/throughput/%d", s), func(b * testing.B) { var h uintptr for b.Loop() { h ^= maps.MemHashAES(p, 0, s) } sink = h }
+        )
+    }
 }

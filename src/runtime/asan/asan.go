@@ -1,12 +1,9 @@
 // Copyright 2021 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build asan && linux && (arm64 || amd64 || loong64 || riscv64 || ppc64le)
 
-package asan
-
-/*
+package asan /*
 #cgo CFLAGS: -fsanitize=address
 #cgo LDFLAGS: -fsanitize=address
 
@@ -85,5 +82,4 @@ void __asan_register_globals_go(void *addr, uintptr_t n) {
 	struct _asan_global *globals = (struct _asan_global *)(addr);
 	__asan_register_globals(globals, n);
 }
-*/
-import "C"
+*/ import"C"

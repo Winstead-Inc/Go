@@ -1,5 +1,3 @@
 #include <stdio.h>
 
-void printhello(){
-	printf("Helloworld\n");
-}
+void printhello() { printf("Helloworld\n"); }

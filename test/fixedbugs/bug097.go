@@ -1,27 +1,16 @@
 // run
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-type A []int
-
-func main() {
-	var a [3]A
-	for i := 0; i < 3; i++ {
-		a[i] = A{i}
-	}
-	if a[0][0] != 0 {
-		panic("fail a[0][0]")
-	}
-	if a[1][0] != 1 {
-		panic("fail a[1][0]")
-	}
-	if a[2][0] != 2 {
-		panic("fail a[2][0]")
-	}
+package main type A[] int func main()
+{
+    var a[3] A for i: = 0;
+    i < 3;
+    i++ { a[i] = A { i } }
+    if a[0][0] != 0 { panic("fail a[0][0]") }
+    if a[1][0] != 1 { panic("fail a[1][0]") }
+    if a[2][0] != 2 { panic("fail a[2][0]") }
 }
 
 /*
@@ -44,9 +33,7 @@ pc: 0x4558
 0x13c2?zi
 	main·main(1, 0, 1606416416, ...)
 	main·main(0x1, 0x7fff5fbff820, 0x0, ...)
-*/
-
-/* An array composite literal needs to be created freshly every time.
+*/ /* An array composite literal needs to be created freshly every time.
 It is a "construction" of an array after all. If I pass the address
 of the array to some function, it may store it globally. Same applies
 to struct literals.

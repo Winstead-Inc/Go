@@ -1,7 +1,6 @@
 // Copyright 2009,2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // NetBSD system calls.
 // This file is compiled as ordinary Go code,
 // but it is also input to mksyscall,
@@ -10,160 +9,88 @@
 // it in our own nicer implementation, either here or in
 // syscall_bsd.go or syscall_unix.go.
 
-package syscall
-
-import "unsafe"
-
-func Syscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
-func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-func Syscall9(num, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err Errno)
-func RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
-func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-
-const (
-	_SYS_DUP3         = SYS_DUP3
-	_F_DUP2FD_CLOEXEC = 0
+package syscall import"unsafe" func Syscall(trap, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr)
+(
+    r1, r2 uintptr, err Errno
 )
-
-type SockaddrDatalink struct {
-	Len    uint8
-	Family uint8
-	Index  uint16
-	Type   uint8
-	Nlen   uint8
-	Alen   uint8
-	Slen   uint8
-	Data   [12]int8
-	raw    RawSockaddrDatalink
+func Syscall9(num, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr)(r1, r2 uintptr, err Errno) func RawSyscall(trap, a1, a2, a3 uintptr)
+(
+    r1, r2 uintptr, err Errno
+)
+func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr)(r1, r2 uintptr, err Errno)
+const (_SYS_DUP3 = SYS_DUP3 _F_DUP2FD_CLOEXEC = 0) type SockaddrDatalink struct 
+{
+    Len uint8 Family uint8 Index uint16 Type uint8 Nlen uint8 Alen uint8 Slen uint8 Data[12] int8 raw RawSockaddrDatalink
 }
 
-func sysctlNodes(mib []_C_int) (nodes []Sysctlnode, err error) {
-	var olen uintptr
+func sysctlNodes(mib[] _C_int)(nodes[] Sysctlnode, err error)
+{
+    var olen uintptr // Get a list of all sysctl nodes below the given MIB by performing
+    // a sysctl for the given MIB with CTL_QUERY appended.
+    mib = append(mib, CTL_QUERY) qnode: = Sysctlnode { Flags: SYSCTL_VERS_1 }
+    qp: = ( * byte)(unsafe.Pointer( & qnode)) sz: = unsafe.Sizeof(qnode) if err = sysctl(mib, nil, & olen, qp, sz);
+    err != nil { return nil, err }
+    // Now that we know the size, get the actual nodes.
+    nodes = make([] Sysctlnode, olen / sz) np: = ( * byte)(unsafe.Pointer( & nodes[0])) if err = sysctl(mib, np, & olen, qp, sz);
+    err != nil { return nil, err }
 
-	// Get a list of all sysctl nodes below the given MIB by performing
-	// a sysctl for the given MIB with CTL_QUERY appended.
-	mib = append(mib, CTL_QUERY)
-	qnode := Sysctlnode{Flags: SYSCTL_VERS_1}
-	qp := (*byte)(unsafe.Pointer(&qnode))
-	sz := unsafe.Sizeof(qnode)
-	if err = sysctl(mib, nil, &olen, qp, sz); err != nil {
-		return nil, err
-	}
-
-	// Now that we know the size, get the actual nodes.
-	nodes = make([]Sysctlnode, olen/sz)
-	np := (*byte)(unsafe.Pointer(&nodes[0]))
-	if err = sysctl(mib, np, &olen, qp, sz); err != nil {
-		return nil, err
-	}
-
-	return nodes, nil
+    return nodes, nil
 }
 
-func nametomib(name string) (mib []_C_int, err error) {
-	// Split name into components.
-	var parts []string
-	last := 0
-	for i := 0; i < len(name); i++ {
-		if name[i] == '.' {
-			parts = append(parts, name[last:i])
-			last = i + 1
-		}
-	}
-	parts = append(parts, name[last:])
+func nametomib(name string)(mib[] _C_int, err error)
+{
+    // Split name into components.
+    var parts[] string last: = 0 for i: = 0;
+    i < len(name);
+    i++ { if name[i] == '.' { parts = append(parts, name[last: i]) last = i + 1 } }
+    parts = append(parts, name[last:]) // Discover the nodes and construct the MIB OID.
+    for partno, part: = range parts
+    {
+        nodes, err: = sysctlNodes(mib) if err != nil { return nil, err }
+        for _, node: = range nodes
+        {
+            n: = make([] byte, 0) for i: = range node.Name { if node.Name[i] != 0 { n = append(n, byte(node.Name[i])) } }
+            if string(n) == part { mib = append(mib, _C_int(node.Num)) break }
+        }
+        if len(mib) != partno + 1 { return nil, EINVAL }
+    }
 
-	// Discover the nodes and construct the MIB OID.
-	for partno, part := range parts {
-		nodes, err := sysctlNodes(mib)
-		if err != nil {
-			return nil, err
-		}
-		for _, node := range nodes {
-			n := make([]byte, 0)
-			for i := range node.Name {
-				if node.Name[i] != 0 {
-					n = append(n, byte(node.Name[i]))
-				}
-			}
-			if string(n) == part {
-				mib = append(mib, _C_int(node.Num))
-				break
-			}
-		}
-		if len(mib) != partno+1 {
-			return nil, EINVAL
-		}
-	}
-
-	return mib, nil
+    return mib, nil
 }
 
-func direntIno(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Fileno), unsafe.Sizeof(Dirent{}.Fileno))
-}
+func direntIno(buf[] byte)(uint64, bool) { return readInt(buf, unsafe.Offsetof(Dirent {}.Fileno), unsafe.Sizeof(Dirent {}.Fileno)) }
 
-func direntReclen(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Reclen), unsafe.Sizeof(Dirent{}.Reclen))
-}
+func direntReclen(buf[] byte)(uint64, bool) { return readInt(buf, unsafe.Offsetof(Dirent {}.Reclen), unsafe.Sizeof(Dirent {}.Reclen)) }
 
-func direntNamlen(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Namlen), unsafe.Sizeof(Dirent{}.Namlen))
-}
+func direntNamlen(buf[] byte)(uint64, bool) { return readInt(buf, unsafe.Offsetof(Dirent {}.Namlen), unsafe.Sizeof(Dirent {}.Namlen)) }
 
-func Pipe(p []int) (err error) {
-	return Pipe2(p, 0)
-}
-
+func Pipe(p[] int)(err error) { return Pipe2(p, 0) }
 //sysnb pipe2(p *[2]_C_int, flags int) (err error)
 
-func Pipe2(p []int, flags int) error {
-	if len(p) != 2 {
-		return EINVAL
-	}
-	var pp [2]_C_int
-	err := pipe2(&pp, flags)
-	if err == nil {
-		p[0] = int(pp[0])
-		p[1] = int(pp[1])
-	}
-	return err
+func Pipe2(p[] int , flags int) error
+{
+    if len(p) != 2 { return EINVAL }
+    var pp[2] _C_int err: = pipe2( & pp, flags) if err == nil { p[0] = int (pp[0]) p[1] = int (pp[1]) }
+    return err
 }
-
 //sys paccept(fd int, rsa *RawSockaddrAny, addrlen *_Socklen, sigmask *sigset, flags int) (nfd int, err error)
 
-func Accept4(fd, flags int) (nfd int, sa Sockaddr, err error) {
-	var rsa RawSockaddrAny
-	var len _Socklen = SizeofSockaddrAny
-	nfd, err = paccept(fd, &rsa, &len, nil, flags)
-	if err != nil {
-		return
-	}
-	if len > SizeofSockaddrAny {
-		panic("RawSockaddrAny too small")
-	}
-	sa, err = anyToSockaddr(&rsa)
-	if err != nil {
-		Close(nfd)
-		nfd = 0
-	}
-	return
+func Accept4(fd, flags int)(nfd int , sa Sockaddr, err error)
+{
+    var rsa RawSockaddrAny var len _Socklen = SizeofSockaddrAny nfd, err = paccept(fd, & rsa, & len, nil, flags) if err != nil { return }
+    if len > SizeofSockaddrAny { panic("RawSockaddrAny too small") }
+    sa, err = anyToSockaddr( & rsa) if err != nil { Close(nfd) nfd = 0 }
+    return 
 }
-
 //sys getdents(fd int, buf []byte) (n int, err error)
 
-func Getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error) {
-	return getdents(fd, buf)
-}
-
+func Getdirentries(fd int , buf[] byte, basep * uintptr)(n int , err error) { return getdents(fd, buf) }
 // TODO, see golang.org/issue/5847
-func sendfile(outfd int, infd int, offset *int64, count int) (written int, err error) {
-	return -1, ENOSYS
-}
+func sendfile(outfd int , infd int , offset * int64, count int)(written int , err error) { return - 1, ENOSYS }
 
 /*
  * Exposed directly
- */
-//sys	Access(path string, mode uint32) (err error)
+ */ //sys	Access(path string, mode uint32) (err error)
 //sys	Adjtime(delta *Timeval, olddelta *Timeval) (err error)
 //sys	Chdir(path string) (err error)
 //sys	Chflags(path string, flags int) (err error)

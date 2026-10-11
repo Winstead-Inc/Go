@@ -1,9 +1,7 @@
 // Copyright 2025 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.simd
-
 // Package archsimd provides access to architecture-specific SIMD operations.
 //
 // This is a low-level package that exposes hardware-specific functionality.
@@ -56,6 +54,4 @@
 //   - For performance reasons, it is recommended to use the vector types directly
 //     as values. It is not recommended to take the address of a vector type,
 //     allocate it in the heap, or put it in an aggregate type.
-package archsimd
-
-// BUG(cherry): Using reflect Call to call a vector function/method may not work.
+package archsimd // BUG(cherry): Using reflect Call to call a vector function/method may not work.

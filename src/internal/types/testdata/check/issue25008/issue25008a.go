@@ -2,14 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p import"io" type A interface { io.Reader }
 
-import "io"
-
-type A interface {
-        io.Reader
-}
-
-func f(a A) {
-        a.Read(nil)
-}
+func f(a A) { a.Read(nil) }

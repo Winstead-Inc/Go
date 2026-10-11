@@ -1,12 +1,9 @@
 // Copyright 2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build ignore
 
-package main
-
-/*
+package main /*
 typedef struct A A;
 
 typedef struct {
@@ -23,11 +20,4 @@ typedef struct B
 {
 	A* a;
 } B;
-*/
-import "C"
-
-type N C.N
-
-type A C.A
-
-type B C.B
+*/ import"C" type N C.N type A C.A type B C.B

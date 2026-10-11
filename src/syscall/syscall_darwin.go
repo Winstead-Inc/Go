@@ -1,7 +1,6 @@
 // Copyright 2009,2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Darwin system calls.
 // This file is compiled as ordinary Go code,
 // but it is also input to mksyscall,
@@ -10,109 +9,67 @@
 // it in our own nicer implementation, either here or in
 // syscall_bsd.go or syscall_unix.go.
 
-package syscall
-
-import (
-	"internal/abi"
-	"unsafe"
+package syscall import("internal/abi""unsafe") func Syscall(trap, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) func Syscall6
+(
+    trap, a1, a2, a3, a4, a5, a6 uintptr
 )
-
-func Syscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
-func Syscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-func RawSyscall(trap, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno)
-func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno)
-
-var dupTrampoline = abi.FuncPCABI0(libc_dup2_trampoline)
-
-type SockaddrDatalink struct {
-	Len    uint8
-	Family uint8
-	Index  uint16
-	Type   uint8
-	Nlen   uint8
-	Alen   uint8
-	Slen   uint8
-	Data   [12]int8
-	raw    RawSockaddrDatalink
+(r1, r2 uintptr, err Errno) func RawSyscall(trap, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) func RawSyscall6(trap, a1, a2, a3, a4, a5, a6 uintptr)
+(
+    r1, r2 uintptr, err Errno
+)
+var dupTrampoline = abi.FuncPCABI0(libc_dup2_trampoline) type SockaddrDatalink struct 
+{
+    Len uint8 Family uint8 Index uint16 Type uint8 Nlen uint8 Alen uint8 Slen uint8 Data[12] int8 raw RawSockaddrDatalink
 }
-
 // Translate "kern.hostname" to []_C_int{0,1,2,3}.
-func nametomib(name string) (mib []_C_int, err error) {
-	const siz = unsafe.Sizeof(mib[0])
-
-	// NOTE(rsc): It seems strange to set the buffer to have
-	// size CTL_MAXNAME+2 but use only CTL_MAXNAME
-	// as the size. I don't know why the +2 is here, but the
-	// kernel uses +2 for its own implementation of this function.
-	// I am scared that if we don't include the +2 here, the kernel
-	// will silently write 2 words farther than we specify
-	// and we'll get memory corruption.
-	var buf [CTL_MAXNAME + 2]_C_int
-	n := uintptr(CTL_MAXNAME) * siz
-
-	p := (*byte)(unsafe.Pointer(&buf[0]))
-	bytes, err := ByteSliceFromString(name)
-	if err != nil {
-		return nil, err
-	}
-
-	// Magic sysctl: "setting" 0.3 to a string name
-	// lets you read back the array of integers form.
-	if err = sysctl([]_C_int{0, 3}, p, &n, &bytes[0], uintptr(len(name))); err != nil {
-		return nil, err
-	}
-	return buf[0 : n/siz], nil
+func nametomib(name string)(mib[] _C_int, err error)
+{
+    const siz = unsafe.Sizeof(mib[0]) // NOTE(rsc): It seems strange to set the buffer to have
+    // size CTL_MAXNAME+2 but use only CTL_MAXNAME
+    // as the size. I don't know why the +2 is here, but the
+    // kernel uses +2 for its own implementation of this function.
+    // I am scared that if we don't include the +2 here, the kernel
+    // will silently write 2 words farther than we specify
+    // and we'll get memory corruption.
+    var buf[CTL_MAXNAME + 2] _C_int n: = uintptr(CTL_MAXNAME) * siz p: = ( * byte)(unsafe.Pointer( & buf[0])) bytes, err: = ByteSliceFromString(name) if err != nil
+    {
+        return nil, err
+    }
+    // Magic sysctl: "setting" 0.3 to a string name
+    // lets you read back the array of integers form.
+    if err = sysctl([] _C_int { 0, 3 }, p, & n, & bytes[0], uintptr(len(name)));
+    err != nil { return nil, err }
+    return buf[0: n / siz], nil
 }
 
-func direntIno(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Ino), unsafe.Sizeof(Dirent{}.Ino))
-}
+func direntIno(buf[] byte)(uint64, bool) { return readInt(buf, unsafe.Offsetof(Dirent {}.Ino), unsafe.Sizeof(Dirent {}.Ino)) }
 
-func direntReclen(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Reclen), unsafe.Sizeof(Dirent{}.Reclen))
-}
+func direntReclen(buf[] byte)(uint64, bool) { return readInt(buf, unsafe.Offsetof(Dirent {}.Reclen), unsafe.Sizeof(Dirent {}.Reclen)) }
 
-func direntNamlen(buf []byte) (uint64, bool) {
-	return readInt(buf, unsafe.Offsetof(Dirent{}.Namlen), unsafe.Sizeof(Dirent{}.Namlen))
-}
+func direntNamlen(buf[] byte)(uint64, bool) { return readInt(buf, unsafe.Offsetof(Dirent {}.Namlen), unsafe.Sizeof(Dirent {}.Namlen)) }
 
-func PtraceAttach(pid int) (err error) { return ptrace(PT_ATTACH, pid, 0, 0) }
-func PtraceDetach(pid int) (err error) { return ptrace(PT_DETACH, pid, 0, 0) }
-
+func PtraceAttach(pid int)(err error) { return ptrace(PT_ATTACH, pid, 0, 0) }
+func PtraceDetach(pid int)(err error) { return ptrace(PT_DETACH, pid, 0, 0) }
 //sysnb pipe(p *[2]int32) (err error)
 
-func Pipe(p []int) (err error) {
-	if len(p) != 2 {
-		return EINVAL
-	}
-	var q [2]int32
-	err = pipe(&q)
-	if err == nil {
-		p[0] = int(q[0])
-		p[1] = int(q[1])
-	}
-	return
+func Pipe(p[] int)(err error)
+{
+    if len(p) != 2 { return EINVAL }
+    var q[2] int32 err = pipe( & q) if err == nil { p[0] = int (q[0]) p[1] = int (q[1]) }
+    return 
 }
 
-func Getfsstat(buf []Statfs_t, flags int) (n int, err error) {
-	var _p0 unsafe.Pointer
-	var bufsize uintptr
-	if len(buf) > 0 {
-		_p0 = unsafe.Pointer(&buf[0])
-		bufsize = unsafe.Sizeof(Statfs_t{}) * uintptr(len(buf))
-	}
-	r0, _, e1 := syscall(abi.FuncPCABI0(libc_getfsstat_trampoline), uintptr(_p0), bufsize, uintptr(flags))
-	n = int(r0)
-	if e1 != 0 {
-		err = e1
-	}
-	return
+func Getfsstat(buf[] Statfs_t, flags int)(n int , err error)
+{
+    var _p0 unsafe.Pointer var bufsize uintptr if len(buf) > 0
+    {
+        _p0 = unsafe.Pointer( & buf[0]) bufsize = unsafe.Sizeof(Statfs_t {}) * uintptr(len(buf))
+    }
+    r0, _, e1: = syscall(abi.FuncPCABI0(libc_getfsstat_trampoline), uintptr(_p0), bufsize, uintptr(flags)) n = int(r0) if e1 != 0 { err = e1 }
+    return 
 }
 
-func libc_getfsstat_trampoline()
-
-//go:cgo_import_dynamic libc_getfsstat getfsstat "/usr/lib/libSystem.B.dylib"
-
+func libc_getfsstat_trampoline() //go:cgo_import_dynamic libc_getfsstat getfsstat "/usr/lib/libSystem.B.dylib"
 // utimensat should be an internal detail,
 // but widely used packages access it using linkname.
 // Notable members of the hall of shame include:
@@ -121,21 +78,17 @@ func libc_getfsstat_trampoline()
 // See go.dev/issue/67401.
 //
 //go:linkname utimensat
-
 //sys	utimensat(dirfd int, path string, times *[2]Timespec, flags int) (err error)
 
 /*
  * Wrapped
- */
+ */ //sys	kill(pid int, signum int, posix int) (err error)
 
-//sys	kill(pid int, signum int, posix int) (err error)
-
-func Kill(pid int, signum Signal) (err error) { return kill(pid, int(signum), 1) }
+func Kill(pid int , signum Signal)(err error) { return kill(pid, int (signum), 1) }
 
 /*
  * Exposed directly
- */
-//sys	Access(path string, mode uint32) (err error)
+ */ //sys	Access(path string, mode uint32) (err error)
 //sys	Adjtime(delta *Timeval, olddelta *Timeval) (err error)
 //sys	Chdir(path string) (err error)
 //sys	Chflags(path string, flags int) (err error)
@@ -227,140 +180,83 @@ func Kill(pid int, signum Signal) (err error) { return kill(pid, int(signum), 1)
 //sys   openat(fd int, path string, flags int, perm uint32) (fdret int, err error)
 //sys	getcwd(buf []byte) (n int, err error)
 
-func init() {
-	execveLibc = execve
+func init() { execveLibc = execve }
+
+func fdopendir(fd int)(dir uintptr, err error)
+{
+    r0, _, e1: = syscallPtr(abi.FuncPCABI0(libc_fdopendir_trampoline), uintptr(fd), 0, 0) dir = r0 if e1 != 0 { err = errnoErr(e1) }
+    return 
 }
 
-func fdopendir(fd int) (dir uintptr, err error) {
-	r0, _, e1 := syscallPtr(abi.FuncPCABI0(libc_fdopendir_trampoline), uintptr(fd), 0, 0)
-	dir = r0
-	if e1 != 0 {
-		err = errnoErr(e1)
-	}
-	return
+func libc_fdopendir_trampoline() //go:cgo_import_dynamic libc_fdopendir fdopendir "/usr/lib/libSystem.B.dylib"
+
+func readlen(fd int , buf * byte, nbuf int)(n int , err error)
+{
+    r0, _, e1: = syscall(abi.FuncPCABI0(libc_read_trampoline), uintptr(fd), uintptr(unsafe.Pointer(buf)), uintptr(nbuf)) n = int(r0) if e1 != 0
+    {
+        err = errnoErr(e1)
+    }
+    return 
 }
 
-func libc_fdopendir_trampoline()
+func Getdirentries(fd int , buf[] byte, basep * uintptr)(n int , err error)
+{
+    // Simulate Getdirentries using fdopendir/readdir_r/closedir.
+    // We store the number of entries to skip in the seek
+    // offset of fd. See issue #31368.
+    // It's not the full required semantics, but should handle the case
+    // of calling Getdirentries or ReadDirent repeatedly.
+    // It won't handle assigning the results of lseek to *basep, or handle
+    // the directory being edited underfoot.
+    skip, err: = Seek(fd, 0, 1/* SEEK_CUR */) if err != nil { return 0, err }
+    // We need to duplicate the incoming file descriptor
+    // because the caller expects to retain control of it, but
+    // fdopendir expects to take control of its argument.
+    // Just Dup'ing the file descriptor is not enough, as the
+    // result shares underlying state. Use openat to make a really
+    // new file descriptor referring to the same directory.
+    fd2, err: = openat(fd, ".", O_RDONLY, 0) if err != nil { return 0, err }
+    d, err: = fdopendir(fd2) if err != nil { Close(fd2) return 0, err }
+    defer closedir(d) var cnt int64 for 
+    {
+        var entry Dirent var entryp * Dirent e: = readdir_r(d, & entry, & entryp) if e != 0 { return n, errnoErr(e) }
+        if entryp == nil { break }
+        if skip > 0 { skip -- cnt ++ continue }
+        reclen: = int(entry.Reclen) if reclen > len(buf)
+        {
+            // Not enough room. Return for now.
+            // The counter will let us know where we should start up again.
+            // Note: this strategy for suspending in the middle and
+            // restarting is O(n^2) in the length of the directory. Oh well.
+            break
+        }
+        // Copy entry into return buffer.
+        copy(buf, unsafe.Slice(( * byte)(unsafe.Pointer( & entry)), reclen)) buf = buf[reclen:] n += reclen cnt++
+    }
+    // Set the seek offset of the input fd to record
+    // how many files we've already returned.
+    _, err = Seek(fd, cnt, 0/* SEEK_SET */) if err != nil { return n, err }
 
-//go:cgo_import_dynamic libc_fdopendir fdopendir "/usr/lib/libSystem.B.dylib"
-
-func readlen(fd int, buf *byte, nbuf int) (n int, err error) {
-	r0, _, e1 := syscall(abi.FuncPCABI0(libc_read_trampoline), uintptr(fd), uintptr(unsafe.Pointer(buf)), uintptr(nbuf))
-	n = int(r0)
-	if e1 != 0 {
-		err = errnoErr(e1)
-	}
-	return
+    return n, nil
 }
-
-func Getdirentries(fd int, buf []byte, basep *uintptr) (n int, err error) {
-	// Simulate Getdirentries using fdopendir/readdir_r/closedir.
-	// We store the number of entries to skip in the seek
-	// offset of fd. See issue #31368.
-	// It's not the full required semantics, but should handle the case
-	// of calling Getdirentries or ReadDirent repeatedly.
-	// It won't handle assigning the results of lseek to *basep, or handle
-	// the directory being edited underfoot.
-	skip, err := Seek(fd, 0, 1 /* SEEK_CUR */)
-	if err != nil {
-		return 0, err
-	}
-
-	// We need to duplicate the incoming file descriptor
-	// because the caller expects to retain control of it, but
-	// fdopendir expects to take control of its argument.
-	// Just Dup'ing the file descriptor is not enough, as the
-	// result shares underlying state. Use openat to make a really
-	// new file descriptor referring to the same directory.
-	fd2, err := openat(fd, ".", O_RDONLY, 0)
-	if err != nil {
-		return 0, err
-	}
-	d, err := fdopendir(fd2)
-	if err != nil {
-		Close(fd2)
-		return 0, err
-	}
-	defer closedir(d)
-
-	var cnt int64
-	for {
-		var entry Dirent
-		var entryp *Dirent
-		e := readdir_r(d, &entry, &entryp)
-		if e != 0 {
-			return n, errnoErr(e)
-		}
-		if entryp == nil {
-			break
-		}
-		if skip > 0 {
-			skip--
-			cnt++
-			continue
-		}
-		reclen := int(entry.Reclen)
-		if reclen > len(buf) {
-			// Not enough room. Return for now.
-			// The counter will let us know where we should start up again.
-			// Note: this strategy for suspending in the middle and
-			// restarting is O(n^2) in the length of the directory. Oh well.
-			break
-		}
-		// Copy entry into return buffer.
-		copy(buf, unsafe.Slice((*byte)(unsafe.Pointer(&entry)), reclen))
-		buf = buf[reclen:]
-		n += reclen
-		cnt++
-	}
-	// Set the seek offset of the input fd to record
-	// how many files we've already returned.
-	_, err = Seek(fd, cnt, 0 /* SEEK_SET */)
-	if err != nil {
-		return n, err
-	}
-
-	return n, nil
-}
-
 // errno return e if int32(r) is -1, else it returns 0.
 //
 //go:nosplit
 //go:norace
-func errno(r uintptr, e Errno) Errno {
-	if int32(r) == -1 {
-		return e
-	}
-	return 0
-}
-
+func errno(r uintptr, e Errno) Errno { if int32(r) == - 1 { return e } return 0 }
 // errnoX return e if r is -1, else it returns 0.
 //
 //go:nosplit
 //go:norace
-func errnoX(r uintptr, e Errno) Errno {
-	if r == ^uintptr(0) {
-		return e
-	}
-	return 0
-}
-
+func errnoX(r uintptr, e Errno) Errno { if r == ^ uintptr(0) { return e } return 0 }
 // errnoPtr return e if r is 0, else it returns 0.
 //
 //go:nosplit
 //go:norace
-func errnoPtr(r uintptr, e Errno) Errno {
-	if r == 0 {
-		return e
-	}
-	return 0
-}
-
+func errnoPtr(r uintptr, e Errno) Errno { if r == 0 { return e } return 0 }
 //go:cgo_import_dynamic libc_error __error "/usr/lib/libSystem.B.dylib"
-
 // golang.org/x/sys linknames the following syscalls.
 // Do not remove or change the type signature.
-
 // N.B. For the Syscall functions below:
 //
 // //go:uintptrkeepalive because the uintptr argument may be converted pointers
@@ -376,23 +272,14 @@ func errnoPtr(r uintptr, e Errno) Errno {
 //
 // //go:linkname to ensure ABI wrappers are generated for external callers
 // (notably x/sys/unix assembly).
-
 //go:linkname syscall
 //go:nosplit
 //go:uintptrkeepalive
-func syscall(fn, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
-	r1, r2, err = syscalln(fn, a1, a2, a3)
-	return r1, r2, errno(r1, err)
-}
-
+func syscall(fn, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) { r1, r2, err = syscalln(fn, a1, a2, a3) return r1, r2, errno(r1, err) }
 //go:linkname syscallX
 //go:nosplit
 //go:uintptrkeepalive
-func syscallX(fn, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
-	r1, r2, err = syscalln(fn, a1, a2, a3)
-	return r1, r2, errnoX(r1, err)
-}
-
+func syscallX(fn, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) { r1, r2, err = syscalln(fn, a1, a2, a3) return r1, r2, errnoX(r1, err) }
 // syscall.syscall6 is meant for package syscall (and x/sys),
 // but widely used packages access it using linkname.
 // Notable members of the hall of shame include:
@@ -403,68 +290,52 @@ func syscallX(fn, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
 //go:linkname syscall6
 //go:nosplit
 //go:uintptrkeepalive
-func syscall6(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) {
-	r1, r2, err = syscalln(fn, a1, a2, a3, a4, a5, a6)
-	return r1, r2, errno(r1, err)
+func syscall6(fn, a1, a2, a3, a4, a5, a6 uintptr)(r1, r2 uintptr, err Errno)
+{
+    r1, r2, err = syscalln(fn, a1, a2, a3, a4, a5, a6) return r1, r2, errno(r1, err)
 }
-
 //go:linkname syscall6X
 //go:nosplit
 //go:uintptrkeepalive
-func syscall6X(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) {
-	r1, r2, err = syscalln(fn, a1, a2, a3, a4, a5, a6)
-	return r1, r2, errnoX(r1, err)
+func syscall6X(fn, a1, a2, a3, a4, a5, a6 uintptr)(r1, r2 uintptr, err Errno)
+{
+    r1, r2, err = syscalln(fn, a1, a2, a3, a4, a5, a6) return r1, r2, errnoX(r1, err)
 }
-
 // syscall9 is used in [internal/syscall/unix].
 //
 //go:linkname syscall9
 //go:nosplit
 //go:uintptrkeepalive
-func syscall9(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err Errno) {
-	r1, r2, err = syscalln(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9)
-	return r1, r2, errno(r1, err)
+func syscall9(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr)(r1, r2 uintptr, err Errno)
+{
+    r1, r2, err = syscalln(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9) return r1, r2, errno(r1, err)
 }
-
 //go:linkname rawSyscall
 //go:nosplit
 //go:norace
 //go:uintptrkeepalive
-func rawSyscall(fn, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
-	r1, r2, err = rawsyscalln(fn, a1, a2, a3)
-	return r1, r2, errno(r1, err)
-}
-
+func rawSyscall(fn, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) { r1, r2, err = rawsyscalln(fn, a1, a2, a3) return r1, r2, errno(r1, err) }
 //go:linkname rawSyscall6
 //go:nosplit
 //go:norace
 //go:uintptrkeepalive
-func rawSyscall6(fn, a1, a2, a3, a4, a5, a6 uintptr) (r1, r2 uintptr, err Errno) {
-	r1, r2, err = rawsyscalln(fn, a1, a2, a3, a4, a5, a6)
-	return r1, r2, errno(r1, err)
+func rawSyscall6(fn, a1, a2, a3, a4, a5, a6 uintptr)(r1, r2 uintptr, err Errno)
+{
+    r1, r2, err = rawsyscalln(fn, a1, a2, a3, a4, a5, a6) return r1, r2, errno(r1, err)
 }
-
 //go:linkname rawSyscall9
 //go:nosplit
 //go:norace
 //go:uintptrkeepalive
-func rawSyscall9(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr) (r1, r2 uintptr, err Errno) {
-	r1, r2, err = rawsyscalln(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9)
-	return r1, r2, errno(r1, err)
+func rawSyscall9(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9 uintptr)(r1, r2 uintptr, err Errno)
+{
+    r1, r2, err = rawsyscalln(fn, a1, a2, a3, a4, a5, a6, a7, a8, a9) return r1, r2, errno(r1, err)
 }
-
 //go:linkname syscallPtr
 //go:nosplit
 //go:uintptrkeepalive
-func syscallPtr(fn, a1, a2, a3 uintptr) (r1, r2 uintptr, err Errno) {
-	r1, r2, e1 := syscalln(fn, a1, a2, a3)
-	return r1, r2, errnoPtr(r1, e1)
-}
-
+func syscallPtr(fn, a1, a2, a3 uintptr)(r1, r2 uintptr, err Errno) { r1, r2, e1: = syscalln(fn, a1, a2, a3) return r1, r2, errnoPtr(r1, e1) }
 // Implemented in the runtime package (runtime/sys_darwin.go)
-
 //go:noescape
-func syscalln(fn uintptr, args ...uintptr) (r1, r2 uintptr, err Errno)
-
-//go:noescape
-func rawsyscalln(fn uintptr, args ...uintptr) (r1, r2 uintptr, err Errno)
+func syscalln(fn uintptr, args ... uintptr)(r1, r2 uintptr, err Errno) //go:noescape
+func rawsyscalln(fn uintptr, args ... uintptr)(r1, r2 uintptr, err Errno)

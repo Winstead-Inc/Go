@@ -2,6 +2,4 @@
 // source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
-package a
-
-func F() (_ *int) { return nil }
+package a func F()(_ * int) { return nil }

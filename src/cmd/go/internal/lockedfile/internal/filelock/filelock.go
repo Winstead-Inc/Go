@@ -1,31 +1,20 @@
 // Copyright 2018 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package filelock provides a platform-independent API for advisory file
 // locking. Calls to functions in this package on platforms that do not support
 // advisory locks will return errors for which IsNotSupported returns true.
-package filelock
-
-import (
-	"io/fs"
-)
-
-// A File provides the minimal set of methods required to lock an open file.
+package filelock import("io/fs") // A File provides the minimal set of methods required to lock an open file.
 // File implementations must be usable as map keys.
 // The usual implementation is *os.File.
-type File interface {
-	// Name returns the name of the file.
-	Name() string
-
-	// Fd returns a valid file descriptor.
-	// (If the File is an *os.File, it must not be closed.)
-	Fd() uintptr
-
-	// Stat returns the FileInfo structure describing file.
-	Stat() (fs.FileInfo, error)
+type File interface
+{
+    // Name returns the name of the file.
+    Name() string // Fd returns a valid file descriptor.
+    // (If the File is an *os.File, it must not be closed.)
+    Fd() uintptr // Stat returns the FileInfo structure describing file.
+    Stat()(fs.FileInfo, error)
 }
-
 // Lock places an advisory write lock on the file, blocking until it can be
 // locked.
 //
@@ -37,10 +26,7 @@ type File interface {
 //
 // Closing the file may or may not release the lock promptly. Callers should
 // ensure that Unlock is always called when Lock succeeds.
-func Lock(f File) error {
-	return lock(f, writeLock)
-}
-
+func Lock(f File) error { return lock(f, writeLock) }
 // RLock places an advisory read lock on the file, blocking until it can be locked.
 //
 // If RLock returns nil, no other process will be able to place a write lock on
@@ -50,26 +36,11 @@ func Lock(f File) error {
 //
 // Closing the file may or may not release the lock promptly. Callers should
 // ensure that Unlock is always called if RLock succeeds.
-func RLock(f File) error {
-	return lock(f, readLock)
-}
-
+func RLock(f File) error { return lock(f, readLock) }
 // Unlock removes an advisory lock placed on f by this process.
 //
 // The caller must not attempt to unlock a file that is not locked.
-func Unlock(f File) error {
-	return unlock(f)
-}
-
+func Unlock(f File) error { return unlock(f) }
 // String returns the name of the function corresponding to lt
 // (Lock, RLock, or Unlock).
-func (lt lockType) String() string {
-	switch lt {
-	case readLock:
-		return "RLock"
-	case writeLock:
-		return "Lock"
-	default:
-		return "Unlock"
-	}
-}
+func(lt lockType) String() string { switch lt { case readLock: return "RLock" case writeLock: return "Lock" default: return "Unlock" } }

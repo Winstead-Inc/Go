@@ -2,10 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p import."bytes" var _ = Index // use bytes
 
-import . "bytes"
-
-var _ = Index // use bytes
-
-var _ = t{Index: 0}
+var _ = t { Index: 0 }

@@ -28,85 +28,36 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package mips64
+package mips64 import("cmd/internal/objabi""cmd/internal/sys""cmd/link/internal/ld""internal/buildcfg") func Init()( * sys.Arch, ld.Arch)
+{
+    arch: = sys.ArchMIPS64 musl: = "/lib/ld-musl-mips64.so.1" if buildcfg.GOARCH == "mips64le" { arch = sys.ArchMIPS64LE musl = "/lib/ld-musl-mips64el.so.1" }
 
-import (
-	"cmd/internal/objabi"
-	"cmd/internal/sys"
-	"cmd/link/internal/ld"
-	"internal/buildcfg"
-)
+    theArch: = ld.Arch
+    {
+        Funcalign: funcAlign, Maxalign: maxAlign, Minalign: minAlign, Dwarfregsp: dwarfRegSP, Dwarfreglr: dwarfRegLR, Adddynrel: adddynrel, Archinit: archinit, Archreloc: archreloc, Archrelocvariant: archrelocvariant, Extreloc: extreloc, Gentext: gentext, Machoreloc1: machoreloc1, ELF: ld.ELFArch
+        {
+            Linuxdynld: "/lib64/ld64.so.1", LinuxdynldMusl: musl, Freebsddynld: "XXX", Openbsddynld: "XXX", Netbsddynld: "XXX", Dragonflydynld: "XXX", Solarisdynld: "XXX", Reloc1: elfreloc1, RelocSize: 24, SetupPLT: elfsetupplt, // Historically GNU ld creates a read-only
+            // .dynamic section.
+            DynamicReadOnly: true, 
+        },
+    }
 
-func Init() (*sys.Arch, ld.Arch) {
-	arch := sys.ArchMIPS64
-	musl := "/lib/ld-musl-mips64.so.1"
-	if buildcfg.GOARCH == "mips64le" {
-		arch = sys.ArchMIPS64LE
-		musl = "/lib/ld-musl-mips64el.so.1"
-	}
-
-	theArch := ld.Arch{
-		Funcalign:        funcAlign,
-		Maxalign:         maxAlign,
-		Minalign:         minAlign,
-		Dwarfregsp:       dwarfRegSP,
-		Dwarfreglr:       dwarfRegLR,
-		Adddynrel:        adddynrel,
-		Archinit:         archinit,
-		Archreloc:        archreloc,
-		Archrelocvariant: archrelocvariant,
-		Extreloc:         extreloc,
-		Gentext:          gentext,
-		Machoreloc1:      machoreloc1,
-
-		ELF: ld.ELFArch{
-			Linuxdynld:     "/lib64/ld64.so.1",
-			LinuxdynldMusl: musl,
-			Freebsddynld:   "XXX",
-			Openbsddynld:   "XXX",
-			Netbsddynld:    "XXX",
-			Dragonflydynld: "XXX",
-			Solarisdynld:   "XXX",
-
-			Reloc1:    elfreloc1,
-			RelocSize: 24,
-			SetupPLT:  elfsetupplt,
-
-			// Historically GNU ld creates a read-only
-			// .dynamic section.
-			DynamicReadOnly: true,
-		},
-	}
-
-	return arch, theArch
+    return arch, theArch
 }
 
-func archinit(ctxt *ld.Link) {
-	switch ctxt.HeadType {
-	default:
-		ld.Exitf("unknown -H option: %v", ctxt.HeadType)
+func archinit(ctxt * ld.Link)
+{
+    switch ctxt.HeadType
+    {
+        default: ld.Exitf("unknown -H option: %v", ctxt.HeadType) case objabi.Hplan9: /* plan 9 */ ld.HEADR = 32 if * ld.FlagRound == - 1
+        {
+            * ld.FlagRound = 16 * 1024
+        }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(16 * 1024, * ld.FlagRound) + int64(ld.HEADR) }
 
-	case objabi.Hplan9: /* plan 9 */
-		ld.HEADR = 32
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 16 * 1024
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(16*1024, *ld.FlagRound) + int64(ld.HEADR)
-		}
+        case objabi.Hlinux: /* mips64 elf */ ld.Elfinit(ctxt) ld.HEADR = ld.ELFRESERVE if * ld.FlagRound == - 1 { * ld.FlagRound = 0x10000 }
+        if * ld.FlagTextAddr == - 1 { * ld.FlagTextAddr = ld.Rnd(0x10000, * ld.FlagRound) + int64(ld.HEADR) }
+    }
 
-	case objabi.Hlinux: /* mips64 elf */
-		ld.Elfinit(ctxt)
-		ld.HEADR = ld.ELFRESERVE
-		if *ld.FlagRound == -1 {
-			*ld.FlagRound = 0x10000
-		}
-		if *ld.FlagTextAddr == -1 {
-			*ld.FlagTextAddr = ld.Rnd(0x10000, *ld.FlagRound) + int64(ld.HEADR)
-		}
-	}
-
-	dynSymCount = 0
-	gotLocalCount = 0
-	gotSymIndex = 0
+    dynSymCount = 0 gotLocalCount = 0 gotSymIndex = 0
 }

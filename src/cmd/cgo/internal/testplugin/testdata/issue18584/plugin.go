@@ -2,18 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"reflect" type C struct {}
 
-import "reflect"
+func F(c * C) * C { return nil }
 
-type C struct {
-}
-
-func F(c *C) *C {
-	return nil
-}
-
-func G() bool {
-	var c *C
-	return reflect.TypeOf(F).Out(0) == reflect.TypeOf(c)
-}
+func G() bool { var c * C return reflect.TypeOf(F).Out(0) == reflect.TypeOf(c) }

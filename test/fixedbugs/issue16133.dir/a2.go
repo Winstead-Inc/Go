@@ -1,7 +1,1 @@
-package a
-
-type X string
-
-func NewX() X {
-	return ""
-}
+package a type X string func NewX() X { return "" }

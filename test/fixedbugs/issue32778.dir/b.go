@@ -2,10 +2,4 @@
 // source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
-package b
-
-import "./a"
-
-func Expo(fn a.FullName) a.Name {
-	return fn.Name()
-}
+package b import"./a" func Expo(fn a.FullName) a.Name { return fn.Name() }

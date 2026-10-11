@@ -1,13 +1,10 @@
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 #include "libcgo.h"
-
 #ifndef CGO_TSAN
-void(* const _cgo_yield)() = NULL;
+void( * const _cgo_yield)() = NULL;
 #else
-
 #include <string.h>
 
 char x_cgo_yield_strncpy_src = 0;
@@ -18,11 +15,9 @@ size_t x_cgo_yield_strncpy_n = 0;
 Stub for allowing libc interceptors to execute.
 
 _cgo_yield is set to NULL if we do not expect libc interceptors to exist.
-*/
-static void
-x_cgo_yield()
+*/ static void x_cgo_yield()
 {
-	/*
+    /*
 	The libc function(s) we call here must form a no-op and include at least one
 	call that triggers TSAN to process pending asynchronous signals.
 
@@ -40,11 +35,11 @@ x_cgo_yield()
 	https://golang.org/issue/21196), so the arguments here need to be global
 	variables with external linkage in order to ensure that the call traps all the
 	way down into libc.
-	*/
-	strncpy(&x_cgo_yield_strncpy_dst, &x_cgo_yield_strncpy_src,
-	        x_cgo_yield_strncpy_n);
+	*/ strncpy
+    (
+        & x_cgo_yield_strncpy_dst, & x_cgo_yield_strncpy_src, x_cgo_yield_strncpy_n
+    );
 }
 
-void(* const _cgo_yield)() = &x_cgo_yield;
-
+void( * const _cgo_yield)() = & x_cgo_yield;
 #endif  /* GO_TSAN */

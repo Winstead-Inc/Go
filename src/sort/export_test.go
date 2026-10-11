@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package sort
+package sort func Heapsort(data Interface) { heapSort(data, 0, data.Len()) }
 
-func Heapsort(data Interface) {
-	heapSort(data, 0, data.Len())
-}
-
-func ReverseRange(data Interface, a, b int) {
-	reverseRange(data, a, b)
-}
+func ReverseRange(data Interface, a, b int) { reverseRange(data, a, b) }

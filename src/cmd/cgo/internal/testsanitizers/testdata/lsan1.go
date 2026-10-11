@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 #include <stdlib.h>
 
 int* test() {
@@ -17,23 +15,13 @@ void clearStack(int n) {
   }
 }
 
-*/
-import "C"
+*/ import"C" //go:noinline
+func F() { C.test() }
 
-//go:noinline
-func F() {
-	C.test()
-}
+func clearStack(n int) { if n > 0 { clearStack(n - 1) } }
 
-func clearStack(n int) {
-	if n > 0 {
-		clearStack(n - 1)
-	}
-}
-
-func main() {
-	// Test should fail: memory allocated by C is leaked.
-	F()
-	clearStack(100)
-	C.clearStack(100)
+func main()
+{
+    // Test should fail: memory allocated by C is leaked.
+    F() clearStack(100) C.clearStack(100)
 }

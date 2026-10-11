@@ -1,24 +1,24 @@
 // run
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-func foo(a []int) int {
-	return a[0] // this seems to do the wrong thing
+package main func foo(a[] int) int
+{
+    return a[0] // this seems to do the wrong thing
 }
 
-func main() {
-	a := &[]int{12}
-	if x := (*a)[0]; x != 12 {
-		panic(2)
-	}
-	if x := foo(*a); x != 12 {
-		// fails (x is incorrect)
-		panic(3)
-	}
+func main()
+{
+    a: = & [] int { 12 }
+    if x: = ( * a)[0];
+    x != 12 { panic(2) }
+    if x: = foo( * a);
+    x != 12
+    {
+        // fails (x is incorrect)
+        panic(3)
+    }
 }
 
 /*

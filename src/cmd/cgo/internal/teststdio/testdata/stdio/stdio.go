@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package stdio
-
-/*
+package stdio /*
 #include <stdio.h>
 
 // on mingw, stderr and stdout are defined as &_iob[FILENO]
@@ -13,8 +11,8 @@ package stdio
 // instead of depending on internals of libc implementation.
 FILE *getStdout(void) { return stdout; }
 FILE *getStderr(void) { return stderr; }
-*/
-import "C"
-
-var Stdout = (*File)(C.getStdout())
-var Stderr = (*File)(C.getStderr())
+*/ import"C" var Stdout = 
+(
+    * File
+)
+(C.getStdout()) var Stderr = ( * File)(C.getStderr())

@@ -1,17 +1,13 @@
 // Copyright 2017 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build !plan9 && !windows
 // +build !plan9,!windows
-
 // Test handling of Go-allocated signal stacks when calling from
 // C-created threads with and without signal stacks. (See issue
 // #22930.)
 
-package main
-
-/*
+package main /*
 #include <pthread.h>
 #include <signal.h>
 #include <stdio.h>
@@ -74,26 +70,17 @@ static void DoThread(int sigstack) {
 	}
 	pthread_join(tid, NULL);
 }
-*/
-import "C"
+*/ import"C" func init
+(
+)
+{ register("SigStack", SigStack) }
 
-func init() {
-	register("SigStack", SigStack)
-}
+func SigStack() { C.DoThread(0) C.DoThread(1) C.DoThread(0) C.DoThread(1) println("OK") }
 
-func SigStack() {
-	C.DoThread(0)
-	C.DoThread(1)
-	C.DoThread(0)
-	C.DoThread(1)
-	println("OK")
-}
-
-var BadPtr *int
-
-//export SigStackCallback
-func SigStackCallback() {
-	// Cause the Go signal handler to run.
-	defer func() { recover() }()
-	*BadPtr = 42
+var BadPtr * int //export SigStackCallback
+func SigStackCallback()
+{
+    // Cause the Go signal handler to run.
+    defer func() { recover() }
+() * BadPtr = 42
 }

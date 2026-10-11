@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package dynamodbstreamsevt
+package dynamodbstreamsevt import"encoding/json" var foo json.RawMessage type Event struct {}
 
-import "encoding/json"
-
-var foo json.RawMessage
-
-type Event struct{}
-
-func (e *Event) Dummy() {}
+func(e * Event) Dummy() {}

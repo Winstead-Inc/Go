@@ -2,14 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type Exported interface { private () }
 
-type Exported interface {
-	private()
-}
+type Implementation struct {}
 
-type Implementation struct{}
+func(p * Implementation) private () { println("p.Implementation.private()") }
 
-func (p *Implementation) private() { println("p.Implementation.private()") }
-
-var X = new(Implementation)
+var X = new (Implementation)

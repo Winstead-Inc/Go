@@ -2,15 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"./a" type S3 struct { p.S1 }
 
-import "./a"
-
-type S3 struct {
-	p.S1
-}
-
-func main() {
-	var i interface{} = S3{}
-	_ = i
-}
+func main() { var i interface {} = S3 {} _ = i }

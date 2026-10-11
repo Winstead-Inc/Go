@@ -2,8 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package issue26743
-
-import "C"
-
-var V2 C.uint
+package issue26743 import"C" var V2 C.uint

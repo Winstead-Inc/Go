@@ -2,13 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-import "fmt"
-
-func B(c chan bool) {
-	go func() {
-		fmt.Println(1.5)
-		c <- true
-	}()
-}
+package main import"fmt" func B(c chan bool) { go func() { fmt.Println(1.5) c <- true }() }

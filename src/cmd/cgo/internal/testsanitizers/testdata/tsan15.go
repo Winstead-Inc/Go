@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// Test case for issue 66427.
+package main // Test case for issue 66427.
 // Running under TSAN, this fails with "signal handler
 // spoils errno".
 
@@ -39,22 +37,15 @@ static void foo() {
 	pthread_create(&th2, 0, sendthr, th);
 	pthread_join(*th, 0);
 }
-*/
-import "C"
-
-import (
-	"time"
+*/ import"C" import
+(
+    "time"
 )
-
 //export go_callback
 func go_callback() {}
 
-func main() {
-	go func() {
-		for {
-			C.foo()
-		}
-	}()
-
-	time.Sleep(1000 * time.Millisecond)
+func main()
+{
+    go func() { for { C.foo() } }
+() time.Sleep(1000 * time.Millisecond)
 }

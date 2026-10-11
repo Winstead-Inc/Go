@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cgosotest
-
-// This test verifies that Go can access C variables
+package cgosotest // This test verifies that Go can access C variables
 // in shared object file via cgo.
 
 /*
@@ -26,19 +24,10 @@ package cgosotest
 const char* getVar() {
 	    return exported_var;
 }
-*/
-import "C"
-
-import "fmt"
-
-func Test() {
-	const want = "Hello world"
-	got := C.GoString(C.getVar())
-	if got != want {
-		panic(fmt.Sprintf("testExportedVar: got %q, but want %q", got, want))
-	}
-	got = C.GoString(C.exported_var)
-	if got != want {
-		panic(fmt.Sprintf("testExportedVar: got %q, but want %q", got, want))
-	}
+*/ import"C" import"fmt" func Test
+(
+)
+{
+    const want = "Hello world" got: = C.GoString(C.getVar()) if got != want { panic(fmt.Sprintf("testExportedVar: got %q, but want %q", got, want)) }
+    got = C.GoString(C.exported_var) if got != want { panic(fmt.Sprintf("testExportedVar: got %q, but want %q", got, want)) }
 }

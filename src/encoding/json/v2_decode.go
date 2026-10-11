@@ -1,27 +1,11 @@
 // Copyright 2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.jsonv2
-
 // Represents JSON data structure using native Go types: booleans, floats,
 // strings, arrays, and maps.
 
-package json
-
-import (
-	"cmp"
-	"fmt"
-	"reflect"
-	"strconv"
-	"strings"
-
-	"encoding/json/internal/jsonwire"
-	"encoding/json/jsontext"
-	jsonv2 "encoding/json/v2"
-)
-
-// Unmarshal parses the JSON-encoded data and stores the result
+package json import("cmp""fmt""reflect""strconv""strings""encoding/json/internal/jsonwire""encoding/json/jsontext" jsonv2"encoding/json/v2") // Unmarshal parses the JSON-encoded data and stores the result
 // in the value pointed to by v. If v is nil or not a pointer,
 // Unmarshal returns an [InvalidUnmarshalError].
 //
@@ -115,166 +99,122 @@ import (
 // invalid UTF-16 surrogate pairs are not treated as an error.
 // Instead, they are replaced by the Unicode replacement
 // character U+FFFD.
-func Unmarshal(data []byte, v any) error {
-	return jsonv2.Unmarshal(data, v, DefaultOptionsV1())
-}
-
+func Unmarshal(data[] byte, v any) error { return jsonv2.Unmarshal(data, v, DefaultOptionsV1()) }
 // Unmarshaler is the interface implemented by types
 // that can unmarshal a JSON description of themselves.
 // The input can be assumed to be a valid encoding of
 // a JSON value. UnmarshalJSON must copy the JSON data
 // if it wishes to retain the data after returning.
-type Unmarshaler = jsonv2.Unmarshaler
-
-// An UnmarshalTypeError describes a JSON value that was
+type Unmarshaler = jsonv2.Unmarshaler // An UnmarshalTypeError describes a JSON value that was
 // not appropriate for a value of a specific Go type.
-type UnmarshalTypeError struct {
-	Value  string       // description of JSON value - "bool", "array", "number -5"
-	Type   reflect.Type // type of Go value it could not be assigned to
-	Offset int64        // error occurred after reading Offset bytes
-	Struct string       // name of the root type containing the field
-	Field  string       // the full path from root node to the value
-	Err    error        // may be nil
+type UnmarshalTypeError struct 
+{
+    Value string // description of JSON value - "bool", "array", "number -5"
+    Type reflect.Type // type of Go value it could not be assigned to
+    Offset int64 // error occurred after reading Offset bytes
+    Struct string // name of the root type containing the field
+    Field string // the full path from root node to the value
+    Err error // may be nil
 }
 
-func (e *UnmarshalTypeError) Error() string {
-	var s string
-	if e.Struct != "" || e.Field != "" {
-		// The design of UnmarshalTypeError overly assumes a struct-based
-		// Go representation for the JSON value.
-		// The logic in jsontext represents paths using a JSON Pointer,
-		// which is agnostic to the Go type system.
-		// Trying to convert a JSON Pointer into an UnmarshalTypeError.Field
-		// is difficult. As a heuristic, if the last path token looks like
-		// an index into a JSON array (e.g., ".foo.bar.0"),
-		// avoid the phrase "Go struct field ".
-		intoWhat := "Go struct field "
-		i := strings.LastIndexByte(e.Field, '.') + len(".")
-		if len(e.Field[i:]) > 0 && strings.TrimRight(e.Field[i:], "0123456789") == "" {
-			intoWhat = "" // likely a Go slice or array
-		}
-		s = "json: cannot unmarshal " + e.Value + " into " + intoWhat + e.Struct + "." + e.Field + " of type " + e.Type.String()
-	} else {
-		s = "json: cannot unmarshal " + e.Value + " into Go value of type " + e.Type.String()
-	}
-	if e.Err != nil {
-		s += ": " + e.Err.Error()
-	}
-	return s
+func(e * UnmarshalTypeError) Error() string
+{
+    var s string if e.Struct != "" || e.Field != ""
+    {
+        // The design of UnmarshalTypeError overly assumes a struct-based
+        // Go representation for the JSON value.
+        // The logic in jsontext represents paths using a JSON Pointer,
+        // which is agnostic to the Go type system.
+        // Trying to convert a JSON Pointer into an UnmarshalTypeError.Field
+        // is difficult. As a heuristic, if the last path token looks like
+        // an index into a JSON array (e.g., ".foo.bar.0"),
+        // avoid the phrase "Go struct field ".
+        intoWhat: = "Go struct field " i: = strings.LastIndexByte(e.Field, '.') + len(".") if len(e.Field[i:]) > 0 && strings.TrimRight
+        (
+            e.Field[i:],"0123456789"
+        )
+        == ""
+        {
+            intoWhat = "" // likely a Go slice or array
+        }
+        s = "json: cannot unmarshal " + e.Value + " into " + intoWhat + e.Struct + "." + e.Field + " of type " + e.Type.String()
+    }
+    else { s = "json: cannot unmarshal " + e.Value + " into Go value of type " + e.Type.String() }
+    if e.Err != nil { s += ": " + e.Err.Error() }
+    return s
 }
 
-func (e *UnmarshalTypeError) Unwrap() error {
-	return e.Err
-}
-
+func(e * UnmarshalTypeError) Unwrap() error { return e.Err }
 // An UnmarshalFieldError describes a JSON object key that
 // led to an unexported (and therefore unwritable) struct field.
 //
 // Deprecated: No longer used; kept for compatibility.
-type UnmarshalFieldError struct {
-	Key   string
-	Type  reflect.Type
-	Field reflect.StructField
-}
+type UnmarshalFieldError struct { Key string Type reflect.Type Field reflect.StructField }
 
-func (e *UnmarshalFieldError) Error() string {
-	return "json: cannot unmarshal object key " + strconv.Quote(e.Key) + " into unexported field " + e.Field.Name + " of type " + e.Type.String()
+func(e * UnmarshalFieldError) Error() string
+{
+    return "json: cannot unmarshal object key " + strconv.Quote(e.Key) + " into unexported field " + e.Field.Name + " of type " + e.Type.String()
 }
-
 // An InvalidUnmarshalError describes an invalid argument passed to [Unmarshal].
 // (The argument to [Unmarshal] must be a non-nil pointer.)
-type InvalidUnmarshalError struct {
-	Type reflect.Type
+type InvalidUnmarshalError struct { Type reflect.Type }
+
+func(e * InvalidUnmarshalError) Error() string
+{
+    if e.Type == nil { return "json: Unmarshal(nil)" }
+
+    if e.Type.Kind() != reflect.Pointer { return "json: Unmarshal(non-pointer " + e.Type.String() + ")" }
+    return "json: Unmarshal(nil " + e.Type.String() + ")"
 }
-
-func (e *InvalidUnmarshalError) Error() string {
-	if e.Type == nil {
-		return "json: Unmarshal(nil)"
-	}
-
-	if e.Type.Kind() != reflect.Pointer {
-		return "json: Unmarshal(non-pointer " + e.Type.String() + ")"
-	}
-	return "json: Unmarshal(nil " + e.Type.String() + ")"
-}
-
 // A Number represents a JSON number literal.
 // When unmarshaling, it also accepts JSON numbers encoded within a JSON string.
-type Number string
-
-// String returns the literal text of the number.
-func (n Number) String() string { return string(n) }
-
+type Number string // String returns the literal text of the number.
+func(n Number) String() string { return string(n) }
 // Float64 returns the number as a float64.
-func (n Number) Float64() (float64, error) {
-	return strconv.ParseFloat(string(n), 64)
-}
-
+func(n Number) Float64()(float64, error) { return strconv.ParseFloat(string(n), 64) }
 // Int64 returns the number as an int64.
-func (n Number) Int64() (int64, error) {
-	return strconv.ParseInt(string(n), 10, 64)
+func(n Number) Int64()(int64, error) { return strconv.ParseInt(string(n), 10, 64) }
+
+var numberType = reflect.TypeFor[Number]() // MarshalJSONTo implements [jsonv2.MarshalerTo].
+func(n Number) MarshalJSONTo(enc * jsontext.Encoder) error
+{
+    opts: = enc.Options() stringify, _: = jsonv2.GetOption(opts, jsonv2.StringifyNumbers) if k, n: = enc.StackIndex(enc.StackDepth());
+    k == '{' && n % 2 == 0
+    {
+        stringify = true // expecting a JSON object name
+    }
+    n = cmp.Or(n, "0") var num[] byte val: = enc.AvailableBuffer() if stringify
+    {
+        val = append(val, '"') val = append(val, n ...) val = append(val, '"') num = val[len(`"`): len(val) - len(`"`)]
+    }
+    else { val = append(val, n ...) num = val }
+    if n, err: = jsonwire.ConsumeNumber(num);
+    n != len(num) || err != nil { return fmt.Errorf("cannot parse %q as JSON number: %w", val, strconv.ErrSyntax) }
+    return enc.WriteValue(val)
 }
-
-var numberType = reflect.TypeFor[Number]()
-
-// MarshalJSONTo implements [jsonv2.MarshalerTo].
-func (n Number) MarshalJSONTo(enc *jsontext.Encoder) error {
-	opts := enc.Options()
-	stringify, _ := jsonv2.GetOption(opts, jsonv2.StringifyNumbers)
-	if k, n := enc.StackIndex(enc.StackDepth()); k == '{' && n%2 == 0 {
-		stringify = true // expecting a JSON object name
-	}
-	n = cmp.Or(n, "0")
-	var num []byte
-	val := enc.AvailableBuffer()
-	if stringify {
-		val = append(val, '"')
-		val = append(val, n...)
-		val = append(val, '"')
-		num = val[len(`"`) : len(val)-len(`"`)]
-	} else {
-		val = append(val, n...)
-		num = val
-	}
-	if n, err := jsonwire.ConsumeNumber(num); n != len(num) || err != nil {
-		return fmt.Errorf("cannot parse %q as JSON number: %w", val, strconv.ErrSyntax)
-	}
-	return enc.WriteValue(val)
-}
-
 // UnmarshalJSONFrom implements [jsonv2.UnmarshalerFrom].
-func (n *Number) UnmarshalJSONFrom(dec *jsontext.Decoder) error {
-	opts := dec.Options()
-	stringify, _ := jsonv2.GetOption(opts, jsonv2.StringifyNumbers)
-	if k, n := dec.StackIndex(dec.StackDepth()); k == '{' && n%2 == 0 {
-		stringify = true // expecting a JSON object name
-	}
-	val, err := dec.ReadValue()
-	if err != nil {
-		return err
-	}
-	val0 := val
-	k := val.Kind()
-	switch k {
-	case 'n':
-		if legacy, _ := jsonv2.GetOption(opts, MergeWithLegacySemantics); !legacy {
-			*n = ""
-		}
-		return nil
-	case '"':
-		verbatim := jsonwire.ConsumeSimpleString(val) == len(val)
-		val = jsonwire.UnquoteMayCopy(val, verbatim)
-		if n, err := jsonwire.ConsumeNumber(val); n != len(val) || err != nil {
-			return &jsonv2.SemanticError{JSONKind: val0.Kind(), JSONValue: val0.Clone(), GoType: numberType, Err: strconv.ErrSyntax}
-		}
-		*n = Number(val)
-		return nil
-	case '0':
-		if stringify {
-			break
-		}
-		*n = Number(val)
-		return nil
-	}
-	return &jsonv2.SemanticError{JSONKind: k, GoType: numberType}
+func(n * Number) UnmarshalJSONFrom(dec * jsontext.Decoder) error
+{
+    opts: = dec.Options() stringify, _: = jsonv2.GetOption(opts, jsonv2.StringifyNumbers) if k, n: = dec.StackIndex(dec.StackDepth());
+    k == '{' && n % 2 == 0
+    {
+        stringify = true // expecting a JSON object name
+    }
+    val, err: = dec.ReadValue() if err != nil { return err }
+    val0: = val k: = val.Kind() switch k
+    {
+        case 'n': if legacy, _: = jsonv2.GetOption(opts, MergeWithLegacySemantics);
+        ! legacy { * n = "" }
+        return nil case '"': verbatim: = jsonwire.ConsumeSimpleString(val) == len(val) val = jsonwire.UnquoteMayCopy(val, verbatim) if n, err: = jsonwire.ConsumeNumber
+        (
+            val
+        );
+        n != len(val) || err != nil
+        {
+            return & jsonv2.SemanticError { JSONKind: val0.Kind(), JSONValue: val0.Clone(), GoType: numberType, Err: strconv.ErrSyntax }
+        }
+        * n = Number(val) return nil case '0': if stringify { break }
+        * n = Number(val) return nil
+    }
+    return & jsonv2.SemanticError { JSONKind: k, GoType: numberType }
 }

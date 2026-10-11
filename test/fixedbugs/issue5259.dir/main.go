@@ -2,15 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"./bug" type foo int func(f * foo) Bar() {}
 
-import "./bug"
-
-type foo int
-
-func (f *foo) Bar() {
-}
-
-func main() {
-	bug.Foo(new(foo))
-}
+func main() { bug.Foo(new (foo)) }

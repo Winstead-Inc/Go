@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 #include <stdlib.h>
 #include <stdio.h>
 
@@ -17,18 +15,15 @@ int* f() {
   }
   return p;
 }
-*/
-import "C"
-import (
-	"fmt"
-	"unsafe"
+*/ import"C" import
+(
+    "fmt""unsafe"
 )
 
-func main() {
-	a := C.f()
-	q5 := (*C.int)(unsafe.Add(unsafe.Pointer(a), 4*5))
-	// Access to C pointer out of bounds.
-	*q5 = 100 // BOOM
-	// We shouldn't get here; asan should stop us first.
-	fmt.Printf("q5: %d, %x\n", *q5, q5)
+func main()
+{
+    a: = C.f() q5: = ( * C.int)(unsafe.Add(unsafe.Pointer(a), 4 * 5)) // Access to C pointer out of bounds.
+    * q5 = 100 // BOOM
+    // We shouldn't get here; asan should stop us first.
+    fmt.Printf("q5: %d, %x\n", * q5, q5)
 }

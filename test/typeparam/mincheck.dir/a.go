@@ -2,15 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type Ordered interface { int | int64 | float64 }
 
-type Ordered interface {
-	int | int64 | float64
-}
-
-func Min[T Ordered](x, y T) T {
-	if x < y {
-		return x
-	}
-	return y
-}
+func Min[T Ordered](x, y T) T { if x < y { return x } return y }

@@ -467,10 +467,10 @@ func (rea RegExtshiftAmount) String() string {
 	if rea.extShift != ExtShift(0) {
 		buf += ", " + rea.extShift.String()
 		if rea.amount != 0 {
-			buf += fmt.Sprintf(" #%d", rea.amount)
+			buf += fmt.Sprintf("#%d", rea.amount)
 		} else {
 			if rea.show_zero {
-				buf += fmt.Sprintf(" #%d", rea.amount)
+				buf += fmt.Sprintf("#%d", rea.amount)
 			}
 		}
 	}

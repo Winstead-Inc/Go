@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package runtime
-
-// pause sets SP to newsp and pauses the execution of Go's WebAssembly
+package runtime // pause sets SP to newsp and pauses the execution of Go's WebAssembly
 // code until an event is triggered, or call back into Go.
 //
 // Note: the epilogue of pause pops 8 bytes from the stack, so when

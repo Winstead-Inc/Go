@@ -1,3 +1,1 @@
-package surprise
-
-var X int
+package surprise var X int

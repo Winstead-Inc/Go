@@ -1,70 +1,42 @@
 // Copyright 2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.jsonv2
 
-package json
-
-import (
-	"bytes"
-	"encoding"
-	"errors"
-	"io"
-	"reflect"
-	"sync"
-	"time"
-
-	"encoding/json/internal"
-	"encoding/json/internal/jsonflags"
-	"encoding/json/internal/jsonopts"
-	"encoding/json/jsontext"
+package json import
+(
+    "bytes""encoding""errors""io""reflect""sync""time""encoding/json/internal""encoding/json/internal/jsonflags""encoding/json/internal/jsonopts""encoding/json/jsontext"
 )
-
 // Reference encoding and time packages to assist pkgsite
 // in being able to hotlink references to those packages.
-var (
-	_ encoding.TextMarshaler
-	_ encoding.TextAppender
-	_ encoding.TextUnmarshaler
-	_ time.Time
-	_ time.Duration
+var(_ encoding.TextMarshaler _ encoding.TextAppender _ encoding.TextUnmarshaler _ time.Time _ time.Duration) var
+(
+    // Once a JSON object has begun processing without duplicate name verification,
+    // it does not track the history of names that have been seen so far.
+    // Reject changing the setting for the current JSON object namespace,
+    // otherwise we would be operating with inconsistent state.
+    // Note that you can change the setting before processing the start
+    // of a different JSON object.
+    //
+    // TODO: We could loosen this restriction in certain conditions.
+    // If we are already checking for duplicate names,
+    // we can momentarily disable it for the next JSON object member name.
+    // However, if we are already NOT checking for duplicate names,
+    // we cannot momentarily enable it for the next JSON object member name
+    // since we already lack prior history of JSON object names.
+    errChangingDuplicateNames = errors.New("cannot change duplicate name checks after a JSON object has already begun processing") // The presence of invalid UTF-8 has an interesting intersection
+    // with checking for duplicate names. Due to the semantic of mangling
+    // invalid UTF-8 as the Unicode replacement character,
+    // two string keys in a Go map (both with invalid UTF-8)
+    // may encode as the same JSON string. Thus, we forbid changing of
+    // invalid UTF-8 checks in the current JSON object namespace.
+    errChangingInvalidUTF8 = errors.New("cannot change UTF-8 checks after a JSON object has already begun processing") // TODO(https://go.dev/issue/79559): Changing whitespace currently
+    // leads to strange effects and will need more careful adjustment.
+    // For now, we just report an error.
+    errChangingWhitespace = errors.New("cannot change whitespace formatting within a MarshalEncode call")
 )
-
-var (
-	// Once a JSON object has begun processing without duplicate name verification,
-	// it does not track the history of names that have been seen so far.
-	// Reject changing the setting for the current JSON object namespace,
-	// otherwise we would be operating with inconsistent state.
-	// Note that you can change the setting before processing the start
-	// of a different JSON object.
-	//
-	// TODO: We could loosen this restriction in certain conditions.
-	// If we are already checking for duplicate names,
-	// we can momentarily disable it for the next JSON object member name.
-	// However, if we are already NOT checking for duplicate names,
-	// we cannot momentarily enable it for the next JSON object member name
-	// since we already lack prior history of JSON object names.
-	errChangingDuplicateNames = errors.New("cannot change duplicate name checks after a JSON object has already begun processing")
-
-	// The presence of invalid UTF-8 has an interesting intersection
-	// with checking for duplicate names. Due to the semantic of mangling
-	// invalid UTF-8 as the Unicode replacement character,
-	// two string keys in a Go map (both with invalid UTF-8)
-	// may encode as the same JSON string. Thus, we forbid changing of
-	// invalid UTF-8 checks in the current JSON object namespace.
-	errChangingInvalidUTF8 = errors.New("cannot change UTF-8 checks after a JSON object has already begun processing")
-
-	// TODO(https://go.dev/issue/79559): Changing whitespace currently
-	// leads to strange effects and will need more careful adjustment.
-	// For now, we just report an error.
-	errChangingWhitespace = errors.New("cannot change whitespace formatting within a MarshalEncode call")
-)
-
 // export exposes internal functionality of the "jsontext" package.
-var export = jsontext.Internal.Export(&internal.AllowInternalUse)
-
-// Marshal serializes a Go value as a []byte according to the provided
+var export = jsontext.Internal.Export( & internal.AllowInternalUse) // Marshal serializes a Go value as a []byte according to the provided
 // marshal and encode options (while ignoring unmarshal or decode options).
 // It does not terminate the output with a newline.
 //
@@ -160,100 +132,80 @@ var export = jsontext.Internal.Export(&internal.AllowInternalUse)
 //     have no default representation and result in a [SemanticError].
 //
 // JSON cannot represent cyclic data structures and Marshal does not handle them.
-func Marshal(in any, opts ...Options) (out []byte, err error) {
-	enc := export.GetBufferedEncoder(opts...)
-	defer export.PutBufferedEncoder(enc)
-	xe := export.Encoder(enc)
-	xe.Flags.Set(jsonflags.OmitTopLevelNewline | 1)
-	err = marshalEncode(enc, in, &xe.Struct)
-	if err != nil && xe.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-		return nil, internal.TransformMarshalError(in, err)
-	}
-	return bytes.Clone(xe.Buf), err
+func Marshal(in any, opts ... Options)(out[] byte, err error)
+{
+    enc: = export.GetBufferedEncoder(opts ...) defer export.PutBufferedEncoder(enc) xe: = export.Encoder(enc) xe.Flags.Set(jsonflags.OmitTopLevelNewline | 1) err = marshalEncode
+    (
+        enc, in, & xe.Struct
+    )
+    if err != nil && xe.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) { return nil, internal.TransformMarshalError(in, err) }
+    return bytes.Clone(xe.Buf), err
 }
-
 // MarshalWrite serializes a Go value into an [io.Writer] according to the provided
 // marshal and encode options (while ignoring unmarshal or decode options).
 // It does not terminate the output with a newline.
 // See [Marshal] for details about the conversion of a Go value into JSON.
-func MarshalWrite(out io.Writer, in any, opts ...Options) (err error) {
-	enc := export.GetStreamingEncoder(out, opts...)
-	defer export.PutStreamingEncoder(enc)
-	xe := export.Encoder(enc)
-	xe.Flags.Set(jsonflags.OmitTopLevelNewline | 1)
-	err = marshalEncode(enc, in, &xe.Struct)
-	if err != nil && xe.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-		return internal.TransformMarshalError(in, err)
-	}
-	return err
+func MarshalWrite(out io.Writer, in any, opts ... Options)(err error)
+{
+    enc: = export.GetStreamingEncoder(out, opts ...) defer export.PutStreamingEncoder(enc) xe: = export.Encoder(enc) xe.Flags.Set
+    (
+        jsonflags.OmitTopLevelNewline | 1
+    )
+    err = marshalEncode(enc, in, & xe.Struct) if err != nil && xe.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics)
+    {
+        return internal.TransformMarshalError(in, err)
+    }
+    return err
 }
-
 // MarshalEncode serializes a Go value into an [jsontext.Encoder] according to
 // the provided marshal or encode options (while ignoring unmarshal or decode options).
 // The options provided take precedence over options already applied on
 // the [jsontext.Encoder] and only apply for the duration of the marshal call.
 //
 // See [Marshal] for details about the conversion of a Go value into JSON.
-func MarshalEncode(out *jsontext.Encoder, in any, opts ...Options) (err error) {
-	xe := export.Encoder(out)
-	if len(opts) > 0 {
-		optsOriginal := xe.Struct
-		defer func() { xe.Struct = optsOriginal }()
-		xe.Struct.Join(opts...)
-		if xe.Tokens.Last.NeedObjectName() {
-			if optsOriginal.Flags.Get(jsonflags.AllowDuplicateNames) != xe.Struct.Flags.Get(jsonflags.AllowDuplicateNames) {
-				return newMarshalErrorBefore(out, reflect.TypeOf(in), errChangingDuplicateNames)
-			}
-			if optsOriginal.Flags.Get(jsonflags.AllowInvalidUTF8) != xe.Struct.Flags.Get(jsonflags.AllowInvalidUTF8) {
-				return newMarshalErrorBefore(out, reflect.TypeOf(in), errChangingInvalidUTF8)
-			}
-		}
-		if xe.Struct.Flags.Has(jsonflags.AnyWhitespace) {
-			if xe.Struct.Flags.Get(jsonflags.Multiline) {
-				xe.Struct.InitializeMultiline()
-			}
-			if jsonopts.ChangedWhitespace(optsOriginal, xe.Struct) {
-				return newMarshalErrorBefore(out, reflect.TypeOf(in), errChangingWhitespace)
-			}
-		}
-	}
-	err = marshalEncode(out, in, &xe.Struct)
-	if err != nil && xe.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-		return internal.TransformMarshalError(in, err)
-	}
-	return err
+func MarshalEncode(out * jsontext.Encoder, in any, opts ... Options)(err error)
+{
+    xe: = export.Encoder(out) if len(opts) > 0
+    {
+        optsOriginal: = xe.Struct defer func() { xe.Struct = optsOriginal }
+() xe.Struct.Join(opts ...) if xe.Tokens.Last.NeedObjectName()
+        {
+            if optsOriginal.Flags.Get(jsonflags.AllowDuplicateNames) != xe.Struct.Flags.Get(jsonflags.AllowDuplicateNames)
+            {
+                return newMarshalErrorBefore(out, reflect.TypeOf(in), errChangingDuplicateNames)
+            }
+            if optsOriginal.Flags.Get(jsonflags.AllowInvalidUTF8) != xe.Struct.Flags.Get(jsonflags.AllowInvalidUTF8)
+            {
+                return newMarshalErrorBefore(out, reflect.TypeOf(in), errChangingInvalidUTF8)
+            }
+        }
+        if xe.Struct.Flags.Has(jsonflags.AnyWhitespace)
+        {
+            if xe.Struct.Flags.Get(jsonflags.Multiline) { xe.Struct.InitializeMultiline() }
+            if jsonopts.ChangedWhitespace(optsOriginal, xe.Struct) { return newMarshalErrorBefore(out, reflect.TypeOf(in), errChangingWhitespace) }
+        }
+    }
+    err = marshalEncode(out, in, & xe.Struct) if err != nil && xe.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics)
+    {
+        return internal.TransformMarshalError(in, err)
+    }
+    return err
 }
 
-func marshalEncode(out *jsontext.Encoder, in any, mo *jsonopts.Struct) (err error) {
-	v := reflect.ValueOf(in)
-	if !v.IsValid() || (v.Kind() == reflect.Pointer && v.IsNil()) {
-		return out.WriteToken(jsontext.Null)
-	}
-	// Shallow copy non-pointer values to obtain an addressable value.
-	// It is beneficial to performance to always pass pointers to avoid this.
-	forceAddr := v.Kind() != reflect.Pointer
-	if forceAddr {
-		v2 := reflect.New(v.Type())
-		v2.Elem().Set(v)
-		v = v2
-	}
-	va := addressableValue{v.Elem(), forceAddr} // dereferenced pointer is always addressable
-	t := va.Type()
-
-	// Lookup and call the marshal function for this type.
-	marshal := lookupArshaler(t).marshal
-	if mo.Marshalers != nil {
-		marshal, _ = mo.Marshalers.(*Marshalers).lookup(marshal, t)
-	}
-	if err := marshal(out, va, mo); err != nil {
-		if !mo.Flags.Get(jsonflags.AllowDuplicateNames) {
-			export.Encoder(out).Tokens.InvalidateDisabledNamespaces()
-		}
-		return err
-	}
-	return nil
+func marshalEncode(out * jsontext.Encoder, in any, mo * jsonopts.Struct)(err error)
+{
+    v: = reflect.ValueOf(in) if ! v.IsValid() || (v.Kind() == reflect.Pointer && v.IsNil()) { return out.WriteToken(jsontext.Null) }
+    // Shallow copy non-pointer values to obtain an addressable value.
+    // It is beneficial to performance to always pass pointers to avoid this.
+    forceAddr: = v.Kind() != reflect.Pointer if forceAddr { v2: = reflect.New(v.Type()) v2.Elem().Set(v) v = v2 }
+    va: = addressableValue { v.Elem(), forceAddr }
+    // dereferenced pointer is always addressable
+    t: = va.Type() // Lookup and call the marshal function for this type.
+    marshal: = lookupArshaler(t).marshal if mo.Marshalers != nil { marshal, _ = mo.Marshalers.( * Marshalers).lookup(marshal, t) }
+    if err: = marshal(out, va, mo);
+    err != nil { if ! mo.Flags.Get(jsonflags.AllowDuplicateNames) { export.Encoder(out).Tokens.InvalidateDisabledNamespaces() } return err }
+    return nil
 }
-
 // Unmarshal decodes a []byte input into a Go value according to the provided
 // unmarshal and decode options (while ignoring marshal or encode options).
 // The input must be a single JSON value with optional whitespace interspersed.
@@ -383,34 +335,30 @@ func marshalEncode(out *jsontext.Encoder, in any, mo *jsonopts.Struct) (err erro
 // for any JSON kind other than an object.
 // For JSON objects, the input object is merged into the destination value
 // where matching object members recursively apply merge semantics.
-func Unmarshal(in []byte, out any, opts ...Options) (err error) {
-	dec := export.GetBufferedDecoder(in, opts...)
-	defer export.PutBufferedDecoder(dec)
-	xd := export.Decoder(dec)
-	err = unmarshalDecode(dec, out, &xd.Struct, true)
-	if err != nil && xd.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-		return internal.TransformUnmarshalError(out, err)
-	}
-	return err
+func Unmarshal(in[] byte, out any, opts ... Options)(err error)
+{
+    dec: = export.GetBufferedDecoder(in, opts ...) defer export.PutBufferedDecoder(dec) xd: = export.Decoder(dec) err = unmarshalDecode
+    (
+        dec, out, & xd.Struct, true
+    )
+    if err != nil && xd.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) { return internal.TransformUnmarshalError(out, err) }
+    return err
 }
-
 // UnmarshalRead deserializes a Go value from an [io.Reader] according to the
 // provided unmarshal and decode options (while ignoring marshal or encode options).
 // The input must be a single JSON value with optional whitespace interspersed.
 // It consumes the entirety of [io.Reader] until [io.EOF] is encountered,
 // without reporting an error for EOF. The output must be a non-nil pointer.
 // See [Unmarshal] for details about the conversion of JSON into a Go value.
-func UnmarshalRead(in io.Reader, out any, opts ...Options) (err error) {
-	dec := export.GetStreamingDecoder(in, opts...)
-	defer export.PutStreamingDecoder(dec)
-	xd := export.Decoder(dec)
-	err = unmarshalDecode(dec, out, &xd.Struct, true)
-	if err != nil && xd.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-		return internal.TransformUnmarshalError(out, err)
-	}
-	return err
+func UnmarshalRead(in io.Reader, out any, opts ... Options)(err error)
+{
+    dec: = export.GetStreamingDecoder(in, opts ...) defer export.PutStreamingDecoder(dec) xd: = export.Decoder(dec) err = unmarshalDecode
+    (
+        dec, out, & xd.Struct, true
+    )
+    if err != nil && xd.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) { return internal.TransformUnmarshalError(out, err) }
+    return err
 }
-
 // UnmarshalDecode deserializes a Go value from a [jsontext.Decoder] according to
 // the provided unmarshal or decode options (while ignoring marshal or encode options).
 // The options provided take precedence over options already applied on
@@ -421,142 +369,129 @@ func UnmarshalRead(in io.Reader, out any, opts ...Options) (err error) {
 // If there are no more top-level JSON values, it reports [io.EOF].
 // The output must be a non-nil pointer.
 // See [Unmarshal] for details about the conversion of JSON into a Go value.
-func UnmarshalDecode(in *jsontext.Decoder, out any, opts ...Options) (err error) {
-	xd := export.Decoder(in)
-	if len(opts) > 0 {
-		optsOriginal := xd.Struct
-		defer func() { xd.Struct = optsOriginal }()
-		xd.Struct.Join(opts...)
-		if xd.Tokens.Last.NeedObjectName() {
-			if optsOriginal.Flags.Get(jsonflags.AllowDuplicateNames) != xd.Struct.Flags.Get(jsonflags.AllowDuplicateNames) {
-				return newUnmarshalErrorBefore(in, reflect.TypeOf(out), errChangingDuplicateNames)
-			}
-			if optsOriginal.Flags.Get(jsonflags.AllowInvalidUTF8) != xd.Struct.Flags.Get(jsonflags.AllowInvalidUTF8) {
-				return newUnmarshalErrorBefore(in, reflect.TypeOf(out), errChangingInvalidUTF8)
-			}
-		}
-	}
-	err = unmarshalDecode(in, out, &xd.Struct, false)
-	if err != nil && xd.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-		return internal.TransformUnmarshalError(out, err)
-	}
-	return err
+func UnmarshalDecode(in * jsontext.Decoder, out any, opts ... Options)(err error)
+{
+    xd: = export.Decoder(in) if len(opts) > 0
+    {
+        optsOriginal: = xd.Struct defer func() { xd.Struct = optsOriginal }
+() xd.Struct.Join(opts ...) if xd.Tokens.Last.NeedObjectName()
+        {
+            if optsOriginal.Flags.Get(jsonflags.AllowDuplicateNames) != xd.Struct.Flags.Get(jsonflags.AllowDuplicateNames)
+            {
+                return newUnmarshalErrorBefore(in, reflect.TypeOf(out), errChangingDuplicateNames)
+            }
+            if optsOriginal.Flags.Get(jsonflags.AllowInvalidUTF8) != xd.Struct.Flags.Get(jsonflags.AllowInvalidUTF8)
+            {
+                return newUnmarshalErrorBefore(in, reflect.TypeOf(out), errChangingInvalidUTF8)
+            }
+        }
+    }
+    err = unmarshalDecode(in, out, & xd.Struct, false) if err != nil && xd.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics)
+    {
+        return internal.TransformUnmarshalError(out, err)
+    }
+    return err
 }
 
-func unmarshalDecode(in *jsontext.Decoder, out any, uo *jsonopts.Struct, last bool) (err error) {
-	v := reflect.ValueOf(out)
-	if v.Kind() != reflect.Pointer || v.IsNil() {
-		return &SemanticError{action: "unmarshal", GoType: reflect.TypeOf(out), Err: internal.ErrNonNilReference}
-	}
-	va := addressableValue{v.Elem(), false} // dereferenced pointer is always addressable
-	t := va.Type()
-
-	// In legacy semantics, the entirety of the next JSON value
-	// was validated before attempting to unmarshal it.
-	if uo.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics) {
-		if err := export.Decoder(in).CheckNextValue(last); err != nil {
-			if err == io.EOF && last {
-				offset := in.InputOffset() + int64(len(in.UnreadBuffer()))
-				return &jsontext.SyntacticError{ByteOffset: offset, Err: io.ErrUnexpectedEOF}
-			}
-			return err
-		}
-	}
-
-	// Lookup and call the unmarshal function for this type.
-	unmarshal := lookupArshaler(t).unmarshal
-	if uo.Unmarshalers != nil {
-		unmarshal, _ = uo.Unmarshalers.(*Unmarshalers).lookup(unmarshal, t)
-	}
-	if err := unmarshal(in, va, uo); err != nil {
-		if !uo.Flags.Get(jsonflags.AllowDuplicateNames) {
-			export.Decoder(in).Tokens.InvalidateDisabledNamespaces()
-		}
-		if err == io.EOF && last {
-			offset := in.InputOffset() + int64(len(in.UnreadBuffer()))
-			return &jsontext.SyntacticError{ByteOffset: offset, Err: io.ErrUnexpectedEOF}
-		}
-		return err
-	}
-	if last {
-		return export.Decoder(in).CheckEOF()
-	}
-	return nil
+func unmarshalDecode(in * jsontext.Decoder, out any, uo * jsonopts.Struct, last bool)(err error)
+{
+    v: = reflect.ValueOf(out) if v.Kind() != reflect.Pointer || v.IsNil()
+    {
+        return & SemanticError { action: "unmarshal", GoType: reflect.TypeOf(out), Err: internal.ErrNonNilReference }
+    }
+    va: = addressableValue { v.Elem(), false }
+    // dereferenced pointer is always addressable
+    t: = va.Type() // In legacy semantics, the entirety of the next JSON value
+    // was validated before attempting to unmarshal it.
+    if uo.Flags.Get(jsonflags.ReportErrorsWithLegacySemantics)
+    {
+        if err: = export.Decoder(in).CheckNextValue(last);
+        err != nil
+        {
+            if err == io.EOF && last
+            {
+                offset: = in.InputOffset() + int64(len(in.UnreadBuffer())) return & jsontext.SyntacticError
+                {
+                    ByteOffset: offset, Err: io.ErrUnexpectedEOF
+                }
+            }
+            return err
+        }
+    }
+    // Lookup and call the unmarshal function for this type.
+    unmarshal: = lookupArshaler(t).unmarshal if uo.Unmarshalers != nil { unmarshal, _ = uo.Unmarshalers.( * Unmarshalers).lookup(unmarshal, t) }
+    if err: = unmarshal(in, va, uo);
+    err != nil
+    {
+        if ! uo.Flags.Get(jsonflags.AllowDuplicateNames) { export.Decoder(in).Tokens.InvalidateDisabledNamespaces() }
+        if err == io.EOF && last
+        {
+            offset: = in.InputOffset() + int64(len(in.UnreadBuffer())) return & jsontext.SyntacticError { ByteOffset: offset, Err: io.ErrUnexpectedEOF }
+        }
+        return err
+    }
+    if last { return export.Decoder(in).CheckEOF() }
+    return nil
 }
-
 // addressableValue is a reflect.Value that is guaranteed to be addressable
 // such that calling the Addr and Set methods do not panic.
 //
 // There is no compile magic that enforces this property,
 // but rather the need to construct this type makes it easier to examine each
 // construction site to ensure that this property is upheld.
-type addressableValue struct {
-	reflect.Value
-
-	// forcedAddr reports whether this value is addressable
-	// only through the use of [newAddressableValue].
-	// This is only used for [jsonflags.CallMethodsWithLegacySemantics].
-	forcedAddr bool
+type addressableValue struct 
+{
+    reflect.Value // forcedAddr reports whether this value is addressable
+    // only through the use of [newAddressableValue].
+    // This is only used for [jsonflags.CallMethodsWithLegacySemantics].
+    forcedAddr bool
 }
-
 // newAddressableValue constructs a new addressable value of type t.
-func newAddressableValue(t reflect.Type) addressableValue {
-	return addressableValue{reflect.New(t).Elem(), true}
-}
-
+func newAddressableValue(t reflect.Type) addressableValue { return addressableValue { reflect.New(t).Elem(), true } }
 // TODO: Remove *jsonopts.Struct argument from [marshaler] and [unmarshaler].
 // This can be directly accessed on the encoder or decoder.
-
 // All marshal and unmarshal behavior is implemented using these signatures.
 // The *jsonopts.Struct argument is guaranteed to be identical to or at least
 // a strict super-set of the options in Encoder.Struct or Decoder.Struct.
 // It is identical for Marshal, Unmarshal, MarshalWrite, and UnmarshalRead.
 // It is a super-set for MarshalEncode and UnmarshalDecode.
-type (
-	marshaler   = func(*jsontext.Encoder, addressableValue, *jsonopts.Struct) error
-	unmarshaler = func(*jsontext.Decoder, addressableValue, *jsonopts.Struct) error
+type
+(
+    marshaler = func( * jsontext.Encoder, addressableValue, * jsonopts.Struct) error unmarshaler = func
+    (
+        * jsontext.Decoder, addressableValue, * jsonopts.Struct
+    )
+    error
 )
 
-type arshaler struct {
-	marshal    marshaler
-	unmarshal  unmarshaler
-	nonDefault bool
-}
+type arshaler struct { marshal marshaler unmarshal unmarshaler nonDefault bool }
 
 var lookupArshalerCache sync.Map // map[reflect.Type]*arshaler
 
-func lookupArshaler(t reflect.Type) *arshaler {
-	if v, ok := lookupArshalerCache.Load(t); ok {
-		return v.(*arshaler)
-	}
+func lookupArshaler(t reflect.Type) * arshaler
+{
+    if v, ok: = lookupArshalerCache.Load(t);
+    ok { return v.( * arshaler) }
 
-	fncs := makeDefaultArshaler(t)
-	fncs = makeMethodArshaler(fncs, t)
-	fncs = makeTimeArshaler(fncs, t)
-
-	// Use the last stored so that duplicate arshalers can be garbage collected.
-	v, _ := lookupArshalerCache.LoadOrStore(t, fncs)
-	return v.(*arshaler)
+    fncs: = makeDefaultArshaler(t) fncs = makeMethodArshaler(fncs, t) fncs = makeTimeArshaler(fncs, t) // Use the last stored so that duplicate arshalers can be garbage collected.
+    v, _: = lookupArshalerCache.LoadOrStore(t, fncs) return v.( * arshaler)
 }
 
-var stringsPools = &sync.Pool{New: func() any { return new(stringSlice) }}
+var stringsPools = & sync.Pool { New: func() any { return new (stringSlice) } }
 
-type stringSlice []string
-
-// getStrings returns a non-nil pointer to a slice with length n.
-func getStrings(n int) *stringSlice {
-	s := stringsPools.Get().(*stringSlice)
-	if cap(*s) < n {
-		*s = make([]string, n)
-	}
-	*s = (*s)[:n]
-	return s
+type stringSlice[] string // getStrings returns a non-nil pointer to a slice with length n.
+func getStrings(n int) * stringSlice
+{
+    s: = stringsPools.Get().( * stringSlice) if cap( * s) < n { * s = make([] string, n) }
+    * s = ( * s)[: n] return s
 }
 
-func putStrings(s *stringSlice) {
-	if cap(*s) > 1<<10 {
-		*s = nil // avoid pinning arbitrarily large amounts of memory
-	}
-	clear(*s) // avoid pinning a reference to each string
-	stringsPools.Put(s)
+func putStrings(s * stringSlice)
+{
+    if cap( * s) > 1 << 10
+    {
+        * s = nil // avoid pinning arbitrarily large amounts of memory
+    }
+    clear( * s) // avoid pinning a reference to each string
+    stringsPools.Put(s)
 }

@@ -2,12 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cgotest
-
-import "testing"
-
-// Nothing to test here.
+package cgotest import"testing" // Nothing to test here.
 // The test is that the package compiles at all.
 // See resstate.go.
-func Test(t *testing.T) {
-}
+func Test(t * testing.T) {}

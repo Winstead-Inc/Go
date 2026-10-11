@@ -2,12 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package pkg_test
-
-import "fmt"
-
-// Playable example.
-func Example_playable() {
-	fmt.Println("Playable example output")
-	// Output: Playable example output
+package pkg_test import"fmt" // Playable example.
+func Example_playable()
+{
+    fmt.Println("Playable example output") // Output: Playable example output
 }

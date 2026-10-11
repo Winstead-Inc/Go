@@ -5,14 +5,15 @@
 
 set -e
 
-if [ ! -f run.bash ]; then
+if [ ! -f run.bash ];
+then
 	echo 'clean.bash must be run from $GOROOT/src' 1>&2
 	exit 1
 fi
 export GOROOT="$(cd .. && pwd)"
 
 gobin="${GOROOT}"/bin
-if ! "$gobin"/go help >/dev/null 2>&1; then
+if ! "$gobin"/go help > /dev/null 2>&1; then
 	echo 'cannot find go command; nothing to clean' >&2
 	exit 1
 fi

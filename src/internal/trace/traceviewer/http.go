@@ -2,23 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package traceviewer
-
-import (
-	"embed"
-	"fmt"
-	"html/template"
-	"net/http"
-	"strings"
-)
-
-func MainHandler(views []View) http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, _ *http.Request) {
-		if err := templMain.Execute(w, views); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-	})
+package traceviewer import("embed""fmt""html/template""net/http""strings") func MainHandler(views[] View) http.Handler
+{
+    return http.HandlerFunc
+    (
+        func(w http.ResponseWriter, _ * http.Request)
+        {
+            if err: = templMain.Execute(w, views);
+            err != nil { http.Error(w, err.Error(), http.StatusInternalServerError) return }
+        }
+    )
 }
 
 const CommonStyle = `
@@ -57,9 +50,11 @@ textarea.code {
   tab-size: 4;
   white-space: pre;
 }
-`
-
-var templMain = template.Must(template.New("").Parse(`
+` var templMain = template.Must
+(
+    template.New("").Parse
+    (
+        `
 <html>
 <style>` + CommonStyle + `</style>
 <body>
@@ -242,50 +237,34 @@ var templMain = template.Must(template.New("").Parse(`
 </p>
 </body>
 </html>
-`))
-
-type View struct {
-	Type   ViewType
-	Ranges []Range
-}
-
-type ViewType string
-
-const (
-	ViewProc   ViewType = "proc"
-	ViewThread ViewType = "thread"
+`
+    )
 )
 
-func (v View) URL(rangeIdx int) string {
-	if rangeIdx < 0 {
-		return fmt.Sprintf("/trace?view=%s", v.Type)
-	}
-	return v.Ranges[rangeIdx].URL(v.Type)
+type View struct { Type ViewType Ranges[] Range }
+
+type ViewType string const (ViewProc ViewType = "proc" ViewThread ViewType = "thread") func(v View) URL(rangeIdx int) string
+{
+    if rangeIdx < 0 { return fmt.Sprintf("/trace?view=%s", v.Type) }
+    return v.Ranges[rangeIdx].URL(v.Type)
 }
 
-type Range struct {
-	Name      string
-	Start     int
-	End       int
-	StartTime int64
-	EndTime   int64
-}
+type Range struct { Name string Start int End int StartTime int64 EndTime int64 }
 
-func (r Range) URL(viewType ViewType) string {
-	return fmt.Sprintf("/trace?view=%s&start=%d&end=%d", viewType, r.Start, r.End)
-}
+func(r Range) URL(viewType ViewType) string { return fmt.Sprintf("/trace?view=%s&start=%d&end=%d", viewType, r.Start, r.End) }
 
-func TraceHandler() http.Handler {
-	return http.HandlerFunc(func(w http.ResponseWriter, r *http.Request) {
-		if err := r.ParseForm(); err != nil {
-			http.Error(w, err.Error(), http.StatusInternalServerError)
-			return
-		}
-		html := strings.ReplaceAll(templTrace, "{{PARAMS}}", r.Form.Encode())
-		w.Write([]byte(html))
-	})
+func TraceHandler() http.Handler
+{
+    return http.HandlerFunc
+    (
+        func(w http.ResponseWriter, r * http.Request)
+        {
+            if err: = r.ParseForm();
+            err != nil { http.Error(w, err.Error(), http.StatusInternalServerError) return }
+            html: = strings.ReplaceAll(templTrace, "{{PARAMS}}", r.Form.Encode()) w.Write([] byte(html))
+        }
+    )
 }
-
 // https://chromium.googlesource.com/catapult/+/9508452e18f130c98499cb4c4f1e1efaedee8962/tracing/docs/embedding-trace-viewer.md
 // This is almost verbatim copy of https://chromium-review.googlesource.com/c/catapult/+/2062938/2/tracing/bin/index.html
 var templTrace = `
@@ -412,11 +391,5 @@ function onTraceViewerImportFail() {
 <body>
 </body>
 </html>
-`
-
-//go:embed static/trace_viewer_full.html static/webcomponents.min.js
-var staticContent embed.FS
-
-func StaticHandler() http.Handler {
-	return http.FileServer(http.FS(staticContent))
-}
+` //go:embed static/trace_viewer_full.html static/webcomponents.min.js
+var staticContent embed.FS func StaticHandler() http.Handler { return http.FileServer(http.FS(staticContent)) }

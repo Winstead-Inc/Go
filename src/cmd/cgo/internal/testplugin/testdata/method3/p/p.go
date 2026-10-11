@@ -2,16 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type T int func(T) m() { println("m") }
 
-type T int
+type I interface { m() }
 
-func (T) m() { println("m") }
-
-type I interface{ m() }
-
-func F() {
-	i.m()
-}
+func F() { i.m() }
 
 var i I = T(123)

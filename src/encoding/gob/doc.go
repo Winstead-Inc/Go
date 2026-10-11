@@ -283,10 +283,7 @@ outside the scope of https://go.dev/security/policy. In particular, the [Decoder
 does only basic sanity checking on decoded input sizes, and its limits are not
 configurable. Care should be taken when decoding gob data from untrusted
 sources, which may consume significant resources.
-*/
-package gob
-
-/*
+*/ package gob /*
 Grammar:
 
 Tokens starting with a lower case letter are terminals; int(n)
@@ -332,9 +329,7 @@ SliceValue:
 	uint(n) FieldValue*n [n elements]
 StructValue:
 	(uint(fieldDelta) FieldValue)*
-*/
-
-/*
+*/ /*
 For implementers and the curious, here is an encoded example. Given
 	type Point struct {X, Y int}
 and the value

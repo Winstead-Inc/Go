@@ -1,7 +1,6 @@
 // Copyright 2023 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Macros for transitioning from the host ABI to Go ABI
 //
 // On PPC64/ELFv2 targets, the following registers are callee
@@ -18,7 +17,6 @@
 //
 // These macros assume a 16 byte aligned stack pointer. This
 // is required by ELFv1, ELFv2, and AIX PPC64.
-
 #define SAVE_GPR_SIZE (18*8)
 #define SAVE_GPR(offset)               \
 	MOVD	R14, (offset+8*0)(R1)  \
@@ -39,7 +37,6 @@
 	MOVD	R29, (offset+8*15)(R1) \
 	MOVD	g,   (offset+8*16)(R1) \
 	MOVD	R31, (offset+8*17)(R1)
-
 #define RESTORE_GPR(offset)            \
 	MOVD	(offset+8*0)(R1), R14  \
 	MOVD	(offset+8*1)(R1), R15  \
@@ -59,7 +56,6 @@
 	MOVD	(offset+8*15)(R1), R29 \
 	MOVD	(offset+8*16)(R1), g   \
 	MOVD	(offset+8*17)(R1), R31
-
 #define SAVE_FPR_SIZE (18*8)
 #define SAVE_FPR(offset)               \
 	FMOVD	F14, (offset+8*0)(R1)  \
@@ -80,7 +76,6 @@
 	FMOVD	F29, (offset+8*15)(R1) \
 	FMOVD	F30, (offset+8*16)(R1) \
 	FMOVD	F31, (offset+8*17)(R1)
-
 #define RESTORE_FPR(offset)            \
 	FMOVD	(offset+8*0)(R1), F14  \
 	FMOVD	(offset+8*1)(R1), F15  \
@@ -100,7 +95,6 @@
 	FMOVD	(offset+8*15)(R1), F29 \
 	FMOVD	(offset+8*16)(R1), F30 \
 	FMOVD	(offset+8*17)(R1), F31
-
 // Save and restore VR20-31 (aka VSR56-63). These
 // macros must point to a 16B aligned offset.
 #define SAVE_VR_SIZE (12*16)
@@ -129,7 +123,6 @@
 	STVX	V30, (rtmp)(R1)       \
 	MOVD	$(offset+16*11), rtmp \
 	STVX	V31, (rtmp)(R1)
-
 #define RESTORE_VR(offset, rtmp)      \
 	MOVD	$(offset+16*0), rtmp  \
 	LVX	(rtmp)(R1), V20       \
@@ -155,11 +148,9 @@
 	LVX	(rtmp)(R1), V30       \
 	MOVD	$(offset+16*11), rtmp \
 	LVX	(rtmp)(R1), V31
-
 // LR and CR are saved in the caller's frame. The callee must
 // make space for all other callee-save registers.
 #define SAVE_ALL_REG_SIZE (SAVE_GPR_SIZE+SAVE_FPR_SIZE+SAVE_VR_SIZE)
-
 // Stack a frame and save all callee-save registers following the
 // host OS's ABI. Fortunately, this is identical for AIX, ELFv1, and
 // ELFv2. All host ABIs require the stack pointer to maintain 16 byte
@@ -179,7 +170,6 @@
 	SAVE_FPR(extra+FIXED_FRAME+SAVE_GPR_SIZE)                  \
 	SAVE_VR(extra+FIXED_FRAME+SAVE_GPR_SIZE+SAVE_FPR_SIZE, R0) \
 	MOVD	$0, R0
-
 // This unstacks the frame, restoring all callee-save registers
 // as saved by STACK_AND_SAVE_HOST_TO_GO_ABI.
 //

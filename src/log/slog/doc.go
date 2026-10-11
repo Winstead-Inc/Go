@@ -318,5 +318,4 @@ User-defined handlers are responsible for their own locking and sorting.
 # Writing a handler
 
 For a guide to writing a custom handler, see https://golang.org/s/slog-handler-guide.
-*/
-package slog
+*/ package slog

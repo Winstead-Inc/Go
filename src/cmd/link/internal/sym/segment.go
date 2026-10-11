@@ -28,41 +28,31 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package sym
-
-// Terrible but standard terminology.
+package sym // Terrible but standard terminology.
 // A segment describes a block of file to load into memory.
 // A section further describes the pieces of that block for
 // use in debuggers and such.
 
-type Segment struct {
-	Rwx      uint8  // permission as usual unix bits (5 = r-x etc)
-	Vaddr    uint64 // virtual address
-	Length   uint64 // length in memory
-	Fileoff  uint64 // file offset
-	Filelen  uint64 // length on disk
-	Sections []*Section
+type Segment struct 
+{
+    Rwx uint8 // permission as usual unix bits (5 = r-x etc)
+    Vaddr uint64 // virtual address
+    Length uint64 // length in memory
+    Fileoff uint64 // file offset
+    Filelen uint64 // length on disk
+    Sections[] * Section
 }
 
-type Section struct {
-	Rwx     uint8
-	Extnum  int16
-	Align   int32
-	Name    string
-	Vaddr   uint64
-	Length  uint64
-	Seg     *Segment
-	Elfsect any // an *ld.ElfShdr
-	Reloff  uint64
-	Rellen  uint64
-	// Relcount is the number of *host* relocations applied to this section
-	// (when external linking).
-	// Incremented atomically on multiple goroutines.
-	// Note: this may differ from number of Go relocations, as one Go relocation
-	// may turn into multiple host relocations.
-	Relcount uint32
-	Sym      LoaderSym // symbol for the section, if any
-	Index    uint16    // each section has a unique index, used internally
+type Section struct 
+{
+    Rwx uint8 Extnum int16 Align int32 Name string Vaddr uint64 Length uint64 Seg * Segment Elfsect any // an *ld.ElfShdr
+    Reloff uint64 Rellen uint64 // Relcount is the number of *host* relocations applied to this section
+    // (when external linking).
+    // Incremented atomically on multiple goroutines.
+    // Note: this may differ from number of Go relocations, as one Go relocation
+    // may turn into multiple host relocations.
+    Relcount uint32 Sym LoaderSym // symbol for the section, if any
+    Index uint16 // each section has a unique index, used internally
 
-	Compressed bool
+    Compressed bool
 }

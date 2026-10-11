@@ -1,49 +1,34 @@
 // run
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"fmt" type Buffer int func( * Buffer) Read() {}
 
-import "fmt"
+type Reader interface { Read() }
 
-type Buffer int
+func f() * Buffer { return nil }
 
-func (*Buffer) Read() {}
-
-type Reader interface {
-	Read()
+func g() Reader
+{
+    // implicit interface conversion in assignment during return
+    return f()
 }
 
-func f() *Buffer { return nil }
+func h()(b * Buffer, ok bool) { return }
 
-func g() Reader {
-	// implicit interface conversion in assignment during return
-	return f()
+func i()(r Reader, ok bool)
+{
+    // implicit interface conversion in multi-assignment during return
+    return h()
 }
 
-func h() (b *Buffer, ok bool) { return }
+func fmter()(s string, i int , t string) { return "%#x %q", 100, "hello" }
 
-func i() (r Reader, ok bool) {
-	// implicit interface conversion in multi-assignment during return
-	return h()
-}
-
-func fmter() (s string, i int, t string) { return "%#x %q", 100, "hello" }
-
-func main() {
-	b := g()
-	bb, ok := b.(*Buffer)
-	_, _, _ = b, bb, ok
-
-	b, ok = i()
-	bb, ok = b.(*Buffer)
-	_, _, _ = b, bb, ok
-
-	s := fmt.Sprintf(fmter())
-	if s != "0x64 \"hello\"" {
-		println(s)
-		panic("fail")
-	}
+func main()
+{
+    b: = g() bb, ok: = b.( * Buffer) _, _, _ = b, bb, ok b, ok = i() bb, ok = b.( * Buffer) _, _, _ = b, bb, ok s: = fmt.Sprintf(fmter()) if s != "0x64 \"hello\""
+    {
+        println(s) panic("fail")
+    }
 }

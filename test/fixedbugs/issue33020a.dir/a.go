@@ -2,12 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
-
-type FArg func(args []string) error
-
-type Command struct {
-	Name string
-	Arg1 FArg
-	Arg2 func(args []string) error
-}
+package a type FArg func(args[] string) error type Command struct { Name string Arg1 FArg Arg2 func(args[] string) error }

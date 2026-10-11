@@ -1,17 +1,11 @@
 // compile
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main const c = 1;
 
-const c = 1;
-
-func main() {
-	c := 0;
-	_ = c;
-}
+func main() { c: = 0; _ = c; }
 
 /*
 bug144.go:8: left side of := must be a name

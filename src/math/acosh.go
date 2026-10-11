@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package math
-
-// The original C code, the long comment, and the constants
+package math // The original C code, the long comment, and the constants
 // below are from FreeBSD's /usr/src/lib/msun/src/e_acosh.c
 // and came with this notice. The go code is a simplified
 // version of the original C.
@@ -32,7 +30,6 @@ package math
 //	acosh(x) is NaN with signal if x<1.
 //	acosh(NaN) is NaN without signal.
 //
-
 // Acosh returns the inverse hyperbolic cosine of x.
 //
 // Special cases are:
@@ -40,26 +37,16 @@ package math
 //	Acosh(+Inf) = +Inf
 //	Acosh(x) = NaN if x < 1
 //	Acosh(NaN) = NaN
-func Acosh(x float64) float64 {
-	if haveArchAcosh {
-		return archAcosh(x)
-	}
-	return acosh(x)
-}
+func Acosh(x float64) float64 { if haveArchAcosh { return archAcosh(x) } return acosh(x) }
 
-func acosh(x float64) float64 {
-	const Large = 1 << 28 // 2**28
-	// first case is special case
-	switch {
-	case x < 1 || IsNaN(x):
-		return NaN()
-	case x == 1:
-		return 0
-	case x >= Large:
-		return Log(x) + Ln2 // x > 2**28
-	case x > 2:
-		return Log(2*x - 1/(x+Sqrt(x*x-1))) // 2**28 > x > 2
-	}
-	t := x - 1
-	return Log1p(t + Sqrt(2*t+t*t)) // 2 >= x > 1
+func acosh(x float64) float64
+{
+    const Large = 1 << 28 // 2**28
+    // first case is special case
+    switch 
+    {
+        case x < 1 || IsNaN(x): return NaN() case x == 1: return 0 case x >= Large: return Log(x) + Ln2 // x > 2**28
+        case x > 2: return Log(2 * x - 1 / (x + Sqrt(x * x - 1))) // 2**28 > x > 2
+    }
+    t: = x - 1 return Log1p(t + Sqrt(2 * t + t * t)) // 2 >= x > 1
 }

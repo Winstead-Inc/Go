@@ -1,3 +1,1 @@
-package a
-
-type W = map[int32]interface{}
+package a type W = map[int32] interface {}

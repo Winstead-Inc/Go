@@ -58,5 +58,4 @@ run through a simplified C preprocessor that implements #include,
 #define, #ifdef/endif, but not #if or ##.
 
 For more information, see https://golang.org/doc/asm.
-*/
-package main
+*/ package main

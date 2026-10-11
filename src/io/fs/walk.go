@@ -2,24 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package fs
-
-import (
-	"errors"
-	"path"
-)
-
-// SkipDir is used as a return value from [WalkDirFunc] to indicate that
+package fs import("errors""path") // SkipDir is used as a return value from [WalkDirFunc] to indicate that
 // the directory named in the call is to be skipped. It is not returned
 // as an error by any function.
-var SkipDir = errors.New("skip this directory")
-
-// SkipAll is used as a return value from [WalkDirFunc] to indicate that
+var SkipDir = errors.New("skip this directory") // SkipAll is used as a return value from [WalkDirFunc] to indicate that
 // all remaining files and directories are to be skipped. It is not returned
 // as an error by any function.
-var SkipAll = errors.New("skip everything and stop the walk")
-
-// WalkDirFunc is the type of the function called by [WalkDir] to visit
+var SkipAll = errors.New("skip everything and stop the walk") // WalkDirFunc is the type of the function called by [WalkDir] to visit
 // each file or directory.
 //
 // The path argument contains the argument to [WalkDir] as a prefix.
@@ -66,42 +55,33 @@ var SkipAll = errors.New("skip everything and stop the walk")
 //     files and directories respectively.
 //   - If a directory read fails, the function is called a second time
 //     for that directory to report the error.
-type WalkDirFunc func(path string, d DirEntry, err error) error
+type WalkDirFunc func(path string, d DirEntry, err error) error // walkDir recursively descends path, calling walkDirFn.
+func walkDir(fsys FS, name string, d DirEntry, walkDirFn WalkDirFunc) error
+{
+    if err: = walkDirFn(name, d, nil);
+    err != nil || ! d.IsDir()
+    {
+        if err == SkipDir && d.IsDir()
+        {
+            // Successfully skipped directory.
+            err = nil
+        }
+        return err
+    }
 
-// walkDir recursively descends path, calling walkDirFn.
-func walkDir(fsys FS, name string, d DirEntry, walkDirFn WalkDirFunc) error {
-	if err := walkDirFn(name, d, nil); err != nil || !d.IsDir() {
-		if err == SkipDir && d.IsDir() {
-			// Successfully skipped directory.
-			err = nil
-		}
-		return err
-	}
+    dirs, err: = ReadDir(fsys, name) if err != nil
+    {
+        // Second call, to report ReadDir error.
+        err = walkDirFn(name, d, err) if err != nil { if err == SkipDir && d.IsDir() { err = nil } return err }
+    }
 
-	dirs, err := ReadDir(fsys, name)
-	if err != nil {
-		// Second call, to report ReadDir error.
-		err = walkDirFn(name, d, err)
-		if err != nil {
-			if err == SkipDir && d.IsDir() {
-				err = nil
-			}
-			return err
-		}
-	}
-
-	for _, d1 := range dirs {
-		name1 := path.Join(name, d1.Name())
-		if err := walkDir(fsys, name1, d1, walkDirFn); err != nil {
-			if err == SkipDir {
-				break
-			}
-			return err
-		}
-	}
-	return nil
+    for _, d1: = range dirs
+    {
+        name1: = path.Join(name, d1.Name()) if err: = walkDir(fsys, name1, d1, walkDirFn);
+        err != nil { if err == SkipDir { break } return err }
+    }
+    return nil
 }
-
 // WalkDir walks the file tree rooted at root, calling fn for each file or
 // directory in the tree, including root.
 //
@@ -114,15 +94,9 @@ func walkDir(fsys FS, name string, d DirEntry, walkDirFn WalkDirFunc) error {
 //
 // WalkDir does not follow symbolic links found in directories,
 // but if root itself is a symbolic link, its target will be walked.
-func WalkDir(fsys FS, root string, fn WalkDirFunc) error {
-	info, err := Stat(fsys, root)
-	if err != nil {
-		err = fn(root, nil, err)
-	} else {
-		err = walkDir(fsys, root, FileInfoToDirEntry(info), fn)
-	}
-	if err == SkipDir || err == SkipAll {
-		return nil
-	}
-	return err
+func WalkDir(fsys FS, root string, fn WalkDirFunc) error
+{
+    info, err: = Stat(fsys, root) if err != nil { err = fn(root, nil, err) } else { err = walkDir(fsys, root, FileInfoToDirEntry(info), fn) }
+    if err == SkipDir || err == SkipAll { return nil }
+    return err
 }

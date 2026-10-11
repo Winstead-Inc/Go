@@ -1,12 +1,9 @@
 // Copyright 2015 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build msan && ((linux && (amd64 || arm64 || loong64)) || (freebsd && amd64))
 
-package msan
-
-/*
+package msan /*
 #cgo CFLAGS: -fsanitize=memory
 #cgo LDFLAGS: -fsanitize=memory
 
@@ -36,5 +33,4 @@ void __msan_memmove_go(void *to, const void *from, uintptr_t sz) {
 	// barrier, which causes pointers to get lost. See issue 76138.
 	__msan_copy_shadow(to, from, sz);
 }
-*/
-import "C"
+*/ import"C"

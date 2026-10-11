@@ -2,8 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-func _(s uint) {
-	_ = min(1 << s)
-}
+package p func _(s uint) { _ = min(1 << s) }

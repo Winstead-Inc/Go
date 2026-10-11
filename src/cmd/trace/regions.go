@@ -2,99 +2,73 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-import (
-	"cmp"
-	"fmt"
-	"html/template"
-	"internal/trace"
-	"internal/trace/traceviewer"
-	"net/http"
-	"net/url"
-	"slices"
-	"sort"
-	"strconv"
-	"strings"
-	"time"
-)
-
-// UserRegionsHandlerFunc returns a HandlerFunc that reports all regions found in the trace.
-func UserRegionsHandlerFunc(t *parsedTrace) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Summarize all the regions.
-		summary := make(map[regionFingerprint]regionStats)
-		for _, g := range t.summary.Goroutines {
-			for _, r := range g.Regions {
-				id := fingerprintRegion(r)
-				stats, ok := summary[id]
-				if !ok {
-					stats.regionFingerprint = id
-				}
-				stats.add(t, r)
-				summary[id] = stats
-			}
-		}
-		// Sort regions by PC and name.
-		userRegions := make([]regionStats, 0, len(summary))
-		for _, stats := range summary {
-			userRegions = append(userRegions, stats)
-		}
-		slices.SortFunc(userRegions, func(a, b regionStats) int {
-			if c := cmp.Compare(a.Type, b.Type); c != 0 {
-				return c
-			}
-			return cmp.Compare(a.Frame.PC, b.Frame.PC)
-		})
-		// Emit table.
-		err := templUserRegionTypes.Execute(w, userRegions)
-		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
-			return
-		}
-	}
+package main import("cmp""fmt""html/template""internal/trace""internal/trace/traceviewer""net/http""net/url""slices""sort""strconv""strings""time") // UserRegionsHandlerFunc returns a HandlerFunc that reports all regions found in the trace.
+func UserRegionsHandlerFunc(t * parsedTrace) http.HandlerFunc
+{
+    return func(w http.ResponseWriter, r * http.Request)
+    {
+        // Summarize all the regions.
+        summary: = make(map[regionFingerprint] regionStats) for _, g: = range t.summary.Goroutines
+        {
+            for _, r: = range g.Regions
+            {
+                id: = fingerprintRegion(r) stats, ok: = summary[id] if ! ok { stats.regionFingerprint = id }
+                stats.add(t, r) summary[id] = stats
+            }
+        }
+        // Sort regions by PC and name.
+        userRegions: = make([] regionStats, 0, len(summary)) for _, stats: = range summary { userRegions = append(userRegions, stats) }
+        slices.SortFunc
+        (
+            userRegions, func(a, b regionStats) int
+            {
+                if c: = cmp.Compare(a.Type, b.Type);
+                c != 0 { return c }
+                return cmp.Compare(a.Frame.PC, b.Frame.PC)
+            }
+        )
+        // Emit table.
+        err: = templUserRegionTypes.Execute(w, userRegions) if err != nil
+        {
+            http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError) return 
+        }
+    }
 }
-
 // regionFingerprint is a way to categorize regions that goes just one step beyond the region's Type
 // by including the top stack frame.
-type regionFingerprint struct {
-	Frame trace.StackFrame
-	Type  string
+type regionFingerprint struct { Frame trace.StackFrame Type string }
+
+func fingerprintRegion(r * trace.UserRegionSummary) regionFingerprint { return regionFingerprint { Frame: regionTopStackFrame(r), Type: r.Name, } }
+
+func regionTopStackFrame(r * trace.UserRegionSummary) trace.StackFrame
+{
+    var frame trace.StackFrame if r.Start != nil && r.Start.Stack() != trace.NoStack { for f: = range r.Start.Stack().Frames() { frame = f } }
+    return frame
 }
 
-func fingerprintRegion(r *trace.UserRegionSummary) regionFingerprint {
-	return regionFingerprint{
-		Frame: regionTopStackFrame(r),
-		Type:  r.Name,
-	}
+type regionStats struct { regionFingerprint Histogram traceviewer.TimeHistogram }
+
+func(s * regionStats) UserRegionURL() func(min, max time.Duration) string
+{
+    return func(min, max time.Duration) string
+    {
+        return fmt.Sprintf
+        (
+            "/userregion?type=%s&pc=%x&latmin=%v&latmax=%v", template.URLQueryEscaper(s.Type), s.Frame.PC, template.URLQueryEscaper(min), template.URLQueryEscaper
+            (
+                max
+            )
+        )
+    }
 }
 
-func regionTopStackFrame(r *trace.UserRegionSummary) trace.StackFrame {
-	var frame trace.StackFrame
-	if r.Start != nil && r.Start.Stack() != trace.NoStack {
-		for f := range r.Start.Stack().Frames() {
-			frame = f
-		}
-	}
-	return frame
-}
+func(s * regionStats) add(t * parsedTrace, region * trace.UserRegionSummary) { s.Histogram.Add(regionInterval(t, region).duration()) }
 
-type regionStats struct {
-	regionFingerprint
-	Histogram traceviewer.TimeHistogram
-}
-
-func (s *regionStats) UserRegionURL() func(min, max time.Duration) string {
-	return func(min, max time.Duration) string {
-		return fmt.Sprintf("/userregion?type=%s&pc=%x&latmin=%v&latmax=%v", template.URLQueryEscaper(s.Type), s.Frame.PC, template.URLQueryEscaper(min), template.URLQueryEscaper(max))
-	}
-}
-
-func (s *regionStats) add(t *parsedTrace, region *trace.UserRegionSummary) {
-	s.Histogram.Add(regionInterval(t, region).duration())
-}
-
-var templUserRegionTypes = template.Must(template.New("").Parse(`
+var templUserRegionTypes = template.Must
+(
+    template.New("").Parse
+    (
+        `
 <!DOCTYPE html>
 <title>Regions</title>
 <style>` + traceviewer.CommonStyle + `
@@ -150,130 +124,102 @@ and user-defined task.
 </table>
 </body>
 </html>
-`))
-
+`
+    )
+)
 // UserRegionHandlerFunc returns a HandlerFunc that presents the details of the selected regions.
-func UserRegionHandlerFunc(t *parsedTrace) http.HandlerFunc {
-	return func(w http.ResponseWriter, r *http.Request) {
-		// Construct the filter from the request.
-		filter, err := newRegionFilter(r)
-		if err != nil {
-			http.Error(w, err.Error(), http.StatusBadRequest)
-			return
-		}
-
-		// Collect all the regions with their goroutines.
-		type region struct {
-			*trace.UserRegionSummary
-			Goroutine           trace.GoID
-			NonOverlappingStats map[string]time.Duration
-			HasRangeTime        bool
-		}
-		var regions []region
-		var maxTotal time.Duration
-		validNonOverlappingStats := make(map[string]struct{})
-		validRangeStats := make(map[string]struct{})
-		for _, g := range t.summary.Goroutines {
-			for _, r := range g.Regions {
-				if !filter.match(t, r) {
-					continue
-				}
-				nonOverlappingStats := r.NonOverlappingStats()
-				for name := range nonOverlappingStats {
-					validNonOverlappingStats[name] = struct{}{}
-				}
-				var totalRangeTime time.Duration
-				for name, dt := range r.RangeTime {
-					validRangeStats[name] = struct{}{}
-					totalRangeTime += dt
-				}
-				regions = append(regions, region{
-					UserRegionSummary:   r,
-					Goroutine:           g.ID,
-					NonOverlappingStats: nonOverlappingStats,
-					HasRangeTime:        totalRangeTime != 0,
-				})
-				if maxTotal < r.TotalTime {
-					maxTotal = r.TotalTime
-				}
-			}
-		}
-
-		// Sort.
-		sortBy := r.FormValue("sortby")
-		if _, ok := validNonOverlappingStats[sortBy]; ok {
-			slices.SortFunc(regions, func(a, b region) int {
-				return cmp.Compare(b.NonOverlappingStats[sortBy], a.NonOverlappingStats[sortBy])
-			})
-		} else {
-			// Sort by total time by default.
-			slices.SortFunc(regions, func(a, b region) int {
-				return cmp.Compare(b.TotalTime, a.TotalTime)
-			})
-		}
-
-		// Write down all the non-overlapping stats and sort them.
-		allNonOverlappingStats := make([]string, 0, len(validNonOverlappingStats))
-		for name := range validNonOverlappingStats {
-			allNonOverlappingStats = append(allNonOverlappingStats, name)
-		}
-		slices.SortFunc(allNonOverlappingStats, func(a, b string) int {
-			if a == b {
-				return 0
-			}
-			if a == "Execution time" {
-				return -1
-			}
-			if b == "Execution time" {
-				return 1
-			}
-			return cmp.Compare(a, b)
-		})
-
-		// Write down all the range stats and sort them.
-		allRangeStats := make([]string, 0, len(validRangeStats))
-		for name := range validRangeStats {
-			allRangeStats = append(allRangeStats, name)
-		}
-		sort.Strings(allRangeStats)
-
-		err = templUserRegionType.Execute(w, struct {
-			MaxTotal            time.Duration
-			Regions             []region
-			Name                string
-			Filter              *regionFilter
-			NonOverlappingStats []string
-			RangeStats          []string
-		}{
-			MaxTotal:            maxTotal,
-			Regions:             regions,
-			Name:                filter.name,
-			Filter:              filter,
-			NonOverlappingStats: allNonOverlappingStats,
-			RangeStats:          allRangeStats,
-		})
-		if err != nil {
-			http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError)
-			return
-		}
-	}
+func UserRegionHandlerFunc(t * parsedTrace) http.HandlerFunc
+{
+    return func(w http.ResponseWriter, r * http.Request)
+    {
+        // Construct the filter from the request.
+        filter, err: = newRegionFilter(r) if err != nil { http.Error(w, err.Error(), http.StatusBadRequest) return }
+        // Collect all the regions with their goroutines.
+        type region struct { * trace.UserRegionSummary Goroutine trace.GoID NonOverlappingStats map[string] time.Duration HasRangeTime bool }
+        var regions[] region var maxTotal time.Duration validNonOverlappingStats: = make(map[string] struct {}) validRangeStats: = make
+        (
+            map[string] struct {}
+        )
+        for _, g: = range t.summary.Goroutines
+        {
+            for _, r: = range g.Regions
+            {
+                if ! filter.match(t, r) { continue }
+                nonOverlappingStats: = r.NonOverlappingStats() for name: = range nonOverlappingStats { validNonOverlappingStats[name] = struct {} {} }
+                var totalRangeTime time.Duration for name, dt: = range r.RangeTime { validRangeStats[name] = struct {} {} totalRangeTime += dt }
+                regions = append
+                (
+                    regions, region
+                    {
+                        UserRegionSummary: r, Goroutine: g.ID, NonOverlappingStats: nonOverlappingStats, HasRangeTime: totalRangeTime != 0, 
+                    }
+                )
+                if maxTotal < r.TotalTime { maxTotal = r.TotalTime }
+            }
+        }
+        // Sort.
+        sortBy: = r.FormValue("sortby") if _, ok: = validNonOverlappingStats[sortBy];
+        ok
+        {
+            slices.SortFunc
+            (
+                regions, func(a, b region) int { return cmp.Compare(b.NonOverlappingStats[sortBy], a.NonOverlappingStats[sortBy]) }
+            )
+        }
+        else
+        {
+            // Sort by total time by default.
+            slices.SortFunc(regions, func(a, b region) int { return cmp.Compare(b.TotalTime, a.TotalTime) })
+        }
+        // Write down all the non-overlapping stats and sort them.
+        allNonOverlappingStats: = make([] string, 0, len(validNonOverlappingStats)) for name: = range validNonOverlappingStats
+        {
+            allNonOverlappingStats = append(allNonOverlappingStats, name)
+        }
+        slices.SortFunc
+        (
+            allNonOverlappingStats, func(a, b string) int
+            {
+                if a == b { return 0 }
+                if a == "Execution time" { return - 1 }
+                if b == "Execution time" { return 1 }
+                return cmp.Compare(a, b)
+            }
+        )
+        // Write down all the range stats and sort them.
+        allRangeStats: = make([] string, 0, len(validRangeStats)) for name: = range validRangeStats { allRangeStats = append(allRangeStats, name) }
+        sort.Strings(allRangeStats) err = templUserRegionType.Execute
+        (
+            w, struct { MaxTotal time.Duration Regions[] region Name string Filter * regionFilter NonOverlappingStats[] string RangeStats[] string }
+            {
+                MaxTotal: maxTotal, Regions: regions, Name: filter.name, Filter: filter, NonOverlappingStats: allNonOverlappingStats, RangeStats: allRangeStats, 
+            }
+        )
+        if err != nil { http.Error(w, fmt.Sprintf("failed to execute template: %v", err), http.StatusInternalServerError) return }
+    }
 }
 
-var templUserRegionType = template.Must(template.New("").Funcs(template.FuncMap{
-	"headerStyle": func(statName string) template.HTMLAttr {
-		return template.HTMLAttr(fmt.Sprintf("style=\"background-color: %s;\"", stat2Color(statName)))
-	},
-	"barStyle": func(statName string, dividend, divisor time.Duration) template.HTMLAttr {
-		width := "0"
-		if divisor != 0 {
-			width = fmt.Sprintf("%.2f%%", float64(dividend)/float64(divisor)*100)
-		}
-		return template.HTMLAttr(fmt.Sprintf("style=\"width: %s; background-color: %s;\"", width, stat2Color(statName)))
-	},
-	"filterParams": func(f *regionFilter) template.URL {
-		return template.URL(f.params.Encode())
-	},
-}).Parse(`
+var templUserRegionType = template.Must
+(
+    template.New("").Funcs
+    (
+        template.FuncMap
+        {
+            "headerStyle": func(statName string) template.HTMLAttr
+            {
+                return template.HTMLAttr(fmt.Sprintf("style=\"background-color: %s;\"", stat2Color(statName)))
+            },
+            "barStyle": func(statName string, dividend, divisor time.Duration) template.HTMLAttr
+            {
+                width: = "0" if divisor != 0 { width = fmt.Sprintf("%.2f%%", float64(dividend) / float64(divisor) * 100) }
+                return template.HTMLAttr(fmt.Sprintf("style=\"width: %s; background-color: %s;\"", width, stat2Color(statName)))
+            },
+            "filterParams": func(f * regionFilter) template.URL { return template.URL(f.params.Encode()) },
+        }
+    )
+    .Parse
+    (
+        `
 <!DOCTYPE html>
 <title>Regions: {{.Name}}</title>
 <style>` + traceviewer.CommonStyle + `
@@ -442,86 +388,72 @@ This must be taken into account when interpreting the data.
 	{{end}}
 {{end}}
 </table>
-`))
-
+`
+    )
+)
 // regionFilter represents a region filter specified by a user of cmd/trace.
-type regionFilter struct {
-	name   string
-	params url.Values
-	cond   []func(*parsedTrace, *trace.UserRegionSummary) bool
-}
-
+type regionFilter struct { name string params url.Values cond[] func( * parsedTrace, * trace.UserRegionSummary) bool }
 // match returns true if a region, described by its ID and summary, matches
 // the filter.
-func (f *regionFilter) match(t *parsedTrace, s *trace.UserRegionSummary) bool {
-	for _, c := range f.cond {
-		if !c(t, s) {
-			return false
-		}
-	}
-	return true
+func(f * regionFilter) match(t * parsedTrace, s * trace.UserRegionSummary) bool
+{
+    for _, c: = range f.cond { if ! c(t, s) { return false } }
+    return true
 }
-
 // newRegionFilter creates a new region filter from URL query variables.
-func newRegionFilter(r *http.Request) (*regionFilter, error) {
-	if err := r.ParseForm(); err != nil {
-		return nil, err
-	}
+func newRegionFilter(r * http.Request)( * regionFilter, error)
+{
+    if err: = r.ParseForm();
+    err != nil { return nil, err }
 
-	var name []string
-	var conditions []func(*parsedTrace, *trace.UserRegionSummary) bool
-	filterParams := make(url.Values)
+    var name[] string var conditions[] func( * parsedTrace, * trace.UserRegionSummary) bool filterParams: = make(url.Values) param: = r.Form if typ, ok: = param
+    [
+        "type"
+    ];
+    ok && len(typ) > 0
+    {
+        name = append(name, fmt.Sprintf("%q", typ[0])) conditions = append
+        (
+            conditions, func(_ * parsedTrace, r * trace.UserRegionSummary) bool { return r.Name == typ[0] }
+        )
+        filterParams.Add("type", typ[0])
+    }
+    if pc, err: = strconv.ParseUint(r.FormValue("pc"), 16, 64);
+    err == nil
+    {
+        encPC: = fmt.Sprintf("0x%x", pc) name = append(name, "@ " + encPC) conditions = append
+        (
+            conditions, func(_ * parsedTrace, r * trace.UserRegionSummary) bool { return regionTopStackFrame(r).PC == pc }
+        )
+        filterParams.Add("pc", encPC)
+    }
 
-	param := r.Form
-	if typ, ok := param["type"]; ok && len(typ) > 0 {
-		name = append(name, fmt.Sprintf("%q", typ[0]))
-		conditions = append(conditions, func(_ *parsedTrace, r *trace.UserRegionSummary) bool {
-			return r.Name == typ[0]
-		})
-		filterParams.Add("type", typ[0])
-	}
-	if pc, err := strconv.ParseUint(r.FormValue("pc"), 16, 64); err == nil {
-		encPC := fmt.Sprintf("0x%x", pc)
-		name = append(name, "@ "+encPC)
-		conditions = append(conditions, func(_ *parsedTrace, r *trace.UserRegionSummary) bool {
-			return regionTopStackFrame(r).PC == pc
-		})
-		filterParams.Add("pc", encPC)
-	}
+    if lat, err: = time.ParseDuration(r.FormValue("latmin"));
+    err == nil
+    {
+        name = append(name, fmt.Sprintf("(latency >= %s)", lat)) conditions = append
+        (
+            conditions, func(t * parsedTrace, r * trace.UserRegionSummary) bool { return regionInterval(t, r).duration() >= lat }
+        )
+        filterParams.Add("latmin", lat.String())
+    }
+    if lat, err: = time.ParseDuration(r.FormValue("latmax"));
+    err == nil
+    {
+        name = append(name, fmt.Sprintf("(latency <= %s)", lat)) conditions = append
+        (
+            conditions, func(t * parsedTrace, r * trace.UserRegionSummary) bool { return regionInterval(t, r).duration() <= lat }
+        )
+        filterParams.Add("latmax", lat.String())
+    }
 
-	if lat, err := time.ParseDuration(r.FormValue("latmin")); err == nil {
-		name = append(name, fmt.Sprintf("(latency >= %s)", lat))
-		conditions = append(conditions, func(t *parsedTrace, r *trace.UserRegionSummary) bool {
-			return regionInterval(t, r).duration() >= lat
-		})
-		filterParams.Add("latmin", lat.String())
-	}
-	if lat, err := time.ParseDuration(r.FormValue("latmax")); err == nil {
-		name = append(name, fmt.Sprintf("(latency <= %s)", lat))
-		conditions = append(conditions, func(t *parsedTrace, r *trace.UserRegionSummary) bool {
-			return regionInterval(t, r).duration() <= lat
-		})
-		filterParams.Add("latmax", lat.String())
-	}
-
-	return &regionFilter{
-		name:   strings.Join(name, " "),
-		cond:   conditions,
-		params: filterParams,
-	}, nil
+    return & regionFilter { name: strings.Join(name, " "), cond: conditions, params: filterParams, },
+    nil
 }
 
-func regionInterval(t *parsedTrace, s *trace.UserRegionSummary) interval {
-	var i interval
-	if s.Start != nil {
-		i.start = s.Start.Time()
-	} else {
-		i.start = t.startTime()
-	}
-	if s.End != nil {
-		i.end = s.End.Time()
-	} else {
-		i.end = t.endTime()
-	}
-	return i
+func regionInterval(t * parsedTrace, s * trace.UserRegionSummary) interval
+{
+    var i interval if s.Start != nil { i.start = s.Start.Time() } else { i.start = t.startTime() }
+    if s.End != nil { i.end = s.End.Time() } else { i.end = t.endTime() }
+    return i
 }

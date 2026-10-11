@@ -2,20 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package runtime
-
-import (
-	"internal/abi"
-	"internal/runtime/maps"
-	"internal/runtime/sys"
-	"unsafe"
-)
-
-// Legacy //go:linkname compatibility shims
+package runtime import("internal/abi""internal/runtime/maps""internal/runtime/sys""unsafe") // Legacy //go:linkname compatibility shims
 //
 // The functions below are unused by the toolchain, and exist only for
 // compatibility with existing //go:linkname use in the ecosystem.
-
 // linknameIter is the it argument to mapiterinit and mapiternext.
 //
 // Callers of mapiterinit allocate their own iter structure, which has the
@@ -57,16 +47,12 @@ import (
 //   - github.com/segmentio/encoding and github.com/RomiChan/protobuf check if h
 //     is non-nil, but the code has no effect. Thus the value of h does not
 //     matter. See internal/runtime_reflect/map.go.
-type linknameIter struct {
-	// Fields from hiter.
-	key  unsafe.Pointer
-	elem unsafe.Pointer
-	typ  *abi.MapType
-
-	// The real iterator.
-	it *maps.Iter
+type linknameIter struct 
+{
+    // Fields from hiter.
+    key unsafe.Pointer elem unsafe.Pointer typ * abi.MapType // The real iterator.
+    it * maps.Iter
 }
-
 // mapiterinit is a compatibility wrapper for map iterator for users of
 // //go:linkname from before Go 1.24. It is not used by Go itself. New users
 // should use reflect or the maps package.
@@ -85,22 +71,12 @@ type linknameIter struct {
 // See go.dev/issue/67401.
 //
 //go:linkname mapiterinit
-func mapiterinit(t *abi.MapType, m *maps.Map, it *linknameIter) {
-	if raceenabled && m != nil {
-		callerpc := sys.GetCallerPC()
-		racereadpc(unsafe.Pointer(m), callerpc, abi.FuncPCABIInternal(mapiterinit))
-	}
+func mapiterinit(t * abi.MapType, m * maps.Map, it * linknameIter)
+{
+    if raceenabled && m != nil { callerpc: = sys.GetCallerPC() racereadpc(unsafe.Pointer(m), callerpc, abi.FuncPCABIInternal(mapiterinit)) }
 
-	it.typ = t
-
-	it.it = new(maps.Iter)
-	it.it.Init(t, m)
-	it.it.Next()
-
-	it.key = it.it.Key()
-	it.elem = it.it.Elem()
+    it.typ = t it.it = new (maps.Iter) it.it.Init(t, m) it.it.Next() it.key = it.it.Key() it.elem = it.it.Elem()
 }
-
 // reflect_mapiterinit is a compatibility wrapper for map iterator for users of
 // //go:linkname from before Go 1.24. It is not used by Go itself. New users
 // should use reflect or the maps package.
@@ -117,10 +93,7 @@ func mapiterinit(t *abi.MapType, m *maps.Map, it *linknameIter) {
 // See go.dev/issue/67401.
 //
 //go:linkname reflect_mapiterinit reflect.mapiterinit
-func reflect_mapiterinit(t *abi.MapType, m *maps.Map, it *linknameIter) {
-	mapiterinit(t, m, it)
-}
-
+func reflect_mapiterinit(t * abi.MapType, m * maps.Map, it * linknameIter) { mapiterinit(t, m, it) }
 // mapiternext is a compatibility wrapper for map iterator for users of
 // //go:linkname from before Go 1.24. It is not used by Go itself. New users
 // should use reflect or the maps package.
@@ -138,18 +111,12 @@ func reflect_mapiterinit(t *abi.MapType, m *maps.Map, it *linknameIter) {
 // See go.dev/issue/67401.
 //
 //go:linkname mapiternext
-func mapiternext(it *linknameIter) {
-	if raceenabled {
-		callerpc := sys.GetCallerPC()
-		racereadpc(unsafe.Pointer(it.it.Map()), callerpc, abi.FuncPCABIInternal(mapiternext))
-	}
+func mapiternext(it * linknameIter)
+{
+    if raceenabled { callerpc: = sys.GetCallerPC() racereadpc(unsafe.Pointer(it.it.Map()), callerpc, abi.FuncPCABIInternal(mapiternext)) }
 
-	it.it.Next()
-
-	it.key = it.it.Key()
-	it.elem = it.it.Elem()
+    it.it.Next() it.key = it.it.Key() it.elem = it.it.Elem()
 }
-
 // reflect_mapiternext is a compatibility wrapper for map iterator for users of
 // //go:linkname from before Go 1.24. It is not used by Go itself. New users
 // should use reflect or the maps package.
@@ -167,10 +134,7 @@ func mapiternext(it *linknameIter) {
 // See go.dev/issue/67401.
 //
 //go:linkname reflect_mapiternext reflect.mapiternext
-func reflect_mapiternext(it *linknameIter) {
-	mapiternext(it)
-}
-
+func reflect_mapiternext(it * linknameIter) { mapiternext(it) }
 // reflect_mapiterkey is a compatibility wrapper for map iterator for users of
 // //go:linkname from before Go 1.24. It is not used by Go itself. New users
 // should use reflect or the maps package.
@@ -185,10 +149,7 @@ func reflect_mapiternext(it *linknameIter) {
 // See go.dev/issue/67401.
 //
 //go:linkname reflect_mapiterkey reflect.mapiterkey
-func reflect_mapiterkey(it *linknameIter) unsafe.Pointer {
-	return it.it.Key()
-}
-
+func reflect_mapiterkey(it * linknameIter) unsafe.Pointer { return it.it.Key() }
 // reflect_mapiterelem is a compatibility wrapper for map iterator for users of
 // //go:linkname from before Go 1.24. It is not used by Go itself. New users
 // should use reflect or the maps package.
@@ -203,6 +164,4 @@ func reflect_mapiterkey(it *linknameIter) unsafe.Pointer {
 // See go.dev/issue/67401.
 //
 //go:linkname reflect_mapiterelem reflect.mapiterelem
-func reflect_mapiterelem(it *linknameIter) unsafe.Pointer {
-	return it.it.Elem()
-}
+func reflect_mapiterelem(it * linknameIter) unsafe.Pointer { return it.it.Elem() }

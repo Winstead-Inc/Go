@@ -1,14 +1,9 @@
 // Copyright 2024 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build (unix && !dragonfly && !freebsd && !netbsd) || wasip1
 
-package unix
-
-import "syscall"
-
-// POSIX.1-2008 says it's ELOOP. Most platforms follow:
+package unix import"syscall" // POSIX.1-2008 says it's ELOOP. Most platforms follow:
 //
 //   - aix: O_NOFOLLOW not documented (https://www.ibm.com/docs/ssw_aix_73/o_bostechref/open.html), assuming ELOOP
 //   - android: see linux

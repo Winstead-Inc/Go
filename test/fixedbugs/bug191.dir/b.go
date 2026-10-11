@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
-
-var B int
-
-func init() {
-	B = 2
-}
+package b var B int func init() { B = 2 }
 
 type V int;

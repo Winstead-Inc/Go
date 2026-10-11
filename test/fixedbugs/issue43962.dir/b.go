@@ -2,6 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
-
-import "./a" // ERROR "cannot import package as init"
+package b import"./a" // ERROR "cannot import package as init"

@@ -1,7 +1,6 @@
 // Copyright 2023 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Preprofile creates an intermediate representation of a pprof profile for use
 // during PGO in the compiler. This transformation depends only on the profile
 // itself and is thus wasteful to perform in every invocation of the compiler.
@@ -9,79 +8,37 @@
 // Usage:
 //
 //	go tool preprofile [-V] [-o output] -i input
-package main
-
-import (
-	"bufio"
-	"cmd/internal/objabi"
-	"cmd/internal/pgo"
-	"cmd/internal/telemetry/counter"
-	"flag"
-	"fmt"
-	"log"
-	"os"
-)
-
-func usage() {
-	fmt.Fprintf(os.Stderr, "usage: go tool preprofile [-V] [-o output] -i input\n\n")
-	flag.PrintDefaults()
-	os.Exit(2)
+package main import("bufio""cmd/internal/objabi""cmd/internal/pgo""cmd/internal/telemetry/counter""flag""fmt""log""os") func usage()
+{
+    fmt.Fprintf(os.Stderr, "usage: go tool preprofile [-V] [-o output] -i input\n\n") flag.PrintDefaults() os.Exit(2)
 }
 
-var (
-	output = flag.String("o", "", "output file path")
-	input  = flag.String("i", "", "input pprof file path")
+var(output = flag.String("o", "", "output file path") input = flag.String("i", "", "input pprof file path")) func preprocess
+(
+    profileFile string, outputFile string
 )
+error
+{
+    f, err: = os.Open(profileFile) if err != nil { return fmt.Errorf("error opening profile: %w", err) }
+    defer f.Close() r: = bufio.NewReader(f) d, err: = pgo.FromPProf(r) if err != nil { return fmt.Errorf("error parsing profile: %w", err) }
 
-func preprocess(profileFile string, outputFile string) error {
-	f, err := os.Open(profileFile)
-	if err != nil {
-		return fmt.Errorf("error opening profile: %w", err)
-	}
-	defer f.Close()
+    var out * os.File if outputFile == "" { out = os.Stdout }
+    else { out, err = os.Create(outputFile) if err != nil { return fmt.Errorf("error creating output file: %w", err) } defer out.Close() }
 
-	r := bufio.NewReader(f)
-	d, err := pgo.FromPProf(r)
-	if err != nil {
-		return fmt.Errorf("error parsing profile: %w", err)
-	}
+    w: = bufio.NewWriter(out) if _, err: = d.WriteTo(w);
+    err != nil { return fmt.Errorf("error writing output file: %w", err) }
 
-	var out *os.File
-	if outputFile == "" {
-		out = os.Stdout
-	} else {
-		out, err = os.Create(outputFile)
-		if err != nil {
-			return fmt.Errorf("error creating output file: %w", err)
-		}
-		defer out.Close()
-	}
-
-	w := bufio.NewWriter(out)
-	if _, err := d.WriteTo(w); err != nil {
-		return fmt.Errorf("error writing output file: %w", err)
-	}
-
-	return nil
+    return nil
 }
 
-func main() {
-	objabi.AddVersionFlag()
+func main()
+{
+    objabi.AddVersionFlag() log.SetFlags(0) log.SetPrefix("preprofile: ") counter.Open() flag.Usage = usage flag.Parse() counter.Inc("preprofile/invocations") counter.CountFlags
+    (
+        "preprofile/flag:", * flag.CommandLine
+    )
+    if * input == "" { log.Print("Input pprof path required (-i)") usage() }
 
-	log.SetFlags(0)
-	log.SetPrefix("preprofile: ")
-	counter.Open()
-
-	flag.Usage = usage
-	flag.Parse()
-	counter.Inc("preprofile/invocations")
-	counter.CountFlags("preprofile/flag:", *flag.CommandLine)
-	if *input == "" {
-		log.Print("Input pprof path required (-i)")
-		usage()
-	}
-
-	if err := preprocess(*input, *output); err != nil {
-		log.Fatal(err)
-	}
+    if err: = preprocess( * input, * output);
+    err != nil { log.Fatal(err) }
 }

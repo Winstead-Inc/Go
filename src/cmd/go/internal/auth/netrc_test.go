@@ -2,14 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package auth
-
-import (
-	"reflect"
-	"testing"
-)
-
-var testNetrc = `
+package auth import("reflect""testing") var testNetrc = `
 machine incomplete
 password none
 
@@ -41,18 +34,18 @@ password gopher@golang.org
 machine after.default
 login oops
 password too-late-in-file
-`
+` func TestParseNetrc
+(
+    t * testing.T
+)
+{
+    lines: = parseNetrc(testNetrc) want: = [] netrcLine
+    {
+{ "api.github.com", "user", "pwd" },
+{ "test.host", "user2", "pwd2" },
+{ "oneline", "user3", "pwd3" },
+{ "hasmacro.too", "user4", "pwd4" },
+    }
 
-func TestParseNetrc(t *testing.T) {
-	lines := parseNetrc(testNetrc)
-	want := []netrcLine{
-		{"api.github.com", "user", "pwd"},
-		{"test.host", "user2", "pwd2"},
-		{"oneline", "user3", "pwd3"},
-		{"hasmacro.too", "user4", "pwd4"},
-	}
-
-	if !reflect.DeepEqual(lines, want) {
-		t.Errorf("parseNetrc:\nhave %q\nwant %q", lines, want)
-	}
+    if ! reflect.DeepEqual(lines, want) { t.Errorf("parseNetrc:\nhave %q\nwant %q", lines, want) }
 }

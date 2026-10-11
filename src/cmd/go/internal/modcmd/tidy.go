@@ -1,28 +1,16 @@
 // Copyright 2018 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // go mod tidy
 
-package modcmd
-
-import (
-	"cmd/go/internal/base"
-	"cmd/go/internal/cfg"
-	"cmd/go/internal/gover"
-	"cmd/go/internal/imports"
-	"cmd/go/internal/modload"
-	"cmd/go/internal/toolchain"
-	"context"
-	"fmt"
-
-	"golang.org/x/mod/modfile"
+package modcmd import
+(
+    "cmd/go/internal/base""cmd/go/internal/cfg""cmd/go/internal/gover""cmd/go/internal/imports""cmd/go/internal/modload""cmd/go/internal/toolchain""context""fmt""golang.org/x/mod/modfile"
 )
 
-var cmdTidy = &base.Command{
-	UsageLine: "go mod tidy [-e] [-v] [-x] [-diff] [-go=version] [-compat=version]",
-	Short:     "add missing and remove unused modules",
-	Long: `
+var cmdTidy = & base.Command
+{
+    UsageLine: "go mod tidy [-e] [-v] [-x] [-diff] [-go=version] [-compat=version]", Short: "add missing and remove unused modules", Long: `
 Tidy makes sure go.mod matches the source code in the module.
 It adds any missing modules necessary to build the current module's
 packages and dependencies, and it removes unused modules that
@@ -56,92 +44,81 @@ file.
 The -x flag causes tidy to print the commands download executes.
 
 See https://go.dev/ref/mod#go-mod-tidy for more about 'go mod tidy'.
-	`,
-	Run: runTidy,
+	`, Run: runTidy, 
 }
 
-var (
-	tidyE      bool          // if true, report errors but proceed anyway.
-	tidyDiff   bool          // if true, do not update go.mod or go.sum and show changes. Return corresponding exit code.
-	tidyGo     goVersionFlag // go version to write to the tidied go.mod file (toggles lazy loading)
-	tidyCompat goVersionFlag // go version for which the tidied go.mod and go.sum files should be “compatible”
+var
+(
+    tidyE bool // if true, report errors but proceed anyway.
+    tidyDiff bool // if true, do not update go.mod or go.sum and show changes. Return corresponding exit code.
+    tidyGo goVersionFlag // go version to write to the tidied go.mod file (toggles lazy loading)
+    tidyCompat goVersionFlag // go version for which the tidied go.mod and go.sum files should be “compatible”
 )
 
-func init() {
-	cmdTidy.Flag.BoolVar(&cfg.BuildV, "v", false, "print the names of packages as they are processed")
-	cmdTidy.Flag.BoolVar(&cfg.BuildX, "x", false, "print the commands")
-	cmdTidy.Flag.BoolVar(&tidyE, "e", false, "report errors but proceed anyway")
-	cmdTidy.Flag.BoolVar(&tidyDiff, "diff", false, "display the diff of the edits that would be mad")
-	cmdTidy.Flag.Var(&tidyGo, "go", "set the expected Go language `version`")
-	cmdTidy.Flag.Var(&tidyCompat, "compat", "set the Go `version` for which the tidied go.mod and go.sum files should be compatible")
-	base.AddChdirFlag(&cmdTidy.Flag)
-	base.AddModCommonFlags(&cmdTidy.Flag)
+func init()
+{
+    cmdTidy.Flag.BoolVar( & cfg.BuildV, "v", false, "print the names of packages as they are processed") cmdTidy.Flag.BoolVar
+    (
+        & cfg.BuildX, "x", false, "print the commands"
+    )
+    cmdTidy.Flag.BoolVar( & tidyE, "e", false, "report errors but proceed anyway") cmdTidy.Flag.BoolVar
+    (
+        & tidyDiff, "diff", false, "display the diff of the edits that would be mad"
+    )
+    cmdTidy.Flag.Var( & tidyGo, "go", "set the expected Go language `version`") cmdTidy.Flag.Var
+    (
+        & tidyCompat, "compat", "set the Go `version` for which the tidied go.mod and go.sum files should be compatible"
+    )
+    base.AddChdirFlag( & cmdTidy.Flag) base.AddModCommonFlags( & cmdTidy.Flag)
 }
-
 // A goVersionFlag is a flag.Value representing a supported Go version.
 //
 // (Note that the -go argument to 'go mod edit' is *not* a goVersionFlag.
 // It intentionally allows newer-than-supported versions as arguments.)
-type goVersionFlag struct {
-	v string
+type goVersionFlag struct { v string }
+
+func(f * goVersionFlag) String() string { return f.v }
+func(f * goVersionFlag) Get() any { return f.v }
+
+func(f * goVersionFlag) Set(s string) error
+{
+    if s != ""
+    {
+        latest: = gover.Local() if ! modfile.GoVersionRE.MatchString(s) { return fmt.Errorf("expecting a Go version like %q", latest) }
+        if gover.Compare(s, latest) > 0 { return fmt.Errorf("maximum supported Go version is %s", latest) }
+    }
+
+    f.v = s return nil
 }
 
-func (f *goVersionFlag) String() string { return f.v }
-func (f *goVersionFlag) Get() any       { return f.v }
+func runTidy(ctx context.Context, cmd * base.Command, args[] string)
+{
+    moduleLoader: = modload.NewLoader() if len(args) > 0 { base.Fatalf("go: 'go mod tidy' accepts no arguments") }
+    // Tidy aims to make 'go test' reproducible for any package in 'all', so we
+    // need to include test dependencies. For modules that specify go 1.15 or
+    // earlier this is a no-op (because 'all' saturates transitive test
+    // dependencies).
+    //
+    // However, with lazy loading (go 1.16+) 'all' includes only the packages that
+    // are transitively imported by the main module, not the test dependencies of
+    // those packages. In order to make 'go test' reproducible for the packages
+    // that are in 'all' but outside of the main module, we must explicitly
+    // request that their test dependencies be included.
+    moduleLoader.ForceUseModules = true moduleLoader.RootMode = modload.NeedRoot goVersion: = tidyGo.String() if goVersion != "" && gover.Compare
+    (
+        gover.Local(), goVersion
+    )
+    < 0 { toolchain.SwitchOrFatal(moduleLoader, ctx, & gover.TooNewError { What: "-go flag", GoVersion: goVersion, }) }
 
-func (f *goVersionFlag) Set(s string) error {
-	if s != "" {
-		latest := gover.Local()
-		if !modfile.GoVersionRE.MatchString(s) {
-			return fmt.Errorf("expecting a Go version like %q", latest)
-		}
-		if gover.Compare(s, latest) > 0 {
-			return fmt.Errorf("maximum supported Go version is %s", latest)
-		}
-	}
-
-	f.v = s
-	return nil
-}
-
-func runTidy(ctx context.Context, cmd *base.Command, args []string) {
-	moduleLoader := modload.NewLoader()
-	if len(args) > 0 {
-		base.Fatalf("go: 'go mod tidy' accepts no arguments")
-	}
-
-	// Tidy aims to make 'go test' reproducible for any package in 'all', so we
-	// need to include test dependencies. For modules that specify go 1.15 or
-	// earlier this is a no-op (because 'all' saturates transitive test
-	// dependencies).
-	//
-	// However, with lazy loading (go 1.16+) 'all' includes only the packages that
-	// are transitively imported by the main module, not the test dependencies of
-	// those packages. In order to make 'go test' reproducible for the packages
-	// that are in 'all' but outside of the main module, we must explicitly
-	// request that their test dependencies be included.
-	moduleLoader.ForceUseModules = true
-	moduleLoader.RootMode = modload.NeedRoot
-
-	goVersion := tidyGo.String()
-	if goVersion != "" && gover.Compare(gover.Local(), goVersion) < 0 {
-		toolchain.SwitchOrFatal(moduleLoader, ctx, &gover.TooNewError{
-			What:      "-go flag",
-			GoVersion: goVersion,
-		})
-	}
-
-	modload.LoadPackages(moduleLoader, ctx, modload.PackageOpts{
-		TidyGoVersion:            tidyGo.String(),
-		Tags:                     imports.AnyTags(),
-		Tidy:                     true,
-		TidyDiff:                 tidyDiff,
-		TidyCompatibleVersion:    tidyCompat.String(),
-		VendorModulesInGOROOTSrc: true,
-		ResolveMissingImports:    true,
-		LoadTests:                true,
-		AllowErrors:              tidyE,
-		SilenceMissingStdImports: true,
-		Switcher:                 toolchain.NewSwitcher(moduleLoader),
-	}, "all")
+    modload.LoadPackages
+    (
+        moduleLoader, ctx, modload.PackageOpts
+        {
+            TidyGoVersion: tidyGo.String(), Tags: imports.AnyTags(), Tidy: true, TidyDiff: tidyDiff, TidyCompatibleVersion: tidyCompat.String(), VendorModulesInGOROOTSrc: true, ResolveMissingImports: true, LoadTests: true, AllowErrors: tidyE, SilenceMissingStdImports: true, Switcher: toolchain.NewSwitcher
+            (
+                moduleLoader
+            ),
+        },
+        "all"
+    )
 }

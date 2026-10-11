@@ -1,22 +1,11 @@
 // skip
-
 // Copyright 2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Generate test of index and slice bounds checks.
 // The actual tests are index0.go, index1.go, index2.go.
 
-package main
-
-import (
-	"bufio"
-	"fmt"
-	"os"
-	"unsafe"
-)
-
-const prolog = `
+package main import("bufio""fmt""os""unsafe") const prolog = `
 
 package main
 
@@ -153,147 +142,124 @@ func bug() {
 }
 
 func main() {
-`
-
-// pass variable set in index[012].go
+` // pass variable set in index[012].go
 //	0 - dynamic checks
 //	1 - static checks of invalid constants (cannot assign to types)
 //	2 - static checks of array bounds
 
-func testExpr(b *bufio.Writer, expr string) {
-	if pass == 0 {
-		fmt.Fprintf(b, "\ttest(func(){use(%s)}, %q)\n", expr, expr)
-	} else {
-		fmt.Fprintf(b, "\tuse(%s)  // ERROR \"index|overflow|truncated|must be integer\"\n", expr)
-	}
+func testExpr(b * bufio.Writer, expr string)
+{
+    if pass == 0 { fmt.Fprintf(b, "\ttest(func(){use(%s)}, %q)\n", expr, expr) }
+    else { fmt.Fprintf(b, "\tuse(%s)  // ERROR \"index|overflow|truncated|must be integer\"\n", expr) }
 }
 
-func main() {
-	b := bufio.NewWriter(os.Stdout)
+func main()
+{
+    b: = bufio.NewWriter(os.Stdout) if pass == 0 { fmt.Fprint(b, "// run\n\n") } else { fmt.Fprint(b, "// errorcheck\n\n") }
+    fmt.Fprint(b, prolog) var choices = [][] string
+    {
+        // Direct value, fetch from struct, fetch from struct pointer.
+        // The last two cases get us to oindex_const_sudo in gsubr.c.
+[] string { "", "t.", "pt." },
+        // Array, pointer to array, slice.
+[] string { "a", "pa", "s" },
+        // Element is int, element is quad (struct).
+        // This controls whether we end up in gsubr.c (i) or cgen.c (q).
+[] string { "i", "q" },
+        // Small or big len.
+[] string { "", "b" },
+        // Variable or constant.
+[] string { "", "c" },
+        // Positive or negative.
+[] string { "", "n" },
+        // Size of index.
+[] string { "j", "i", "i8", "i16", "i32", "i64", "i64big", "i64bigger", "huge", "fgood", "fbad" },
+    }
 
-	if pass == 0 {
-		fmt.Fprint(b, "// run\n\n")
-	} else {
-		fmt.Fprint(b, "// errorcheck\n\n")
-	}
-	fmt.Fprint(b, prolog)
+    forall
+    (
+        choices, func(x[] string)
+        {
+            p, a, e, big, c, n, i: = x[0], x[1], x[2], x[3], x[4], x[5], x[6] // Pass: dynamic=0, static=1, 2.
+            // Which cases should be caught statically?
+            // Only constants, obviously.
+            // Beyond that, must be one of these:
+            //	indexing into array or pointer to array
+            //	negative constant
+            //	large constant
+            thisPass: = 0 if c == "c" && (a == "a" || a == "pa" || n == "n" || i == "i64big" || i == "i64bigger" || i == "huge" || i == "fbad")
+            {
+                if i == "huge"
+                {
+                    // Due to a detail of gc's internals,
+                    // the huge constant errors happen in an
+                    // earlier pass than the others and inhibits
+                    // the next pass from running.
+                    // So run it as a separate check.
+                    thisPass = 1
+                }
+                else if a == "s" && n == "" && (i == "i64big" || i == "i64bigger") && unsafe.Sizeof(int (0)) > 4
+                {
+                    // If int is 64 bits, these huge
+                    // numbers do fit in an int, so they
+                    // are not rejected at compile time.
+                    thisPass = 0
+                }
+                else { thisPass = 2 }
+            }
 
-	var choices = [][]string{
-		// Direct value, fetch from struct, fetch from struct pointer.
-		// The last two cases get us to oindex_const_sudo in gsubr.c.
-		[]string{"", "t.", "pt."},
+            pae: = p + a + e + big cni: = c + n + i // If we're using the big-len data, positive int8 and int16 cannot overflow.
+            if big == "b" && n == "" && (i == "i8" || i == "i16")
+            {
+                if pass == 0
+                {
+                    fmt.Fprintf(b, "\tuse(%s[%s])\n", pae, cni) fmt.Fprintf(b, "\tuse(%s[0:%s])\n", pae, cni) fmt.Fprintf(b, "\tuse(%s[1:%s])\n", pae, cni) fmt.Fprintf
+                    (
+                        b, "\tuse(%s[%s:])\n", pae, cni
+                    )
+                    fmt.Fprintf(b, "\tuse(%s[%s:%s])\n", pae, cni, cni)
+                }
+                return 
+            }
+            // Float variables cannot be used as indices.
+            if c == "" && (i == "fgood" || i == "fbad") { return }
+            // Integral float constant is ok.
+            if c == "c" && n == "" && i == "fgood"
+            {
+                if pass == 0
+                {
+                    fmt.Fprintf(b, "\tuse(%s[%s])\n", pae, cni) fmt.Fprintf(b, "\tuse(%s[0:%s])\n", pae, cni) fmt.Fprintf(b, "\tuse(%s[1:%s])\n", pae, cni) fmt.Fprintf
+                    (
+                        b, "\tuse(%s[%s:])\n", pae, cni
+                    )
+                    fmt.Fprintf(b, "\tuse(%s[%s:%s])\n", pae, cni, cni)
+                }
+                return 
+            }
+            // Only print the test case if it is appropriate for this pass.
+            if thisPass == pass
+            {
+                // Index operation
+                testExpr(b, pae + "[" + cni + "]") // Slice operation.
+                // Low index 0 is a special case in ggen.c
+                // so test both 0 and 1.
+                testExpr(b, pae + "[0:" + cni + "]") testExpr(b, pae + "[1:" + cni + "]") testExpr(b, pae + "[" + cni + ":]") testExpr
+                (
+                    b, pae + "[" + cni + ":" + cni + "]"
+                )
+            }
+        }
+    )
 
-		// Array, pointer to array, slice.
-		[]string{"a", "pa", "s"},
-
-		// Element is int, element is quad (struct).
-		// This controls whether we end up in gsubr.c (i) or cgen.c (q).
-		[]string{"i", "q"},
-
-		// Small or big len.
-		[]string{"", "b"},
-
-		// Variable or constant.
-		[]string{"", "c"},
-
-		// Positive or negative.
-		[]string{"", "n"},
-
-		// Size of index.
-		[]string{"j", "i", "i8", "i16", "i32", "i64", "i64big", "i64bigger", "huge", "fgood", "fbad"},
-	}
-
-	forall(choices, func(x []string) {
-		p, a, e, big, c, n, i := x[0], x[1], x[2], x[3], x[4], x[5], x[6]
-
-		// Pass: dynamic=0, static=1, 2.
-		// Which cases should be caught statically?
-		// Only constants, obviously.
-		// Beyond that, must be one of these:
-		//	indexing into array or pointer to array
-		//	negative constant
-		//	large constant
-		thisPass := 0
-		if c == "c" && (a == "a" || a == "pa" || n == "n" || i == "i64big" || i == "i64bigger" || i == "huge" || i == "fbad") {
-			if i == "huge" {
-				// Due to a detail of gc's internals,
-				// the huge constant errors happen in an
-				// earlier pass than the others and inhibits
-				// the next pass from running.
-				// So run it as a separate check.
-				thisPass = 1
-			} else if a == "s" && n == "" && (i == "i64big" || i == "i64bigger") && unsafe.Sizeof(int(0)) > 4 {
-				// If int is 64 bits, these huge
-				// numbers do fit in an int, so they
-				// are not rejected at compile time.
-				thisPass = 0
-			} else {
-				thisPass = 2
-			}
-		}
-
-		pae := p + a + e + big
-		cni := c + n + i
-
-		// If we're using the big-len data, positive int8 and int16 cannot overflow.
-		if big == "b" && n == "" && (i == "i8" || i == "i16") {
-			if pass == 0 {
-				fmt.Fprintf(b, "\tuse(%s[%s])\n", pae, cni)
-				fmt.Fprintf(b, "\tuse(%s[0:%s])\n", pae, cni)
-				fmt.Fprintf(b, "\tuse(%s[1:%s])\n", pae, cni)
-				fmt.Fprintf(b, "\tuse(%s[%s:])\n", pae, cni)
-				fmt.Fprintf(b, "\tuse(%s[%s:%s])\n", pae, cni, cni)
-			}
-			return
-		}
-
-		// Float variables cannot be used as indices.
-		if c == "" && (i == "fgood" || i == "fbad") {
-			return
-		}
-		// Integral float constant is ok.
-		if c == "c" && n == "" && i == "fgood" {
-			if pass == 0 {
-				fmt.Fprintf(b, "\tuse(%s[%s])\n", pae, cni)
-				fmt.Fprintf(b, "\tuse(%s[0:%s])\n", pae, cni)
-				fmt.Fprintf(b, "\tuse(%s[1:%s])\n", pae, cni)
-				fmt.Fprintf(b, "\tuse(%s[%s:])\n", pae, cni)
-				fmt.Fprintf(b, "\tuse(%s[%s:%s])\n", pae, cni, cni)
-			}
-			return
-		}
-
-		// Only print the test case if it is appropriate for this pass.
-		if thisPass == pass {
-			// Index operation
-			testExpr(b, pae+"["+cni+"]")
-
-			// Slice operation.
-			// Low index 0 is a special case in ggen.c
-			// so test both 0 and 1.
-			testExpr(b, pae+"[0:"+cni+"]")
-			testExpr(b, pae+"[1:"+cni+"]")
-			testExpr(b, pae+"["+cni+":]")
-			testExpr(b, pae+"["+cni+":"+cni+"]")
-		}
-	})
-
-	fmt.Fprintln(b, "}")
-	b.Flush()
+    fmt.Fprintln(b, "}") b.Flush()
 }
 
-func forall(choices [][]string, f func([]string)) {
-	x := make([]string, len(choices))
-
-	var recurse func(d int)
-	recurse = func(d int) {
-		if d >= len(choices) {
-			f(x)
-			return
-		}
-		for _, x[d] = range choices[d] {
-			recurse(d + 1)
-		}
-	}
-	recurse(0)
+func forall(choices[][] string, f func([] string))
+{
+    x: = make([] string, len(choices)) var recurse func(d int) recurse = func(d int)
+    {
+        if d >= len(choices) { f(x) return }
+        for _, x[d] = range choices[d] { recurse(d + 1) }
+    }
+    recurse(0)
 }

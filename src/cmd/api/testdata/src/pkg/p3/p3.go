@@ -2,9 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p3
+package p3 type ThirdBase struct {}
 
-type ThirdBase struct{}
-
-func (tb *ThirdBase) GoodPlayer() (i, j, k int)
-func BadHop(i, j, k int) (l, m bool, n, o *ThirdBase, err error)
+func(tb * ThirdBase) GoodPlayer()(i, j, k int) func BadHop(i, j, k int)(l, m bool , n, o * ThirdBase, err error)

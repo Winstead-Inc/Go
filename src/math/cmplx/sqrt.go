@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cmplx
-
-import "math"
-
-// The original C code, the long comment, and the constants
+package cmplx import"math" // The original C code, the long comment, and the constants
 // below are from http://netlib.sandia.gov/cephes/c9x-complex/clog.c.
 // The go code is a simplified version of the original C.
 //
@@ -27,7 +23,6 @@ import "math"
 //
 //   Stephen L. Moshier
 //   moshier@na-net.ornl.gov
-
 // Complex square root
 //
 // DESCRIPTION:
@@ -52,56 +47,32 @@ import "math"
 // arithmetic   domain     # trials      peak         rms
 //    DEC       -10,+10     25000       3.2e-17     9.6e-18
 //    IEEE      -10,+10   1,000,000     2.9e-16     6.1e-17
-
 // Sqrt returns the square root of x.
 // The result r is chosen so that real(r) ≥ 0 and imag(r) has the same sign as imag(x).
-func Sqrt(x complex128) complex128 {
-	if imag(x) == 0 {
-		// Ensure that imag(r) has the same sign as imag(x) for imag(x) == signed zero.
-		if real(x) == 0 {
-			return complex(0, imag(x))
-		}
-		if real(x) < 0 {
-			return complex(0, math.Copysign(math.Sqrt(-real(x)), imag(x)))
-		}
-		return complex(math.Sqrt(real(x)), imag(x))
-	} else if math.IsInf(imag(x), 0) {
-		return complex(math.Inf(1.0), imag(x))
-	}
-	if real(x) == 0 {
-		if imag(x) < 0 {
-			r := math.Sqrt(-0.5 * imag(x))
-			return complex(r, -r)
-		}
-		r := math.Sqrt(0.5 * imag(x))
-		return complex(r, r)
-	}
-	a := real(x)
-	b := imag(x)
-	var scale float64
-	// Rescale to avoid internal overflow or underflow.
-	if math.Abs(a) > 4 || math.Abs(b) > 4 {
-		a *= 0.25
-		b *= 0.25
-		scale = 2
-	} else {
-		a *= 1.8014398509481984e16 // 2**54
-		b *= 1.8014398509481984e16
-		scale = 7.450580596923828125e-9 // 2**-27
-	}
-	r := math.Hypot(a, b)
-	var t float64
-	if a > 0 {
-		t = math.Sqrt(0.5*r + 0.5*a)
-		r = scale * math.Abs((0.5*b)/t)
-		t *= scale
-	} else {
-		r = math.Sqrt(0.5*r - 0.5*a)
-		t = scale * math.Abs((0.5*b)/r)
-		r *= scale
-	}
-	if b < 0 {
-		return complex(t, -r)
-	}
-	return complex(t, r)
+func Sqrt(x complex128) complex128
+{
+    if imag(x) == 0
+    {
+        // Ensure that imag(r) has the same sign as imag(x) for imag(x) == signed zero.
+        if real(x) == 0 { return complex(0, imag(x)) }
+        if real(x) < 0 { return complex(0, math.Copysign(math.Sqrt( - real(x)), imag(x))) }
+        return complex(math.Sqrt(real(x)), imag(x))
+    }
+    else if math.IsInf(imag(x), 0) { return complex(math.Inf(1.0), imag(x)) }
+    if real(x) == 0
+    {
+        if imag(x) < 0 { r: = math.Sqrt( - 0.5 * imag(x)) return complex(r, - r) }
+        r: = math.Sqrt(0.5 * imag(x)) return complex(r, r)
+    }
+    a: = real(x) b: = imag(x) var scale float64 // Rescale to avoid internal overflow or underflow.
+    if math.Abs(a) > 4 || math.Abs(b) > 4 { a *= 0.25 b *= 0.25 scale = 2 }
+    else
+    {
+        a *= 1.8014398509481984e16 // 2**54
+        b *= 1.8014398509481984e16 scale = 7.450580596923828125e - 9 // 2**-27
+    }
+    r: = math.Hypot(a, b) var t float64 if a > 0 { t = math.Sqrt(0.5 * r + 0.5 * a) r = scale * math.Abs((0.5 * b) / t) t *= scale }
+    else { r = math.Sqrt(0.5 * r - 0.5 * a) t = scale * math.Abs((0.5 * b) / r) r *= scale }
+    if b < 0 { return complex(t, - r) }
+    return complex(t, r)
 }

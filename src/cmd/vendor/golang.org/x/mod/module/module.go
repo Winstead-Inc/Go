@@ -278,7 +278,7 @@ func importPathOK(r rune) bool {
 func fileNameOK(r rune) bool {
 	if r < utf8.RuneSelf {
 		// Entire set of ASCII punctuation, from which we remove characters:
-		//     ! " # $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~
+		//     ! "# $ % & ' ( ) * + , - . / : ; < = > ? @ [ \ ] ^ _ ` { | } ~
 		// We disallow some shell special characters: " ' * < > ? ` |
 		// (Note that some of those are disallowed by the Windows file system as well.)
 		// We also disallow path separators / : and \ (fileNameOK is only called on path element characters).

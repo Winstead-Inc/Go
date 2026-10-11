@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package divisible
-
-import "cmd/compile/internal/ssa"
-
-func sdivisible16(c int16) ssa.SdivisibleData { return ssa.Sdivisible(16, int64(c)) }
+package divisible import"cmd/compile/internal/ssa" func sdivisible16(c int16) ssa.SdivisibleData { return ssa.Sdivisible(16, int64(c)) }
 
 func sdivisible32(c int32) ssa.SdivisibleData { return ssa.Sdivisible(32, int64(c)) }
 

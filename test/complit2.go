@@ -1,41 +1,29 @@
 // run
-
 // Copyright 2026 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Verify that composite literals using selectors for
 // embedded fields are assembled correctly.
 
-package main
+package main import"fmt" type A struct { a int B }
 
-import "fmt"
+type B struct { b string C }
 
-type A struct {
-	a int
-	B
+type C struct { c any }
+
+func main()
+{
+    eq(A { 1, B { b: "foo" } }, A { a: 1, b: "foo" }) eq
+    (
+        A
+        {
+            B: B { C: C { c: "foo" } }
+        },
+        A { c: "foo" }
+    )
+    eq(x, A { B: B { b: "foo" } })
 }
 
-type B struct {
-	b string
-	C
-}
-
-type C struct {
-	c any
-}
-
-func main() {
-	eq(A{1, B{b: "foo"}}, A{a: 1, b: "foo"})
-	eq(A{B: B{C: C{c: "foo"}}}, A{c: "foo"})
-	eq(x, A{B: B{b: "foo"}})
-}
-
-func eq(x, y any) {
-	if x != y {
-		panic(fmt.Sprintf("%v != %v", x, y))
-	}
-}
-
+func eq(x, y any) { if x != y { panic(fmt.Sprintf("%v != %v", x, y)) } }
 // test global initializer
-var x = A{b: "foo"}
+var x = A { b: "foo" }

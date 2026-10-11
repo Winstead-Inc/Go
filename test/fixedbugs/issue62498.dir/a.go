@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
-
-func One(L any) {
-	func() {
-		defer F(L)
-	}()
-}
+package a func One(L any) { func() { defer F(L) }() }
 
 func F(any) {}

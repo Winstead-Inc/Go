@@ -1,19 +1,21 @@
 // run
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-func main() {
-	switch {
-		// empty switch is allowed according to syntax
-		// unclear why it shouldn't be allowed
-	}
-	switch tag := 0; tag {
-		// empty switch is allowed according to syntax
-		// unclear why it shouldn't be allowed
-	}
+package main func main()
+{
+    switch 
+    {
+        // empty switch is allowed according to syntax
+        // unclear why it shouldn't be allowed
+    }
+    switch tag: = 0;
+    tag
+    {
+        // empty switch is allowed according to syntax
+        // unclear why it shouldn't be allowed
+    }
 }
 
 /*

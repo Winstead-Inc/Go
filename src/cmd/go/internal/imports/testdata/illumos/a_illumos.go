@@ -1,3 +1,1 @@
-package illumos
-
-import _ "a"
+package illumos import _"a"

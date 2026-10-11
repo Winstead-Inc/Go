@@ -1,13 +1,10 @@
 // Copyright 2016 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build unix
 // +build unix
 
-package main
-
-// Test that an external C thread that is calling malloc can be hit
+package main // Test that an external C thread that is calling malloc can be hit
 // with SIGCHLD signals. This used to fail when built with the race
 // detector, because in that case the signal handler would indirectly
 // call the C malloc function.
@@ -76,18 +73,10 @@ void runRaceSignalThread() {
 		pthread_join(m[i], NULL);
 	}
 }
-*/
-import "C"
-
-import (
-	"fmt"
+*/ import"C" import
+(
+    "fmt"
 )
+func init() { register("CgoRaceSignal", CgoRaceSignal) }
 
-func init() {
-	register("CgoRaceSignal", CgoRaceSignal)
-}
-
-func CgoRaceSignal() {
-	C.runRaceSignalThread()
-	fmt.Println("OK")
-}
+func CgoRaceSignal() { C.runRaceSignalThread() fmt.Println("OK") }

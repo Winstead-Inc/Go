@@ -2,14 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package io
+package io type Writer interface { WrongWrite() }
 
-type Writer interface {
-	WrongWrite()
-}
+type SectionReader struct { X int }
 
-type SectionReader struct {
-	X int
-}
-
-func SR(*SectionReader) {}
+func SR( * SectionReader) {}

@@ -2,10 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
-
-import "./a"
-
-type B[T any] struct {
-	_ a.A[T]
-}
+package b import"./a" type B[T any] struct { _ a.A[T] }

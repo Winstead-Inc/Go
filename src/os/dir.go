@@ -2,24 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package os
-
-import (
-	"internal/bytealg"
-	"internal/filepathlite"
-	"io"
-	"io/fs"
-	"slices"
+package os import("internal/bytealg""internal/filepathlite""io""io/fs""slices") type readdirMode int const 
+(
+    readdirName readdirMode = iota readdirDirEntry readdirFileInfo
 )
-
-type readdirMode int
-
-const (
-	readdirName readdirMode = iota
-	readdirDirEntry
-	readdirFileInfo
-)
-
 // Readdir reads the contents of the directory associated with file and
 // returns a slice of up to n [FileInfo] values, as would be returned
 // by [Lstat], in directory order. Subsequent calls on the same file will yield
@@ -37,20 +23,18 @@ const (
 // and a non-nil error.
 //
 // Most clients are better served by the more efficient ReadDir method.
-func (f *File) Readdir(n int) ([]FileInfo, error) {
-	if f == nil {
-		return nil, ErrInvalid
-	}
-	_, _, infos, err := f.readdir(n, readdirFileInfo)
-	if infos == nil {
-		// Readdir has historically always returned a non-nil empty slice, never nil,
-		// even on error (except misuse with nil receiver above).
-		// Keep it that way to avoid breaking overly sensitive callers.
-		infos = []FileInfo{}
-	}
-	return infos, err
+func(f * File) Readdir(n int)([] FileInfo, error)
+{
+    if f == nil { return nil, ErrInvalid }
+    _, _, infos, err: = f.readdir(n, readdirFileInfo) if infos == nil
+    {
+        // Readdir has historically always returned a non-nil empty slice, never nil,
+        // even on error (except misuse with nil receiver above).
+        // Keep it that way to avoid breaking overly sensitive callers.
+        infos = [] FileInfo {}
+    }
+    return infos, err
 }
-
 // Readdirnames reads the contents of the directory associated with file
 // and returns a slice of up to n names of files in the directory,
 // in directory order. Subsequent calls on the same file will yield
@@ -66,25 +50,21 @@ func (f *File) Readdir(n int) ([]FileInfo, error) {
 // nil error. If it encounters an error before the end of the
 // directory, Readdirnames returns the names read until that point and
 // a non-nil error.
-func (f *File) Readdirnames(n int) (names []string, err error) {
-	if f == nil {
-		return nil, ErrInvalid
-	}
-	names, _, _, err = f.readdir(n, readdirName)
-	if names == nil {
-		// Readdirnames has historically always returned a non-nil empty slice, never nil,
-		// even on error (except misuse with nil receiver above).
-		// Keep it that way to avoid breaking overly sensitive callers.
-		names = []string{}
-	}
-	return names, err
+func(f * File) Readdirnames(n int)(names[] string, err error)
+{
+    if f == nil { return nil, ErrInvalid }
+    names, _, _, err = f.readdir(n, readdirName) if names == nil
+    {
+        // Readdirnames has historically always returned a non-nil empty slice, never nil,
+        // even on error (except misuse with nil receiver above).
+        // Keep it that way to avoid breaking overly sensitive callers.
+        names = [] string {}
+    }
+    return names, err
 }
-
 // A DirEntry is an entry read from a directory
 // (using the [ReadDir] function or a [File.ReadDir] method).
-type DirEntry = fs.DirEntry
-
-// ReadDir reads the contents of the directory associated with the file f
+type DirEntry = fs.DirEntry // ReadDir reads the contents of the directory associated with the file f
 // and returns a slice of [DirEntry] values in directory order.
 // Subsequent calls on the same file will yield later DirEntry records in the directory.
 //
@@ -94,37 +74,30 @@ type DirEntry = fs.DirEntry
 //
 // If n <= 0, ReadDir returns all the DirEntry records remaining in the directory.
 // When it succeeds, it returns a nil error (not io.EOF).
-func (f *File) ReadDir(n int) ([]DirEntry, error) {
-	if f == nil {
-		return nil, ErrInvalid
-	}
-	_, dirents, _, err := f.readdir(n, readdirDirEntry)
-	if dirents == nil {
-		// Match Readdir and Readdirnames: don't return nil slices.
-		dirents = []DirEntry{}
-	}
-	return dirents, err
+func(f * File) ReadDir(n int)([] DirEntry, error)
+{
+    if f == nil { return nil, ErrInvalid }
+    _, dirents, _, err: = f.readdir(n, readdirDirEntry) if dirents == nil
+    {
+        // Match Readdir and Readdirnames: don't return nil slices.
+        dirents = [] DirEntry {}
+    }
+    return dirents, err
 }
-
 // ReadDir reads the named directory,
 // returning all its directory entries sorted by filename.
 // If an error occurs reading the directory,
 // ReadDir returns the entries it was able to read before the error,
 // along with the error.
-func ReadDir(name string) ([]DirEntry, error) {
-	f, err := openDir(name)
-	if err != nil {
-		return nil, err
-	}
-	defer f.Close()
-
-	dirs, err := f.ReadDir(-1)
-	slices.SortFunc(dirs, func(a, b DirEntry) int {
-		return bytealg.CompareString(a.Name(), b.Name())
-	})
-	return dirs, err
+func ReadDir(name string)([] DirEntry, error)
+{
+    f, err: = openDir(name) if err != nil { return nil, err }
+    defer f.Close() dirs, err: = f.ReadDir( - 1) slices.SortFunc
+    (
+        dirs, func(a, b DirEntry) int { return bytealg.CompareString(a.Name(), b.Name()) }
+    )
+    return dirs, err
 }
-
 // CopyFS copies the file system fsys into the directory dir,
 // creating dir if necessary.
 //
@@ -142,49 +115,26 @@ func ReadDir(name string) ([]DirEntry, error) {
 // while CopyFS is running are not guaranteed to be copied.
 //
 // Copying stops at and returns the first error encountered.
-func CopyFS(dir string, fsys fs.FS) error {
-	return fs.WalkDir(fsys, ".", func(path string, d fs.DirEntry, err error) error {
-		if err != nil {
-			return err
-		}
+func CopyFS(dir string, fsys fs.FS) error
+{
+    return fs.WalkDir
+    (
+        fsys, ".", func(path string, d fs.DirEntry, err error) error
+        {
+            if err != nil { return err }
 
-		fpath, err := filepathlite.Localize(path)
-		if err != nil {
-			return err
-		}
-		newPath := joinPath(dir, fpath)
+            fpath, err: = filepathlite.Localize(path) if err != nil { return err }
+            newPath: = joinPath(dir, fpath) switch d.Type()
+            {
+                case ModeDir: return MkdirAll(newPath, 0777) case ModeSymlink: target, err: = fs.ReadLink(fsys, path) if err != nil { return err }
+                return Symlink(target, newPath) case 0: r, err: = fsys.Open(path) if err != nil { return err }
+                defer r.Close() info, err: = r.Stat() if err != nil { return err }
+                w, err: = OpenFile(newPath, O_CREATE | O_EXCL | O_WRONLY, 0666 | info.Mode() & 0777) if err != nil { return err }
 
-		switch d.Type() {
-		case ModeDir:
-			return MkdirAll(newPath, 0777)
-		case ModeSymlink:
-			target, err := fs.ReadLink(fsys, path)
-			if err != nil {
-				return err
-			}
-			return Symlink(target, newPath)
-		case 0:
-			r, err := fsys.Open(path)
-			if err != nil {
-				return err
-			}
-			defer r.Close()
-			info, err := r.Stat()
-			if err != nil {
-				return err
-			}
-			w, err := OpenFile(newPath, O_CREATE|O_EXCL|O_WRONLY, 0666|info.Mode()&0777)
-			if err != nil {
-				return err
-			}
-
-			if _, err := io.Copy(w, r); err != nil {
-				w.Close()
-				return &PathError{Op: "Copy", Path: newPath, Err: err}
-			}
-			return w.Close()
-		default:
-			return &PathError{Op: "CopyFS", Path: path, Err: ErrInvalid}
-		}
-	})
+                if _, err: = io.Copy(w, r);
+                err != nil { w.Close() return & PathError { Op: "Copy", Path: newPath, Err: err } }
+                return w.Close() default: return & PathError { Op: "CopyFS", Path: path, Err: ErrInvalid }
+            }
+        }
+    )
 }

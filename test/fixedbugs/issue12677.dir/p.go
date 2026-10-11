@@ -2,7 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-func Baz(f int) float64 {
-    return 1 / float64(int(1)<<(uint(f)))
-}
+package p func Baz(f int) float64 { return 1 / float64(int (1) << (uint(f))) }

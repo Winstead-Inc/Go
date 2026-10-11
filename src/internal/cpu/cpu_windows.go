@@ -2,18 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package cpu
+package cpu import _"unsafe" // for linkname
 
-import _ "unsafe" // for linkname
-
-const (
-	_PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE  = 30
-	_PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE   = 31
-	_PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE = 34
-	_PF_ARM_SHA3_INSTRUCTIONS_AVAILABLE       = 64
-	_PF_ARM_SHA512_INSTRUCTIONS_AVAILABLE     = 65
+const 
+(
+    _PF_ARM_V8_CRYPTO_INSTRUCTIONS_AVAILABLE = 30 _PF_ARM_V8_CRC32_INSTRUCTIONS_AVAILABLE = 31 _PF_ARM_V81_ATOMIC_INSTRUCTIONS_AVAILABLE = 34 _PF_ARM_SHA3_INSTRUCTIONS_AVAILABLE = 64 _PF_ARM_SHA512_INSTRUCTIONS_AVAILABLE = 65
 )
-
 // isProcessorFeaturePresent calls windows IsProcessorFeaturePresent API.
 //
 //go:linknamestd isProcessorFeaturePresent

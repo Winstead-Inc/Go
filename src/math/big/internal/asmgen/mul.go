@@ -2,46 +2,30 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package asmgen
-
-// mulAddVWW generates mulAddVWW, which does z, c = x*m + a.
-func mulAddVWW(a *Asm) {
-	f := a.Func("func mulAddVWW(z, x []Word, m, a Word) (c Word)")
-
-	if a.AltCarry().Valid() {
-		addMulVirtualCarry(f, 0)
-		return
-	}
-	addMul(f, "", "x", 0)
+package asmgen // mulAddVWW generates mulAddVWW, which does z, c = x*m + a.
+func mulAddVWW(a * Asm)
+{
+    f: = a.Func("func mulAddVWW(z, x []Word, m, a Word) (c Word)") if a.AltCarry().Valid() { addMulVirtualCarry(f, 0) return }
+    addMul(f, "", "x", 0)
 }
-
 // addMulVVWW generates addMulVVWW which does z, c = x + y*m + a.
 // (A more pedantic name would be addMulAddVVWW.)
-func addMulVVWW(a *Asm) {
-	f := a.Func("func addMulVVWW(z, x, y []Word, m, a Word) (c Word)")
-
-	// If the architecture has virtual carries, emit that version unconditionally.
-	if a.AltCarry().Valid() {
-		addMulVirtualCarry(f, 1)
-		return
-	}
-
-	// If the architecture optionally has two carries, test and emit both versions.
-	if a.JmpEnable(OptionAltCarry, "altcarry") {
-		regs := a.RegsUsed()
-		addMul(f, "x", "y", 1)
-		a.Label("altcarry")
-		a.SetOption(OptionAltCarry, true)
-		a.SetRegsUsed(regs)
-		addMulAlt(f)
-		a.SetOption(OptionAltCarry, false)
-		return
-	}
-
-	// Otherwise emit the one-carry form.
-	addMul(f, "x", "y", 1)
+func addMulVVWW(a * Asm)
+{
+    f: = a.Func("func addMulVVWW(z, x, y []Word, m, a Word) (c Word)") // If the architecture has virtual carries, emit that version unconditionally.
+    if a.AltCarry().Valid() { addMulVirtualCarry(f, 1) return }
+    // If the architecture optionally has two carries, test and emit both versions.
+    if a.JmpEnable(OptionAltCarry, "altcarry")
+    {
+        regs: = a.RegsUsed() addMul(f, "x", "y", 1) a.Label("altcarry") a.SetOption(OptionAltCarry, true) a.SetRegsUsed(regs) addMulAlt(f) a.SetOption
+        (
+            OptionAltCarry, false
+        )
+        return 
+    }
+    // Otherwise emit the one-carry form.
+    addMul(f, "x", "y", 1)
 }
-
 // Computing z = addsrc + m*mulsrc + a, we need:
 //
 //	for i := range z {
@@ -173,148 +157,91 @@ func addMulVVWW(a *Asm) {
 //	lo1, carry = bits.Add(lo1, addsrc[i], 0)
 //	a = a + carry
 //	z[i] = lo1
-func addMul(f *Func, addsrc, mulsrc string, mulIndex int) {
-	a := f.Asm
-	mh := HintNone
-	if a.Arch == Arch386 && addsrc != "" {
-		mh = HintMemOK // too few registers otherwise
-	}
-	m := f.ArgHint("m", mh)
-	c := f.Arg("a")
-	n := f.Arg("z_len")
+func addMul(f * Func, addsrc, mulsrc string, mulIndex int)
+{
+    a: = f.Asm mh: = HintNone if a.Arch == Arch386 && addsrc != ""
+    {
+        mh = HintMemOK // too few registers otherwise
+    }
+    m: = f.ArgHint("m", mh) c: = f.Arg("a") n: = f.Arg("z_len") p: = f.Pipe() if addsrc != "" { p.SetHint(addsrc, HintMemOK) }
+    p.SetHint(mulsrc, HintMulSrc) unroll: = [] int { 1, 4 }
+    switch a.Arch
+    {
+        case Arch386: unroll = [] int { 1 }
+        // too few registers
+        case ArchARM: p.SetMaxColumns(2) // too few registers (but more than 386)
+        case ArchARM64: unroll = [] int { 1, 8 }
+        // 5% speedup on c4as16
+    }
+    // See the large comment above for an explanation of the code being generated.
+    // This is optimization strategy 1.
+    p.Start(n, unroll ...) p.Loop
+    (
+        func(in, out[][] Reg)
+        {
+            a.Comment("multiply") prev: = c flag: = SetCarry for i, x: = range in[mulIndex]
+            {
+                hi: = a.RegHint(HintMulHi) a.MulWide(m, x, x, hi) a.Add(prev, x, x, flag) flag = UseCarry | SetCarry if prev != c { a.Free(prev) }
+                out[0][i] = x prev = hi
+            }
+            a.Add(a.Imm(0), prev, c, UseCarry | SmashCarry) if addsrc != ""
+            {
+                a.Comment("add") flag: = SetCarry for i, x: = range in[0] { a.Add(x, out[0][i], out[0][i], flag) flag = UseCarry | SetCarry }
+                a.Add(a.Imm(0), c, c, UseCarry | SmashCarry)
+            }
+            p.StoreN(out)
+        }
+    )
 
-	p := f.Pipe()
-	if addsrc != "" {
-		p.SetHint(addsrc, HintMemOK)
-	}
-	p.SetHint(mulsrc, HintMulSrc)
-	unroll := []int{1, 4}
-	switch a.Arch {
-	case Arch386:
-		unroll = []int{1} // too few registers
-	case ArchARM:
-		p.SetMaxColumns(2) // too few registers (but more than 386)
-	case ArchARM64:
-		unroll = []int{1, 8} // 5% speedup on c4as16
-	}
-
-	// See the large comment above for an explanation of the code being generated.
-	// This is optimization strategy 1.
-	p.Start(n, unroll...)
-	p.Loop(func(in, out [][]Reg) {
-		a.Comment("multiply")
-		prev := c
-		flag := SetCarry
-		for i, x := range in[mulIndex] {
-			hi := a.RegHint(HintMulHi)
-			a.MulWide(m, x, x, hi)
-			a.Add(prev, x, x, flag)
-			flag = UseCarry | SetCarry
-			if prev != c {
-				a.Free(prev)
-			}
-			out[0][i] = x
-			prev = hi
-		}
-		a.Add(a.Imm(0), prev, c, UseCarry|SmashCarry)
-		if addsrc != "" {
-			a.Comment("add")
-			flag := SetCarry
-			for i, x := range in[0] {
-				a.Add(x, out[0][i], out[0][i], flag)
-				flag = UseCarry | SetCarry
-			}
-			a.Add(a.Imm(0), c, c, UseCarry|SmashCarry)
-		}
-		p.StoreN(out)
-	})
-
-	f.StoreArg(c, "c")
-	a.Ret()
+    f.StoreArg(c, "c") a.Ret()
 }
 
-func addMulAlt(f *Func) {
-	a := f.Asm
-	m := f.ArgHint("m", HintMulSrc)
-	c := f.Arg("a")
-	n := f.Arg("z_len")
+func addMulAlt(f * Func)
+{
+    a: = f.Asm m: = f.ArgHint("m", HintMulSrc) c: = f.Arg("a") n: = f.Arg("z_len") // On amd64, we need a non-immediate for the AtUnrollEnd adds.
+    r0: = a.ZR() if ! r0.Valid() { r0 = a.Reg() a.Mov(a.Imm(0), r0) }
 
-	// On amd64, we need a non-immediate for the AtUnrollEnd adds.
-	r0 := a.ZR()
-	if !r0.Valid() {
-		r0 = a.Reg()
-		a.Mov(a.Imm(0), r0)
-	}
+    p: = f.Pipe() p.SetLabel("alt") p.SetHint("x", HintMemOK) p.SetHint("y", HintMemOK) if a.Arch == ArchAMD64 { p.SetMaxColumns(2) }
+    // See the large comment above for an explanation of the code being generated.
+    // This is optimization strategy (2).
+    var hi Reg prev: = c p.Start(n, 1, 8) p.AtUnrollStart
+    (
+        func() { a.Comment("multiply and add") a.ClearCarry(AddCarry | AltCarry) a.ClearCarry(AddCarry) hi = a.Reg() }
+    )
+    p.AtUnrollEnd(func() { a.Add(r0, prev, c, UseCarry | SmashCarry) a.Add(r0, c, c, UseCarry | SmashCarry | AltCarry) prev = c }) p.Loop
+    (
+        func(in, out[][] Reg)
+        {
+            for i, y: = range in[1]
+            {
+                x: = in[0][i] lo: = y if lo.IsMem() { lo = a.Reg() }
+                a.MulWide(m, y, lo, hi) a.Add(prev, lo, lo, UseCarry | SetCarry) a.Add(x, lo, lo, UseCarry | SetCarry | AltCarry) out[0][i] = lo prev, hi = hi, prev
+            }
+            p.StoreN(out)
+        }
+    )
 
-	p := f.Pipe()
-	p.SetLabel("alt")
-	p.SetHint("x", HintMemOK)
-	p.SetHint("y", HintMemOK)
-	if a.Arch == ArchAMD64 {
-		p.SetMaxColumns(2)
-	}
-
-	// See the large comment above for an explanation of the code being generated.
-	// This is optimization strategy (2).
-	var hi Reg
-	prev := c
-	p.Start(n, 1, 8)
-	p.AtUnrollStart(func() {
-		a.Comment("multiply and add")
-		a.ClearCarry(AddCarry | AltCarry)
-		a.ClearCarry(AddCarry)
-		hi = a.Reg()
-	})
-	p.AtUnrollEnd(func() {
-		a.Add(r0, prev, c, UseCarry|SmashCarry)
-		a.Add(r0, c, c, UseCarry|SmashCarry|AltCarry)
-		prev = c
-	})
-	p.Loop(func(in, out [][]Reg) {
-		for i, y := range in[1] {
-			x := in[0][i]
-			lo := y
-			if lo.IsMem() {
-				lo = a.Reg()
-			}
-			a.MulWide(m, y, lo, hi)
-			a.Add(prev, lo, lo, UseCarry|SetCarry)
-			a.Add(x, lo, lo, UseCarry|SetCarry|AltCarry)
-			out[0][i] = lo
-			prev, hi = hi, prev
-		}
-		p.StoreN(out)
-	})
-
-	f.StoreArg(c, "c")
-	a.Ret()
+    f.StoreArg(c, "c") a.Ret()
 }
 
-func addMulVirtualCarry(f *Func, mulIndex int) {
-	a := f.Asm
-	m := f.Arg("m")
-	c := f.Arg("a")
-	n := f.Arg("z_len")
-
-	// See the large comment above for an explanation of the code being generated.
-	// This is optimization strategy (3).
-	p := f.Pipe()
-	p.Start(n, 1, 4)
-	p.Loop(func(in, out [][]Reg) {
-		a.Comment("synthetic carry, one column at a time")
-		lo, hi := a.Reg(), a.Reg()
-		for i, x := range in[mulIndex] {
-			a.MulWide(m, x, lo, hi)
-			if mulIndex == 1 {
-				a.Add(in[0][i], lo, lo, SetCarry)
-				a.Add(a.Imm(0), hi, hi, UseCarry|SmashCarry)
-			}
-			a.Add(c, lo, x, SetCarry)
-			a.Add(a.Imm(0), hi, c, UseCarry|SmashCarry)
-			out[0][i] = x
-		}
-		p.StoreN(out)
-	})
-	f.StoreArg(c, "c")
-	a.Ret()
+func addMulVirtualCarry(f * Func, mulIndex int)
+{
+    a: = f.Asm m: = f.Arg("m") c: = f.Arg("a") n: = f.Arg("z_len") // See the large comment above for an explanation of the code being generated.
+    // This is optimization strategy (3).
+    p: = f.Pipe() p.Start(n, 1, 4) p.Loop
+    (
+        func(in, out[][] Reg)
+        {
+            a.Comment("synthetic carry, one column at a time") lo, hi: = a.Reg(), a.Reg() for i, x: = range in[mulIndex]
+            {
+                a.MulWide(m, x, lo, hi) if mulIndex == 1
+                {
+                    a.Add(in[0][i], lo, lo, SetCarry) a.Add(a.Imm(0), hi, hi, UseCarry | SmashCarry)
+                }
+                a.Add(c, lo, x, SetCarry) a.Add(a.Imm(0), hi, c, UseCarry | SmashCarry) out[0][i] = x
+            }
+            p.StoreN(out)
+        }
+    )
+    f.StoreArg(c, "c") a.Ret()
 }

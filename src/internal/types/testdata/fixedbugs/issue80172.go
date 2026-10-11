@@ -2,8 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type List[P/* ERROR "instantiation cycle" */ any] struct {}
 
-type List[P /* ERROR "instantiation cycle" */ any] struct{}
-
-func (_ List[P]) m() (_ List[List[P]]) { return }
+func(_ List[P]) m()(_ List[List[P]]) { return }

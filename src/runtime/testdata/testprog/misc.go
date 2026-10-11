@@ -2,14 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"runtime" func init() { register("NumGoroutine", NumGoroutine) }
 
-import "runtime"
-
-func init() {
-	register("NumGoroutine", NumGoroutine)
-}
-
-func NumGoroutine() {
-	println(runtime.NumGoroutine())
-}
+func NumGoroutine() { println(runtime.NumGoroutine()) }

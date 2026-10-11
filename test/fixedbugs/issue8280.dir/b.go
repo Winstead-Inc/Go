@@ -1,5 +1,1 @@
-package b
-
-import "./a"
-
-var foo = a.Bar
+package b import"./a" var foo = a.Bar

@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package issue76861
-
-// #cgo CFLAGS: -Wall -Wextra -Werror
+package issue76861 // #cgo CFLAGS: -Wall -Wextra -Werror
 // void issue76861(void) {}
-import "C"
-
-func Issue76861() {
-	C.issue76861()
-}
+import"C" func Issue76861() { C.issue76861() }

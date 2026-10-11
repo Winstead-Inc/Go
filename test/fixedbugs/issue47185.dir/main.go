@@ -2,27 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import(bad"issue47185.dir/bad") func main() { another() bad.Bad() }
 
-import (
-	bad "issue47185.dir/bad"
-)
+func another() L { m: = make(map[string] L) return m[""] }
 
-func main() {
-	another()
-	bad.Bad()
-}
+type L struct { A Data B Data }
 
-func another() L {
-	m := make(map[string]L)
-	return m[""]
-}
-
-type L struct {
-	A Data
-	B Data
-}
-
-type Data struct {
-	F1 [22][]string
-}
+type Data struct { F1[22][] string }

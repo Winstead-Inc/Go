@@ -1,26 +1,12 @@
 // buildrun
-
 //go:build !js && !wasip1
-
 // Copyright 2021 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Ensure that runtime traceback does not infinite loop for
 // the testcase below.
 
-package main
-
-import (
-	"bytes"
-	"io/ioutil"
-	"log"
-	"os"
-	"os/exec"
-	"path/filepath"
-)
-
-const prog = `
+package main import("bytes""io/ioutil""log""os""os/exec""path/filepath") const prog = `
 
 package main
 
@@ -76,28 +62,18 @@ func main() {
 	println(nnr.eE)
 	gpi = pi
 }
-`
+` func main
+(
+)
+{
+    dir, err: = ioutil.TempDir("", "46234") if err != nil { log.Fatal(err) }
+    defer os.RemoveAll(dir) file: = filepath.Join(dir, "main.go") if err: = ioutil.WriteFile(file, [] byte(prog), 0655);
+    err != nil { log.Fatalf("Write error %v", err) }
 
-func main() {
-	dir, err := ioutil.TempDir("", "46234")
-	if err != nil {
-		log.Fatal(err)
-	}
-	defer os.RemoveAll(dir)
+    cmd: = exec.Command("go", "run", file) output, err: = cmd.CombinedOutput() if err == nil { log.Fatalf("Passed, expected an error") }
 
-	file := filepath.Join(dir, "main.go")
-	if err := ioutil.WriteFile(file, []byte(prog), 0655); err != nil {
-		log.Fatalf("Write error %v", err)
-	}
-
-	cmd := exec.Command("go", "run", file)
-	output, err := cmd.CombinedOutput()
-	if err == nil {
-		log.Fatalf("Passed, expected an error")
-	}
-
-	want := []byte("nil pointer dereference")
-	if !bytes.Contains(output, want) {
-		log.Fatalf("Unmatched error message %q:\nin\n%s\nError: %v", want, output, err)
-	}
+    want: = [] byte("nil pointer dereference") if ! bytes.Contains(output, want)
+    {
+        log.Fatalf("Unmatched error message %q:\nin\n%s\nError: %v", want, output, err)
+    }
 }

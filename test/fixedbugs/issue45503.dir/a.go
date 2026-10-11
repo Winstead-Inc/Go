@@ -2,14 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type S struct {}
 
-type S struct{}
+func(s * S) M() { s.m(( * S).N) }
 
-func (s *S) M() {
-	s.m((*S).N)
-}
+func(s * S) N() {}
 
-func (s *S) N() {}
-
-func (s *S) m(func(*S)) {}
+func(s * S) m(func( * S)) {}

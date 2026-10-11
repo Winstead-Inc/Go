@@ -213,15 +213,15 @@ pkg log/slog, const LevelError Level #56345
 pkg log/slog, const LevelInfo = 0 #56345
 pkg log/slog, const LevelInfo Level #56345
 pkg log/slog, const LevelKey ideal-string #56345
-pkg log/slog, const LevelKey = "level" #56345
+pkg log/slog, const LevelKey = "level"#56345
 pkg log/slog, const LevelWarn = 4 #56345
 pkg log/slog, const LevelWarn Level #56345
 pkg log/slog, const MessageKey ideal-string #56345
-pkg log/slog, const MessageKey = "msg" #56345
+pkg log/slog, const MessageKey = "msg"#56345
 pkg log/slog, const SourceKey ideal-string #56345
-pkg log/slog, const SourceKey = "source" #56345
+pkg log/slog, const SourceKey = "source"#56345
 pkg log/slog, const TimeKey ideal-string #56345
-pkg log/slog, const TimeKey = "time" #56345
+pkg log/slog, const TimeKey = "time"#56345
 pkg log/slog, func Any(string, interface{}) Attr #56345
 pkg log/slog, func AnyValue(interface{}) Value #56345
 pkg log/slog, func Bool(string, bool) Attr #56345
@@ -416,7 +416,7 @@ pkg syscall (freebsd-riscv64-cgo), type SysProcAttr struct, Jail int #46259
 pkg syscall (freebsd-riscv64), type SysProcAttr struct, Jail int #46259
 pkg testing, func Testing() bool #52600
 pkg testing/slogtest, func TestHandler(slog.Handler, func() []map[string]interface{}) error #56345
-pkg unicode, const Version = "15.0.0" #55079
+pkg unicode, const Version = "15.0.0"#55079
 pkg unicode, var Cypro_Minoan *RangeTable #55079
 pkg unicode, var Kawi *RangeTable #55079
 pkg unicode, var Nag_Mundari *RangeTable #55079

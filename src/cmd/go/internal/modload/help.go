@@ -2,14 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package modload
-
-import "cmd/go/internal/base"
-
-var HelpModules = &base.Command{
-	UsageLine: "modules",
-	Short:     "modules, module versions, and more",
-	Long: `
+package modload import"cmd/go/internal/base" var HelpModules = & base.Command
+{
+    UsageLine: "modules", Short: "modules, module versions, and more", Long: `
 Modules are how Go manages dependencies.
 
 A module is a collection of packages that are released, versioned, and
@@ -31,13 +26,12 @@ respectively.
 The go command's download behavior may be configured using GOPROXY, GOSUMDB,
 GOPRIVATE, and other environment variables. See 'go help environment'
 and https://go.dev/ref/mod#private-module-privacy for more information.
-	`,
+	`, 
 }
 
-var HelpGoMod = &base.Command{
-	UsageLine: "go.mod",
-	Short:     "the go.mod file",
-	Long: `
+var HelpGoMod = & base.Command
+{
+    UsageLine: "go.mod", Short: "the go.mod file", Long: `
 A module version is defined by a tree of source files, with a go.mod
 file in its root. When the go command is run, it looks in the current
 directory and then successive parent directories to find the go.mod
@@ -60,5 +54,5 @@ https://go.dev/ref/mod#go-get.
 To make other changes or to parse go.mod as JSON for use by other tools,
 use 'go mod edit'. See 'go help mod edit' or
 https://go.dev/ref/mod#go-mod-edit.
-	`,
+	`, 
 }

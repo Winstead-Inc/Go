@@ -2,12 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
-
-type Foo struct {
-	int
-	int8
-	error
-	rune
-	byte
-}
+package a type Foo struct { int int8 error rune byte }

@@ -1,5 +1,1 @@
-package a
-
-type Doer[T any] interface {
-	Do() T
-}
+package a type Doer[T any] interface { Do() T }

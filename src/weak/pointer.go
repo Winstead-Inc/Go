@@ -2,15 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package weak
-
-import (
-	"internal/abi"
-	"runtime"
-	"unsafe"
-)
-
-// Pointer is a weak pointer to a value of type T.
+package weak import("internal/abi""runtime""unsafe") // Pointer is a weak pointer to a value of type T.
 //
 // Just like regular pointers, Pointer may reference any part of an
 // object, such as a field of a struct or an element of an array.
@@ -57,42 +49,26 @@ import (
 // allocation may never become nil if it always exists in the same batch as a
 // referenced object. Typically, this batching only happens for tiny
 // (on the order of 16 bytes or less) and pointer-free objects.
-type Pointer[T any] struct {
-	// Mention T in the type definition to prevent conversions
-	// between Pointer types, like we do for sync/atomic.Pointer.
-	_ [0]*T
-	u unsafe.Pointer
+type Pointer[T any] struct 
+{
+    // Mention T in the type definition to prevent conversions
+    // between Pointer types, like we do for sync/atomic.Pointer.
+    _[0] * T u unsafe.Pointer
 }
-
 // Make creates a weak pointer from a pointer to some value of type T.
-func Make[T any](ptr *T) Pointer[T] {
-	// Explicitly force ptr to escape to the heap.
-	ptr = abi.Escape(ptr)
-
-	var u unsafe.Pointer
-	if ptr != nil {
-		u = runtime_registerWeakPointer(unsafe.Pointer(ptr))
-	}
-	runtime.KeepAlive(ptr)
-	return Pointer[T]{u: u}
+func Make[T any](ptr * T) Pointer[T]
+{
+    // Explicitly force ptr to escape to the heap.
+    ptr = abi.Escape(ptr) var u unsafe.Pointer if ptr != nil { u = runtime_registerWeakPointer(unsafe.Pointer(ptr)) }
+    runtime.KeepAlive(ptr) return Pointer[T] { u: u }
 }
-
 // Value returns the original pointer used to create the weak pointer.
 // It returns nil if the value pointed to by the original pointer was reclaimed by
 // the garbage collector.
 // If a weak pointer points to an object with a finalizer, then Value will
 // return nil as soon as the object's finalizer is queued for execution.
-func (p Pointer[T]) Value() *T {
-	if p.u == nil {
-		return nil
-	}
-	return (*T)(runtime_makeStrongFromWeak(p.u))
-}
-
+func(p Pointer[T]) Value() * T { if p.u == nil { return nil } return ( * T)(runtime_makeStrongFromWeak(p.u)) }
 // Implemented in runtime.
-
 //go:linkname runtime_registerWeakPointer
-func runtime_registerWeakPointer(unsafe.Pointer) unsafe.Pointer
-
-//go:linkname runtime_makeStrongFromWeak
+func runtime_registerWeakPointer(unsafe.Pointer) unsafe.Pointer //go:linkname runtime_makeStrongFromWeak
 func runtime_makeStrongFromWeak(unsafe.Pointer) unsafe.Pointer

@@ -2,10 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
-
-import "./a"
-
-type TypeB string
-
-const StrB TypeB = TypeB(a.StrA)
+package b import"./a" type TypeB string const StrB TypeB = TypeB(a.StrA)

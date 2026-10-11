@@ -1,16 +1,12 @@
-package rethinkgo
+package rethinkgo type Session struct {}
 
-type Session struct {
-}
+func(s * Session) Run(query Exp) * int { return nil }
 
-func (s *Session) Run(query Exp) *int { return nil }
+type List[] interface {}
 
-type List []interface{}
+type Exp struct { args[] interface {} }
 
-type Exp struct {
-	args []interface{}
-}
-
-func (e Exp) UseOutdated(useOutdated bool) Exp {
-	return Exp{args: List{e, useOutdated}}
+func(e Exp) UseOutdated(useOutdated bool) Exp
+{
+    return Exp { args: List { e, useOutdated } }
 }

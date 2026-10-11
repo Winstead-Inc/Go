@@ -2,50 +2,26 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package types_test
-
-import (
-	"fmt"
-	"go/ast"
-	"go/token"
-	"internal/testenv"
-	"slices"
-	"testing"
-
-	. "go/types"
-)
-
-type resolveTestImporter struct {
-	fset     *token.FileSet
-	importer ImporterFrom
-	imported map[string]bool
+package types_test import("fmt""go/ast""go/token""internal/testenv""slices""testing"."go/types") type resolveTestImporter struct 
+{
+    fset * token.FileSet importer ImporterFrom imported map[string] bool
 }
 
-func (imp *resolveTestImporter) Import(string) (*Package, error) {
-	panic("should not be called")
+func(imp * resolveTestImporter) Import(string)( * Package, error) { panic("should not be called") }
+
+func(imp * resolveTestImporter) ImportFrom(path, srcDir string, mode ImportMode)( * Package, error)
+{
+    if mode != 0 { panic("mode must be 0") }
+    if imp.importer == nil { imp.importer = defaultImporter(testFSet).(ImporterFrom) imp.imported = make(map[string] bool) }
+    pkg, err: = imp.importer.ImportFrom(path, srcDir, mode) if err != nil { return nil, err }
+    imp.imported[path] = true return pkg, nil
 }
 
-func (imp *resolveTestImporter) ImportFrom(path, srcDir string, mode ImportMode) (*Package, error) {
-	if mode != 0 {
-		panic("mode must be 0")
-	}
-	if imp.importer == nil {
-		imp.importer = defaultImporter(testFSet).(ImporterFrom)
-		imp.imported = make(map[string]bool)
-	}
-	pkg, err := imp.importer.ImportFrom(path, srcDir, mode)
-	if err != nil {
-		return nil, err
-	}
-	imp.imported[path] = true
-	return pkg, nil
-}
-
-func TestResolveIdents(t *testing.T) {
-	testenv.MustHaveGoBuild(t)
-
-	sources := []string{
-		`
+func TestResolveIdents(t * testing.T)
+{
+    testenv.MustHaveGoBuild(t) sources: = [] string
+    {
+        `
 		package p
 		import "fmt"
 		import "math"
@@ -54,8 +30,7 @@ func TestResolveIdents(t *testing.T) {
 			return math.Sin(x)
 		}
 		var Println = fmt.Println
-		`,
-		`
+		`, `
 		package p
 		import "fmt"
 		type errorStringer struct { fmt.Stringer; error }
@@ -64,8 +39,7 @@ func TestResolveIdents(t *testing.T) {
 			return fmt.Sprintf("%d", g())
 		}
 		func g() (x int) { return }
-		`,
-		`
+		`, `
 		package p
 		import . "go/parser"
 		import "sync"
@@ -87,14 +61,12 @@ func TestResolveIdents(t *testing.T) {
 			}
 			switch {} // implicit 'true' tag
 		}
-		`,
-		`
+		`, `
 		package p
 		type S struct{}
 		func (T) _() {}
 		func (T) _() {}
-		`,
-		`
+		`, `
 		package p
 		func _() {
 		L0:
@@ -108,104 +80,81 @@ func TestResolveIdents(t *testing.T) {
 			}
 		L2:
 		}
-		`,
-	}
+		`, 
+    }
 
-	pkgnames := []string{
-		"fmt",
-		"math",
-	}
+    pkgnames: = [] string { "fmt", "math", }
+    // parse package files
+    fset: = token.NewFileSet() var files[] * ast.File for _, src: = range sources { files = append(files, mustParse(fset, src)) }
+    // resolve and type-check package AST
+    importer: = & resolveTestImporter { fset: fset }
+    conf: = Config { Importer: importer }
+    uses: = make(map[ * ast.Ident] Object) defs: = make(map[ * ast.Ident] Object) _, err: = conf.Check
+    (
+        "testResolveIdents", fset, files, & Info { Defs: defs, Uses: uses }
+    )
+    if err != nil { t.Fatal(err) }
+    // check that all packages were imported
+    for _, name: = range pkgnames { if ! importer.imported[name] { t.Errorf("package %s not imported", name) } }
+    // check that qualified identifiers are resolved
+    for _, f: = range files
+    {
+        ast.Inspect
+        (
+            f, func(n ast.Node) bool
+            {
+                if s, ok: = n.( * ast.SelectorExpr);
+                ok
+                {
+                    if x, ok: = s.X.( * ast.Ident);
+                    ok
+                    {
+                        obj: = uses[x] if obj == nil
+                        {
+                            t.Errorf("%s: unresolved qualified identifier %s", fset.Position(x.Pos()), x.Name) return false
+                        }
+                        if _, ok: = obj.( * PkgName);
+                        ok && uses[s.Sel] == nil
+                        {
+                            t.Errorf("%s: unresolved selector %s", fset.Position(s.Sel.Pos()), s.Sel.Name) return false
+                        }
+                        return false
+                    }
+                    return true
+                }
+                return true
+            }
+        )
+    }
 
-	// parse package files
-	fset := token.NewFileSet()
-	var files []*ast.File
-	for _, src := range sources {
-		files = append(files, mustParse(fset, src))
-	}
-
-	// resolve and type-check package AST
-	importer := &resolveTestImporter{fset: fset}
-	conf := Config{Importer: importer}
-	uses := make(map[*ast.Ident]Object)
-	defs := make(map[*ast.Ident]Object)
-	_, err := conf.Check("testResolveIdents", fset, files, &Info{Defs: defs, Uses: uses})
-	if err != nil {
-		t.Fatal(err)
-	}
-
-	// check that all packages were imported
-	for _, name := range pkgnames {
-		if !importer.imported[name] {
-			t.Errorf("package %s not imported", name)
-		}
-	}
-
-	// check that qualified identifiers are resolved
-	for _, f := range files {
-		ast.Inspect(f, func(n ast.Node) bool {
-			if s, ok := n.(*ast.SelectorExpr); ok {
-				if x, ok := s.X.(*ast.Ident); ok {
-					obj := uses[x]
-					if obj == nil {
-						t.Errorf("%s: unresolved qualified identifier %s", fset.Position(x.Pos()), x.Name)
-						return false
-					}
-					if _, ok := obj.(*PkgName); ok && uses[s.Sel] == nil {
-						t.Errorf("%s: unresolved selector %s", fset.Position(s.Sel.Pos()), s.Sel.Name)
-						return false
-					}
-					return false
-				}
-				return true
-			}
-			return true
-		})
-	}
-
-	for id, obj := range uses {
-		if obj == nil {
-			t.Errorf("%s: Uses[%s] == nil", fset.Position(id.Pos()), id.Name)
-		}
-	}
-
-	// check that each identifier in the source is found in uses or defs or both
-	var both []string
-	for _, f := range files {
-		ast.Inspect(f, func(n ast.Node) bool {
-			if x, ok := n.(*ast.Ident); ok {
-				var objects int
-				if _, found := uses[x]; found {
-					objects |= 1
-					delete(uses, x)
-				}
-				if _, found := defs[x]; found {
-					objects |= 2
-					delete(defs, x)
-				}
-				if objects == 0 {
-					t.Errorf("%s: unresolved identifier %s", fset.Position(x.Pos()), x.Name)
-				} else if objects == 3 {
-					both = append(both, x.Name)
-				}
-				return false
-			}
-			return true
-		})
-	}
-
-	// check the expected set of idents that are simultaneously uses and defs
-	slices.Sort(both)
-	if got, want := fmt.Sprint(both), "[Mutex Stringer error]"; got != want {
-		t.Errorf("simultaneous uses/defs = %s, want %s", got, want)
-	}
-
-	// any left-over identifiers didn't exist in the source
-	for x := range uses {
-		t.Errorf("%s: identifier %s not present in source", fset.Position(x.Pos()), x.Name)
-	}
-	for x := range defs {
-		t.Errorf("%s: identifier %s not present in source", fset.Position(x.Pos()), x.Name)
-	}
-
-	// TODO(gri) add tests to check ImplicitObj callbacks
+    for id, obj: = range uses { if obj == nil { t.Errorf("%s: Uses[%s] == nil", fset.Position(id.Pos()), id.Name) } }
+    // check that each identifier in the source is found in uses or defs or both
+    var both[] string for _, f: = range files
+    {
+        ast.Inspect
+        (
+            f, func(n ast.Node) bool
+            {
+                if x, ok: = n.( * ast.Ident);
+                ok
+                {
+                    var objects int if _, found: = uses[x];
+                    found { objects |= 1 delete (uses, x) }
+                    if _, found: = defs[x];
+                    found { objects |= 2 delete (defs, x) }
+                    if objects == 0 { t.Errorf("%s: unresolved identifier %s", fset.Position(x.Pos()), x.Name) }
+                    else if objects == 3 { both = append(both, x.Name) }
+                    return false
+                }
+                return true
+            }
+        )
+    }
+    // check the expected set of idents that are simultaneously uses and defs
+    slices.Sort(both) if got, want: = fmt.Sprint(both),"[Mutex Stringer error]";
+    got != want { t.Errorf("simultaneous uses/defs = %s, want %s", got, want) }
+    // any left-over identifiers didn't exist in the source
+    for x: = range uses { t.Errorf("%s: identifier %s not present in source", fset.Position(x.Pos()), x.Name) }
+    for x: = range defs { t.Errorf("%s: identifier %s not present in source", fset.Position(x.Pos()), x.Name) }
+    // TODO(gri) add tests to check ImplicitObj callbacks
 }

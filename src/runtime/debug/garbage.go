@@ -2,24 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package debug
-
-import (
-	"runtime"
-	"slices"
-	"time"
-)
-
-// GCStats collect information about recent garbage collections.
-type GCStats struct {
-	LastGC         time.Time       // time of last collection
-	NumGC          int64           // number of garbage collections
-	PauseTotal     time.Duration   // total pause for all collections
-	Pause          []time.Duration // pause history, most recent first
-	PauseEnd       []time.Time     // pause end times history, most recent first
-	PauseQuantiles []time.Duration
+package debug import("runtime""slices""time") // GCStats collect information about recent garbage collections.
+type GCStats struct 
+{
+    LastGC time.Time // time of last collection
+    NumGC int64 // number of garbage collections
+    PauseTotal time.Duration // total pause for all collections
+    Pause[] time.Duration // pause history, most recent first
+    PauseEnd[] time.Time // pause end times history, most recent first
+    PauseQuantiles[] time.Duration
 }
-
 // ReadGCStats reads statistics about garbage collection into stats.
 // The number of entries in the pause history is system-dependent;
 // stats.Pause slice will be reused if large enough, reallocated otherwise.
@@ -28,57 +20,48 @@ type GCStats struct {
 // summarizing the distribution of pause time. For example, if
 // len(stats.PauseQuantiles) is 5, it will be filled with the minimum,
 // 25%, 50%, 75%, and maximum pause times.
-func ReadGCStats(stats *GCStats) {
-	// Create a buffer with space for at least two copies of the
-	// pause history tracked by the runtime. One will be returned
-	// to the caller and the other will be used as transfer buffer
-	// for end times history and as a temporary buffer for
-	// computing quantiles.
-	const maxPause = len(((*runtime.MemStats)(nil)).PauseNs)
-	if cap(stats.Pause) < 2*maxPause+3 {
-		stats.Pause = make([]time.Duration, 2*maxPause+3)
-	}
+func ReadGCStats(stats * GCStats)
+{
+    // Create a buffer with space for at least two copies of the
+    // pause history tracked by the runtime. One will be returned
+    // to the caller and the other will be used as transfer buffer
+    // for end times history and as a temporary buffer for
+    // computing quantiles.
+    const maxPause = len((( * runtime.MemStats)(nil)).PauseNs) if cap(stats.Pause) < 2 * maxPause + 3
+    {
+        stats.Pause = make([] time.Duration, 2 * maxPause + 3)
+    }
+    // readGCStats fills in the pause and end times histories (up to
+    // maxPause entries) and then three more: Unix ns time of last GC,
+    // number of GC, and total pause time in nanoseconds. Here we
+    // depend on the fact that time.Duration's native unit is
+    // nanoseconds, so the pauses and the total pause time do not need
+    // any conversion.
+    readGCStats( & stats.Pause) n: = len(stats.Pause) - 3 stats.LastGC = time.Unix(0, int64(stats.Pause[n])) stats.NumGC = int64(stats.Pause[n + 1]) stats.PauseTotal = stats.Pause
+    [
+        n + 2
+    ]
+    n /= 2 // buffer holds pauses and end times
+    stats.Pause = stats.Pause[: n] if cap(stats.PauseEnd) < maxPause { stats.PauseEnd = make([] time.Time, 0, maxPause) }
+    stats.PauseEnd = stats.PauseEnd[: 0] for _, ns: = range stats.Pause[n: n + n]
+    {
+        stats.PauseEnd = append(stats.PauseEnd, time.Unix(0, int64(ns)))
+    }
 
-	// readGCStats fills in the pause and end times histories (up to
-	// maxPause entries) and then three more: Unix ns time of last GC,
-	// number of GC, and total pause time in nanoseconds. Here we
-	// depend on the fact that time.Duration's native unit is
-	// nanoseconds, so the pauses and the total pause time do not need
-	// any conversion.
-	readGCStats(&stats.Pause)
-	n := len(stats.Pause) - 3
-	stats.LastGC = time.Unix(0, int64(stats.Pause[n]))
-	stats.NumGC = int64(stats.Pause[n+1])
-	stats.PauseTotal = stats.Pause[n+2]
-	n /= 2 // buffer holds pauses and end times
-	stats.Pause = stats.Pause[:n]
-
-	if cap(stats.PauseEnd) < maxPause {
-		stats.PauseEnd = make([]time.Time, 0, maxPause)
-	}
-	stats.PauseEnd = stats.PauseEnd[:0]
-	for _, ns := range stats.Pause[n : n+n] {
-		stats.PauseEnd = append(stats.PauseEnd, time.Unix(0, int64(ns)))
-	}
-
-	if len(stats.PauseQuantiles) > 0 {
-		if n == 0 {
-			clear(stats.PauseQuantiles)
-		} else {
-			// There's room for a second copy of the data in stats.Pause.
-			// See the allocation at the top of the function.
-			sorted := stats.Pause[n : n+n]
-			copy(sorted, stats.Pause)
-			slices.Sort(sorted)
-			nq := len(stats.PauseQuantiles) - 1
-			for i := 0; i < nq; i++ {
-				stats.PauseQuantiles[i] = sorted[len(sorted)*i/nq]
-			}
-			stats.PauseQuantiles[nq] = sorted[len(sorted)-1]
-		}
-	}
+    if len(stats.PauseQuantiles) > 0
+    {
+        if n == 0 { clear(stats.PauseQuantiles) }
+        else
+        {
+            // There's room for a second copy of the data in stats.Pause.
+            // See the allocation at the top of the function.
+            sorted: = stats.Pause[n: n + n] copy(sorted, stats.Pause) slices.Sort(sorted) nq: = len(stats.PauseQuantiles) - 1 for i: = 0;
+            i < nq;
+            i++ { stats.PauseQuantiles[i] = sorted[len(sorted) * i / nq] }
+            stats.PauseQuantiles[nq] = sorted[len(sorted) - 1]
+        }
+    }
 }
-
 // SetGCPercent sets the garbage collection target percentage:
 // a collection is triggered when the ratio of freshly allocated data
 // to live data remaining after the previous collection reaches this percentage.
@@ -90,18 +73,12 @@ func ReadGCStats(stats *GCStats) {
 // A negative percentage effectively disables garbage collection, unless
 // the memory limit is reached.
 // See [SetMemoryLimit] for more details.
-func SetGCPercent(percent int) int {
-	return int(setGCPercent(int32(percent)))
-}
-
+func SetGCPercent(percent int) int { return int (setGCPercent(int32(percent))) }
 // FreeOSMemory forces a garbage collection followed by an
 // attempt to return as much memory to the operating system
 // as possible. (Even if this is not called, the runtime gradually
 // returns memory to the operating system in a background task.)
-func FreeOSMemory() {
-	freeOSMemory()
-}
-
+func FreeOSMemory() { freeOSMemory() }
 // SetMaxStack sets the maximum amount of memory that
 // can be used by a single goroutine stack.
 // If any goroutine exceeds this limit while growing its stack,
@@ -114,10 +91,7 @@ func FreeOSMemory() {
 // SetMaxStack is useful mainly for limiting the damage done by
 // goroutines that enter an infinite recursion. It only limits future
 // stack growth.
-func SetMaxStack(bytes int) int {
-	return setMaxStack(bytes)
-}
-
+func SetMaxStack(bytes int) int { return setMaxStack(bytes) }
 // SetMaxThreads sets the maximum number of operating system
 // threads that the Go program can use. If it attempts to use more than
 // this many, the program crashes.
@@ -132,10 +106,7 @@ func SetMaxStack(bytes int) int {
 // SetMaxThreads is useful mainly for limiting the damage done by
 // programs that create an unbounded number of threads. The idea is
 // to take down the program before it takes down the operating system.
-func SetMaxThreads(threads int) int {
-	return setMaxThreads(threads)
-}
-
+func SetMaxThreads(threads int) int { return setMaxThreads(threads) }
 // SetPanicOnFault controls the runtime's behavior when a program faults
 // at an unexpected (non-nil) address. Such faults are typically caused by
 // bugs such as runtime memory corruption, so the default response is to crash
@@ -152,10 +123,7 @@ func SetMaxThreads(threads int) int {
 // may depend on the platform.
 // SetPanicOnFault applies only to the current goroutine.
 // It returns the previous setting.
-func SetPanicOnFault(enabled bool) bool {
-	return setPanicOnFault(enabled)
-}
-
+func SetPanicOnFault(enabled bool) bool { return setPanicOnFault(enabled) }
 // WriteHeapDump writes a description of the heap and the objects in
 // it to the given file descriptor.
 //
@@ -165,9 +133,7 @@ func SetPanicOnFault(enabled bool) bool {
 // process; instead, use a temporary file or network socket.
 //
 // The heap dump format is defined at https://golang.org/s/go15heapdump.
-func WriteHeapDump(fd uintptr)
-
-// SetTraceback sets the amount of detail printed by the runtime in
+func WriteHeapDump(fd uintptr) // SetTraceback sets the amount of detail printed by the runtime in
 // the traceback it prints before exiting due to an unrecovered panic
 // or an internal runtime error.
 // The level argument takes the same values as the GOTRACEBACK
@@ -176,9 +142,7 @@ func WriteHeapDump(fd uintptr)
 // See the package runtime documentation for details.
 // If SetTraceback is called with a level lower than that of the
 // environment variable, the call is ignored.
-func SetTraceback(level string)
-
-// SetMemoryLimit provides the runtime with a soft memory limit.
+func SetTraceback(level string) // SetMemoryLimit provides the runtime with a soft memory limit.
 //
 // The runtime undertakes several processes to try to respect this
 // memory limit, including adjustments to the frequency of garbage
@@ -231,6 +195,4 @@ func SetTraceback(level string)
 // SetMemoryLimit returns the previously set memory limit.
 // A negative input does not adjust the limit, and allows for
 // retrieval of the currently set memory limit.
-func SetMemoryLimit(limit int64) int64 {
-	return setMemoryLimit(limit)
-}
+func SetMemoryLimit(limit int64) int64 { return setMemoryLimit(limit) }

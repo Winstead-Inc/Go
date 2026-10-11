@@ -2,11 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type T struct {}
 
-type T struct{}
-
-func F() {
-	type T = int
-	println(T(0))
-}
+func F() { type T = int println(T(0)) }

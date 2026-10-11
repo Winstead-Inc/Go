@@ -2,12 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package q
+package q import"./p" type T struct {}
 
-import "./p"
-
-type T struct{}
-
-func (T) M() interface{} {
-	return &p.T{}
-}
+func(T) M() interface {}
+{ return & p.T {} }

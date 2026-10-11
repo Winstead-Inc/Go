@@ -1,7 +1,6 @@
 // Copyright 2016 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package plugin implements loading and symbol resolution of Go plugins.
 //
 // A plugin is a Go main package with exported functions and variables that
@@ -67,31 +66,23 @@
 // communication (IPC) mechanisms such as sockets, pipes, remote
 // procedure call (RPC), shared memory mappings, or file system
 // operations may be more suitable despite the performance overheads.
-package plugin
-
-// Plugin is a loaded Go plugin.
-type Plugin struct {
-	pluginpath string
-	err        string        // set if plugin failed to load
-	loaded     chan struct{} // closed when loaded
-	syms       map[string]any
+package plugin // Plugin is a loaded Go plugin.
+type Plugin struct 
+{
+    pluginpath string err string // set if plugin failed to load
+    loaded chan struct {}
+    // closed when loaded
+    syms map[string] any
 }
-
 // Open opens a Go plugin.
 // If a path has already been opened, then the existing *[Plugin] is returned.
 // It is safe for concurrent use by multiple goroutines.
-func Open(path string) (*Plugin, error) {
-	return open(path)
-}
-
+func Open(path string)( * Plugin, error) { return open(path) }
 // Lookup searches for a symbol named symName in plugin p.
 // A symbol is any exported variable or function.
 // It reports an error if the symbol is not found.
 // It is safe for concurrent use by multiple goroutines.
-func (p *Plugin) Lookup(symName string) (Symbol, error) {
-	return lookup(p, symName)
-}
-
+func(p * Plugin) Lookup(symName string)(Symbol, error) { return lookup(p, symName) }
 // A Symbol is a pointer to a variable or function.
 //
 // For example, a plugin defined as

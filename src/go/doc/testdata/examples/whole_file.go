@@ -2,22 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package foo_test
+package foo_test import"fmt" type X int func(X) Foo() {}
 
-import "fmt"
+func(X) TestBlah() {}
 
-type X int
+func(X) BenchmarkFoo() {}
 
-func (X) Foo() {
-}
-
-func (X) TestBlah() {
-}
-
-func (X) BenchmarkFoo() {
-}
-
-func Example() {
-	fmt.Println("Hello, world!")
-	// Output: Hello, world!
+func Example()
+{
+    fmt.Println("Hello, world!") // Output: Hello, world!
 }

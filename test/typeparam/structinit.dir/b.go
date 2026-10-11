@@ -2,11 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package b
-
-import "./a"
-
-func B() {
-	var x a.S[int]
-	_ = x
-}
+package b import"./a" func B() { var x a.S[int] _ = x }

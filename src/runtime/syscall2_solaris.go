@@ -2,10 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package runtime
-
-import _ "unsafe" // for go:linkname
-
+package runtime import _"unsafe" // for go:linkname
 //go:cgo_import_dynamic libc_chdir chdir "libc.so"
 //go:cgo_import_dynamic libc_chroot chroot "libc.so"
 //go:cgo_import_dynamic libc_close close "libc.so"
@@ -24,7 +21,6 @@ import _ "unsafe" // for go:linkname
 //go:cgo_import_dynamic libc_syscall syscall "libc.so"
 //go:cgo_import_dynamic libc_wait4 wait4 "libc.so"
 //go:cgo_import_dynamic libc_issetugid issetugid "libc.so"
-
 //go:linkname libc_chdir libc_chdir
 //go:linkname libc_chroot libc_chroot
 //go:linkname libc_close libc_close

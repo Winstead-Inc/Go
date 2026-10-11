@@ -2,15 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"test/a" func main() { stop: = start() defer stop() }
 
-import "test/a"
-
-func main() {
-	stop := start()
-	defer stop()
-}
-
-func start() func() {
-	return a.Start().Stop
-}
+func start() func() { return a.Start().Stop }

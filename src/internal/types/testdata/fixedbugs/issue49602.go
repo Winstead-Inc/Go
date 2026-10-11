@@ -2,18 +2,13 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type M interface { m() }
 
-type M interface {
-	m()
-}
+type C interface { comparable }
 
-type C interface {
-	comparable
-}
-
-type _ interface {
-	int | M          // ERROR "cannot use p.M in union (p.M contains methods)"
-	int | comparable // ERROR "cannot use comparable in union"
-	int | C          // ERROR "cannot use p.C in union (p.C embeds comparable)"
+type _ interface
+{
+    int | M // ERROR "cannot use p.M in union (p.M contains methods)"
+    int | comparable // ERROR "cannot use comparable in union"
+    int | C // ERROR "cannot use p.C in union (p.C embeds comparable)"
 }

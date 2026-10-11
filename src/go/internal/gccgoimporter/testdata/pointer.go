@@ -1,3 +1,1 @@
-package pointer
-
-type Int8Ptr *int8
+package pointer type Int8Ptr * int8

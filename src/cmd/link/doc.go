@@ -130,5 +130,4 @@ Flags:
 		Print trace of linker operations.
 	-w
 		Omit the DWARF symbol table.
-*/
-package main
+*/ package main

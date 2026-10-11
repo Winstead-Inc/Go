@@ -1,9 +1,7 @@
 // Copyright 2023 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.jsonv2
-
 // Migrating to v2
 //
 // This package (i.e., [encoding/json]) is now formally known as the v1 package
@@ -165,30 +163,12 @@
 // See the [encoding/json/v2 Migration Guide] for additional detail on migration approaches.
 //
 // [encoding/json/v2 Migration Guide]: https://go.dev/doc/jsonv2-migration
-package json
-
-// TODO(https://go.dev/issue/71631): Update the "Migrating to v2" documentation
+package json // TODO(https://go.dev/issue/71631): Update the "Migrating to v2" documentation
 // with default v2 behavior for [time.Duration].
 
-import (
-	"encoding"
-
-	"encoding/json/internal/jsonflags"
-	"encoding/json/internal/jsonopts"
-	"encoding/json/jsontext"
-	jsonv2 "encoding/json/v2"
-)
-
-// Reference encoding, jsonv2, and jsontext packages to assist pkgsite
+import("encoding""encoding/json/internal/jsonflags""encoding/json/internal/jsonopts""encoding/json/jsontext" jsonv2"encoding/json/v2") // Reference encoding, jsonv2, and jsontext packages to assist pkgsite
 // in being able to hotlink references to those packages.
-var (
-	_ encoding.TextMarshaler
-	_ encoding.TextUnmarshaler
-	_ jsonv2.Options
-	_ jsontext.Options
-)
-
-// Options are a set of options to configure the v2 "json" package
+var(_ encoding.TextMarshaler _ encoding.TextUnmarshaler _ jsonv2.Options _ jsontext.Options) // Options are a set of options to configure the v2 "json" package
 // to operate with v1 semantics for particular features.
 // Values of this type can be passed to v2 functions like
 // [jsonv2.Marshal] or [jsonv2.Unmarshal].
@@ -196,9 +176,7 @@ var (
 //
 // See the "Migrating to v2" section for guidance on how to migrate usage
 // of "json" from using v1 to using v2 instead.
-type Options = jsonopts.Options
-
-// DefaultOptionsV1 is the full set of all options that define v1 semantics.
+type Options = jsonopts.Options // DefaultOptionsV1 is the full set of all options that define v1 semantics.
 // It is equivalent to the following boolean options being set to true:
 //
 //   - [CallMethodsWithLegacySemantics]
@@ -230,10 +208,7 @@ type Options = jsonopts.Options
 //
 //	jsonv2.Marshal(v, jsonv1.DefaultOptionsV1())
 //	jsonv2.Unmarshal(b, v, jsonv1.DefaultOptionsV1())
-func DefaultOptionsV1() Options {
-	return &jsonopts.DefaultOptionsV1
-}
-
+func DefaultOptionsV1() Options { return & jsonopts.DefaultOptionsV1 }
 // CallMethodsWithLegacySemantics specifies that calling of type-provided
 // marshal and unmarshal methods follow legacy semantics:
 //
@@ -269,28 +244,17 @@ func DefaultOptionsV1() Options {
 //
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
-func CallMethodsWithLegacySemantics(v bool) Options {
-	if v {
-		return jsonflags.CallMethodsWithLegacySemantics | 1
-	} else {
-		return jsonflags.CallMethodsWithLegacySemantics | 0
-	}
+func CallMethodsWithLegacySemantics(v bool) Options
+{
+    if v { return jsonflags.CallMethodsWithLegacySemantics | 1 } else { return jsonflags.CallMethodsWithLegacySemantics | 0 }
 }
-
 // FormatByteArrayAsArray specifies that a Go [N]byte is
 // formatted as a normal Go array in contrast to the v2 default of
 // formatting [N]byte as using binary data encoding (RFC 4648).
 //
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
-func FormatByteArrayAsArray(v bool) Options {
-	if v {
-		return jsonflags.FormatByteArrayAsArray | 1
-	} else {
-		return jsonflags.FormatByteArrayAsArray | 0
-	}
-}
-
+func FormatByteArrayAsArray(v bool) Options { if v { return jsonflags.FormatByteArrayAsArray | 1 } else { return jsonflags.FormatByteArrayAsArray | 0 } }
 // FormatBytesWithLegacySemantics specifies that handling of
 // []~byte and [N]~byte types follow legacy semantics:
 //
@@ -310,29 +274,21 @@ func FormatByteArrayAsArray(v bool) Options {
 //
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
-func FormatBytesWithLegacySemantics(v bool) Options {
-	if v {
-		return jsonflags.FormatBytesWithLegacySemantics | 1
-	} else {
-		return jsonflags.FormatBytesWithLegacySemantics | 0
-	}
+func FormatBytesWithLegacySemantics(v bool) Options
+{
+    if v { return jsonflags.FormatBytesWithLegacySemantics | 1 } else { return jsonflags.FormatBytesWithLegacySemantics | 0 }
 }
-
 // FormatDurationAsNano specifies that a [time.Duration] is
 // formatted as a JSON number representing the number of nanoseconds
 // in contrast to the v2 default of reporting an error.
 //
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
-func FormatDurationAsNano(v bool) Options {
-	// TODO(https://go.dev/issue/71631): Update documentation with v2 behavior.
-	if v {
-		return jsonflags.FormatDurationAsNano | 1
-	} else {
-		return jsonflags.FormatDurationAsNano | 0
-	}
+func FormatDurationAsNano(v bool) Options
+{
+    // TODO(https://go.dev/issue/71631): Update documentation with v2 behavior.
+    if v { return jsonflags.FormatDurationAsNano | 1 } else { return jsonflags.FormatDurationAsNano | 0 }
 }
-
 // MatchCaseSensitiveDelimiter specifies that underscores and dashes are
 // not to be ignored when performing case-insensitive name matching which
 // occurs under [jsonv2.MatchCaseInsensitiveNames] or the `case:ignore` tag option.
@@ -342,14 +298,10 @@ func FormatDurationAsNano(v bool) Options {
 //
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
-func MatchCaseSensitiveDelimiter(v bool) Options {
-	if v {
-		return jsonflags.MatchCaseSensitiveDelimiter | 1
-	} else {
-		return jsonflags.MatchCaseSensitiveDelimiter | 0
-	}
+func MatchCaseSensitiveDelimiter(v bool) Options
+{
+    if v { return jsonflags.MatchCaseSensitiveDelimiter | 1 } else { return jsonflags.MatchCaseSensitiveDelimiter | 0 }
 }
-
 // MergeWithLegacySemantics specifies that unmarshaling into a non-zero
 // Go value follows legacy semantics:
 //
@@ -373,14 +325,10 @@ func MatchCaseSensitiveDelimiter(v bool) Options {
 //
 // This only affects unmarshaling and is ignored when marshaling.
 // The v1 default is true.
-func MergeWithLegacySemantics(v bool) Options {
-	if v {
-		return jsonflags.MergeWithLegacySemantics | 1
-	} else {
-		return jsonflags.MergeWithLegacySemantics | 0
-	}
+func MergeWithLegacySemantics(v bool) Options
+{
+    if v { return jsonflags.MergeWithLegacySemantics | 1 } else { return jsonflags.MergeWithLegacySemantics | 0 }
 }
-
 // OmitEmptyWithLegacySemantics specifies that the `omitempty` tag option
 // follows a definition of empty where a field is omitted if the Go value is
 // false, 0, a nil pointer, a nil interface value,
@@ -395,14 +343,10 @@ func MergeWithLegacySemantics(v bool) Options {
 //
 // This only affects marshaling and is ignored when unmarshaling.
 // The v1 default is true.
-func OmitEmptyWithLegacySemantics(v bool) Options {
-	if v {
-		return jsonflags.OmitEmptyWithLegacySemantics | 1
-	} else {
-		return jsonflags.OmitEmptyWithLegacySemantics | 0
-	}
+func OmitEmptyWithLegacySemantics(v bool) Options
+{
+    if v { return jsonflags.OmitEmptyWithLegacySemantics | 1 } else { return jsonflags.OmitEmptyWithLegacySemantics | 0 }
 }
-
 // ParseBytesWithLooseRFC4648 specifies that when parsing
 // binary data encoded as "base32" or "base64",
 // to ignore the presence of '\r' and '\n' characters.
@@ -412,14 +356,10 @@ func OmitEmptyWithLegacySemantics(v bool) Options {
 //
 // This only affects unmarshaling and is ignored when marshaling.
 // The v1 default is true.
-func ParseBytesWithLooseRFC4648(v bool) Options {
-	if v {
-		return jsonflags.ParseBytesWithLooseRFC4648 | 1
-	} else {
-		return jsonflags.ParseBytesWithLooseRFC4648 | 0
-	}
+func ParseBytesWithLooseRFC4648(v bool) Options
+{
+    if v { return jsonflags.ParseBytesWithLooseRFC4648 | 1 } else { return jsonflags.ParseBytesWithLooseRFC4648 | 0 }
 }
-
 // ParseTimeWithLooseRFC3339 specifies that a [time.Time]
 // parses according to loose adherence to RFC 3339.
 // In particular, it permits historically incorrect representations,
@@ -429,14 +369,10 @@ func ParseBytesWithLooseRFC4648(v bool) Options {
 //
 // This only affects unmarshaling and is ignored when marshaling.
 // The v1 default is true.
-func ParseTimeWithLooseRFC3339(v bool) Options {
-	if v {
-		return jsonflags.ParseTimeWithLooseRFC3339 | 1
-	} else {
-		return jsonflags.ParseTimeWithLooseRFC3339 | 0
-	}
+func ParseTimeWithLooseRFC3339(v bool) Options
+{
+    if v { return jsonflags.ParseTimeWithLooseRFC3339 | 1 } else { return jsonflags.ParseTimeWithLooseRFC3339 | 0 }
 }
-
 // ReportErrorsWithLegacySemantics specifies that Marshal and Unmarshal
 // should report errors with legacy semantics:
 //
@@ -486,14 +422,10 @@ func ParseTimeWithLooseRFC3339(v bool) Options {
 //
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
-func ReportErrorsWithLegacySemantics(v bool) Options {
-	if v {
-		return jsonflags.ReportErrorsWithLegacySemantics | 1
-	} else {
-		return jsonflags.ReportErrorsWithLegacySemantics | 0
-	}
+func ReportErrorsWithLegacySemantics(v bool) Options
+{
+    if v { return jsonflags.ReportErrorsWithLegacySemantics | 1 } else { return jsonflags.ReportErrorsWithLegacySemantics | 0 }
 }
-
 // StringifyWithLegacySemantics specifies that the `string` tag option
 // may stringify bools and string values. It only takes effect on fields
 // where the top-level type is a bool, string, numeric kind, or a pointer to
@@ -517,14 +449,10 @@ func ReportErrorsWithLegacySemantics(v bool) Options {
 //
 // This affects either marshaling or unmarshaling.
 // The v1 default is true.
-func StringifyWithLegacySemantics(v bool) Options {
-	if v {
-		return jsonflags.StringifyWithLegacySemantics | 1
-	} else {
-		return jsonflags.StringifyWithLegacySemantics | 0
-	}
+func StringifyWithLegacySemantics(v bool) Options
+{
+    if v { return jsonflags.StringifyWithLegacySemantics | 1 } else { return jsonflags.StringifyWithLegacySemantics | 0 }
 }
-
 // UnmarshalArrayFromAnyLength specifies that Go arrays can be unmarshaled
 // from input JSON arrays of any length. If the JSON array is too short,
 // then the remaining Go array elements are zeroed. If the JSON array
@@ -534,20 +462,13 @@ func StringifyWithLegacySemantics(v bool) Options {
 //
 // This only affects unmarshaling and is ignored when marshaling.
 // The v1 default is true.
-func UnmarshalArrayFromAnyLength(v bool) Options {
-	if v {
-		return jsonflags.UnmarshalArrayFromAnyLength | 1
-	} else {
-		return jsonflags.UnmarshalArrayFromAnyLength | 0
-	}
+func UnmarshalArrayFromAnyLength(v bool) Options
+{
+    if v { return jsonflags.UnmarshalArrayFromAnyLength | 1 } else { return jsonflags.UnmarshalArrayFromAnyLength | 0 }
 }
-
 // unmarshalAnyWithRawNumber specifies that unmarshaling a JSON number into
 // an empty Go interface should use the Number type instead of a float64.
-func unmarshalAnyWithRawNumber(v bool) Options {
-	if v {
-		return jsonflags.UnmarshalAnyWithRawNumber | 1
-	} else {
-		return jsonflags.UnmarshalAnyWithRawNumber | 0
-	}
+func unmarshalAnyWithRawNumber(v bool) Options
+{
+    if v { return jsonflags.UnmarshalAnyWithRawNumber | 1 } else { return jsonflags.UnmarshalAnyWithRawNumber | 0 }
 }

@@ -1,32 +1,18 @@
 // run
-
 // Copyright 2013 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Used to die in runtime due to init goroutine exiting while
 // locked to main thread.
 
-package main
-
-import (
-	"os"
-	"runtime"
-)
-
-func init() {
-	c := make(chan int, 1)
-	defer func() {
-		c <- 0
-	}()
-	go func() {
-		os.Exit(<-c)
-	}()
-	runtime.Goexit()
+package main import("os""runtime") func init()
+{
+    c: = make(chan int , 1) defer func() { c <- 0 }
+() go func() { os.Exit( <- c) }
+() runtime.Goexit()
 }
 
-func main() {
-}
+func main() {}
 
 /* Before fix:
 

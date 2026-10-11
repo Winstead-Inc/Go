@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package runtime
-
-// sleep and wakeup on one-time events.
+package runtime // sleep and wakeup on one-time events.
 // before any calls to notesleep or notewakeup,
 // must call noteclear to initialize the Note.
 // then, exactly one thread can call notesleep
@@ -24,17 +22,11 @@ package runtime
 //
 // notesleep/notetsleep are generally called on g0,
 // notetsleepg is similar to notetsleep but is called on user g.
-type note struct {
-	status int32
-
-	// The G waiting on this note.
-	gp *g
-
-	// Deadline, if any. 0 indicates no timeout.
-	deadline int64
-
-	// allprev and allnext are used to form the allDeadlineNotes linked
-	// list. These are unused if there is no deadline.
-	allprev *note
-	allnext *note
+type note struct 
+{
+    status int32 // The G waiting on this note.
+    gp * g // Deadline, if any. 0 indicates no timeout.
+    deadline int64 // allprev and allnext are used to form the allDeadlineNotes linked
+    // list. These are unused if there is no deadline.
+    allprev * note allnext * note
 }

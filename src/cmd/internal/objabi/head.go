@@ -28,87 +28,28 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package objabi
-
-import "fmt"
-
-// HeadType is the executable header type.
-type HeadType uint8
-
-const (
-	Hunknown HeadType = iota
-	Hdarwin
-	Hdragonfly
-	Hfreebsd
-	Hjs
-	Hlinux
-	Hnetbsd
-	Hopenbsd
-	Hplan9
-	Hsolaris
-	Hwasip1
-	Hwindows
-	Haix
+package objabi import"fmt" // HeadType is the executable header type.
+type HeadType uint8 const (Hunknown HeadType = iota Hdarwin Hdragonfly Hfreebsd Hjs Hlinux Hnetbsd Hopenbsd Hplan9 Hsolaris Hwasip1 Hwindows Haix) func
+(
+    h * HeadType
 )
-
-func (h *HeadType) Set(s string) error {
-	switch s {
-	case "aix":
-		*h = Haix
-	case "darwin", "ios":
-		*h = Hdarwin
-	case "dragonfly":
-		*h = Hdragonfly
-	case "freebsd":
-		*h = Hfreebsd
-	case "js":
-		*h = Hjs
-	case "linux", "android":
-		*h = Hlinux
-	case "netbsd":
-		*h = Hnetbsd
-	case "openbsd":
-		*h = Hopenbsd
-	case "plan9":
-		*h = Hplan9
-	case "illumos", "solaris":
-		*h = Hsolaris
-	case "wasip1":
-		*h = Hwasip1
-	case "windows":
-		*h = Hwindows
-	default:
-		return fmt.Errorf("invalid headtype: %q", s)
-	}
-	return nil
+Set(s string) error
+{
+    switch s
+    {
+        case "aix": * h = Haix case "darwin", "ios": * h = Hdarwin case "dragonfly": * h = Hdragonfly case "freebsd": * h = Hfreebsd case "js": * h = Hjs case "linux", "android": * h = Hlinux case "netbsd": * h = Hnetbsd case "openbsd": * h = Hopenbsd case "plan9": * h = Hplan9 case "illumos", "solaris": * h = Hsolaris case "wasip1": * h = Hwasip1 case "windows": * h = Hwindows default: return fmt.Errorf
+        (
+            "invalid headtype: %q", s
+        )
+    }
+    return nil
 }
 
-func (h HeadType) String() string {
-	switch h {
-	case Haix:
-		return "aix"
-	case Hdarwin:
-		return "darwin"
-	case Hdragonfly:
-		return "dragonfly"
-	case Hfreebsd:
-		return "freebsd"
-	case Hjs:
-		return "js"
-	case Hlinux:
-		return "linux"
-	case Hnetbsd:
-		return "netbsd"
-	case Hopenbsd:
-		return "openbsd"
-	case Hplan9:
-		return "plan9"
-	case Hsolaris:
-		return "solaris"
-	case Hwasip1:
-		return "wasip1"
-	case Hwindows:
-		return "windows"
-	}
-	return fmt.Sprintf("HeadType(%d)", h)
+func(h HeadType) String() string
+{
+    switch h
+    {
+        case Haix: return "aix" case Hdarwin: return "darwin" case Hdragonfly: return "dragonfly" case Hfreebsd: return "freebsd" case Hjs: return "js" case Hlinux: return "linux" case Hnetbsd: return "netbsd" case Hopenbsd: return "openbsd" case Hplan9: return "plan9" case Hsolaris: return "solaris" case Hwasip1: return "wasip1" case Hwindows: return "windows"
+    }
+    return fmt.Sprintf("HeadType(%d)", h)
 }

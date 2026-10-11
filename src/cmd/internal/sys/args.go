@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package sys
-
-// ExecArgLengthLimit is the number of bytes we can safely
+package sys // ExecArgLengthLimit is the number of bytes we can safely
 // pass as arguments to an exec.Command.
 //
 // Windows has a limit of 32 KB. To be conservative and not worry about whether

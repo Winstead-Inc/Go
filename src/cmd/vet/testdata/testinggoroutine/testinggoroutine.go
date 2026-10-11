@@ -2,12 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package testinggoroutine
-
-import "testing"
-
-func _(t *testing.T) {
-	go func() {
-		t.Fatal("fail") // ERROR `call to \(\*testing.T\).Fatal from a non-test goroutine`
-	}()
+package testinggoroutine import"testing" func _(t * testing.T)
+{
+    go func()
+    {
+        t.Fatal("fail") // ERROR `call to \(\*testing.T\).Fatal from a non-test goroutine`
+    }
+()
 }

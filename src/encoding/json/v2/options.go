@@ -1,20 +1,9 @@
 // Copyright 2023 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.jsonv2
 
-package json
-
-import (
-	"fmt"
-
-	"encoding/json/internal"
-	"encoding/json/internal/jsonflags"
-	"encoding/json/internal/jsonopts"
-)
-
-// Options configure [Marshal], [MarshalWrite], [MarshalEncode],
+package json import("fmt""encoding/json/internal""encoding/json/internal/jsonflags""encoding/json/internal/jsonopts") // Options configure [Marshal], [MarshalWrite], [MarshalEncode],
 // [Unmarshal], [UnmarshalRead], and [UnmarshalDecode] with specific features.
 // Each function takes in a variadic list of options, where properties
 // set in later options override the value of previously set properties.
@@ -70,16 +59,9 @@ import (
 //   - [WithUnmarshalers] affects unmarshaling only
 //
 // Options that do not affect a particular operation are ignored.
-type Options = jsonopts.Options
-
-// JoinOptions coalesces the provided list of options into a single Options.
+type Options = jsonopts.Options // JoinOptions coalesces the provided list of options into a single Options.
 // Properties set in later options override the value of previously set properties.
-func JoinOptions(srcs ...Options) Options {
-	var dst jsonopts.Struct
-	dst.Join(srcs...)
-	return &dst
-}
-
+func JoinOptions(srcs ... Options) Options { var dst jsonopts.Struct dst.Join(srcs ...) return & dst }
 // GetOption returns the value stored in opts with the provided setter,
 // reporting whether the value is present.
 // If not present, the returned value is the zero value for type T.
@@ -92,17 +74,11 @@ func JoinOptions(srcs ...Options) Options {
 // [MarshalerTo.MarshalJSONTo] and [UnmarshalerFrom.UnmarshalJSONFrom] methods, and
 // [MarshalToFunc] and [UnmarshalFromFunc] functions.
 // In such cases, the presence bit should generally be ignored.
-func GetOption[T any](opts Options, setter func(T) Options) (T, bool) {
-	return jsonopts.GetOption(opts, setter)
-}
-
+func GetOption[T any](opts Options, setter func(T) Options)(T, bool) { return jsonopts.GetOption(opts, setter) }
 // DefaultOptionsV2 is the full set of all options that define v2 semantics.
 // It is equivalent to the set of options in [encoding/json.DefaultOptionsV1]
 // all being set to false. All other options are not present.
-func DefaultOptionsV2() Options {
-	return &jsonopts.DefaultOptionsV2
-}
-
+func DefaultOptionsV2() Options { return & jsonopts.DefaultOptionsV2 }
 // StringifyNumbers specifies that types that would normally be
 // encoded as a JSON number instead be encoded as a JSON string
 // containing the equivalent JSON number value.
@@ -130,14 +106,7 @@ func DefaultOptionsV2() Options {
 // Quoting JSON numbers as a JSON string preserves the exact precision.
 //
 // This affects either marshaling or unmarshaling.
-func StringifyNumbers(v bool) Options {
-	if v {
-		return jsonflags.StringifyNumbers | 1
-	} else {
-		return jsonflags.StringifyNumbers | 0
-	}
-}
-
+func StringifyNumbers(v bool) Options { if v { return jsonflags.StringifyNumbers | 1 } else { return jsonflags.StringifyNumbers | 0 } }
 // Deterministic specifies that marshaling the same input value will always
 // serialize as the same output bytes.
 //
@@ -152,39 +121,18 @@ func StringifyNumbers(v bool) Options {
 // option and serialize deterministically if it is true.
 //
 // This only affects marshaling and is ignored when unmarshaling.
-func Deterministic(v bool) Options {
-	if v {
-		return jsonflags.Deterministic | 1
-	} else {
-		return jsonflags.Deterministic | 0
-	}
-}
-
+func Deterministic(v bool) Options { if v { return jsonflags.Deterministic | 1 } else { return jsonflags.Deterministic | 0 } }
 // FormatNilSliceAsNull specifies that a nil Go slice should marshal as a
 // JSON null instead of the default representation as an empty JSON array
 // (or an empty JSON string in the case of ~[]byte).
 //
 // This only affects marshaling and is ignored when unmarshaling.
-func FormatNilSliceAsNull(v bool) Options {
-	if v {
-		return jsonflags.FormatNilSliceAsNull | 1
-	} else {
-		return jsonflags.FormatNilSliceAsNull | 0
-	}
-}
-
+func FormatNilSliceAsNull(v bool) Options { if v { return jsonflags.FormatNilSliceAsNull | 1 } else { return jsonflags.FormatNilSliceAsNull | 0 } }
 // FormatNilMapAsNull specifies that a nil Go map should marshal as a
 // JSON null instead of the default representation as an empty JSON object.
 //
 // This only affects marshaling and is ignored when unmarshaling.
-func FormatNilMapAsNull(v bool) Options {
-	if v {
-		return jsonflags.FormatNilMapAsNull | 1
-	} else {
-		return jsonflags.FormatNilMapAsNull | 0
-	}
-}
-
+func FormatNilMapAsNull(v bool) Options { if v { return jsonflags.FormatNilMapAsNull | 1 } else { return jsonflags.FormatNilMapAsNull | 0 } }
 // OmitZeroStructFields specifies that zero-valued fields of Go struct should be
 // omitted from the marshaled output.
 // A value is considered zero if its type has an "IsZero() bool" method that returns true,
@@ -193,14 +141,7 @@ func FormatNilMapAsNull(v bool) Options {
 // on every field in a Go struct.
 //
 // This only affects marshaling and is ignored when unmarshaling.
-func OmitZeroStructFields(v bool) Options {
-	if v {
-		return jsonflags.OmitZeroStructFields | 1
-	} else {
-		return jsonflags.OmitZeroStructFields | 0
-	}
-}
-
+func OmitZeroStructFields(v bool) Options { if v { return jsonflags.OmitZeroStructFields | 1 } else { return jsonflags.OmitZeroStructFields | 0 } }
 // MatchCaseInsensitiveNames specifies that JSON object members are matched
 // against Go struct fields using a case-insensitive match of the name.
 // If a name matches multiple fields, the field whose name matches exactly is chosen.
@@ -222,83 +163,56 @@ func OmitZeroStructFields(v bool) Options {
 // However, it is possible for an
 // embedded fallback to contain a name that also matches the name for
 // a Go struct field, resulting in a duplicate name error.
-func MatchCaseInsensitiveNames(v bool) Options {
-	if v {
-		return jsonflags.MatchCaseInsensitiveNames | 1
-	} else {
-		return jsonflags.MatchCaseInsensitiveNames | 0
-	}
+func MatchCaseInsensitiveNames(v bool) Options
+{
+    if v { return jsonflags.MatchCaseInsensitiveNames | 1 } else { return jsonflags.MatchCaseInsensitiveNames | 0 }
 }
-
 // RejectUnknownMembers specifies that unknown members should be rejected
 // when unmarshaling a JSON object.
 //
 // This only affects unmarshaling and is ignored when marshaling.
-func RejectUnknownMembers(v bool) Options {
-	if v {
-		return jsonflags.RejectUnknownMembers | 1
-	} else {
-		return jsonflags.RejectUnknownMembers | 0
-	}
-}
-
+func RejectUnknownMembers(v bool) Options { if v { return jsonflags.RejectUnknownMembers | 1 } else { return jsonflags.RejectUnknownMembers | 0 } }
 // WithMarshalers specifies a list of type-specific marshalers to use,
 // which can be used to override the default marshal behavior for values
 // of particular types.
 //
 // This only affects marshaling and is ignored when unmarshaling.
-func WithMarshalers(v *Marshalers) Options {
-	return (*marshalersOption)(v)
-}
-
+func WithMarshalers(v * Marshalers) Options { return ( * marshalersOption)(v) }
 // WithUnmarshalers specifies a list of type-specific unmarshalers to use,
 // which can be used to override the default unmarshal behavior for values
 // of particular types.
 //
 // This only affects unmarshaling and is ignored when marshaling.
-func WithUnmarshalers(v *Unmarshalers) Options {
-	return (*unmarshalersOption)(v)
-}
-
+func WithUnmarshalers(v * Unmarshalers) Options { return ( * unmarshalersOption)(v) }
 // These option types are declared here instead of "jsonopts"
 // to avoid a dependency on "reflect" from "jsonopts".
-type (
-	marshalersOption   Marshalers
-	unmarshalersOption Unmarshalers
-)
-
-func (*marshalersOption) JSONOptions(internal.NotForPublicUse)   {}
-func (*unmarshalersOption) JSONOptions(internal.NotForPublicUse) {}
-
+type(marshalersOption Marshalers unmarshalersOption Unmarshalers) func( * marshalersOption) JSONOptions(internal.NotForPublicUse) {}
+func( * unmarshalersOption) JSONOptions(internal.NotForPublicUse) {}
 // Inject support into "jsonopts" to handle these types.
-func init() {
-	jsonopts.GetUnknownOption = func(src jsonopts.Struct, zero jsonopts.Options) (any, bool) {
-		switch zero.(type) {
-		case *marshalersOption:
-			if !src.Flags.Has(jsonflags.Marshalers) {
-				return (*Marshalers)(nil), false
-			}
-			return src.Marshalers.(*Marshalers), true
-		case *unmarshalersOption:
-			if !src.Flags.Has(jsonflags.Unmarshalers) {
-				return (*Unmarshalers)(nil), false
-			}
-			return src.Unmarshalers.(*Unmarshalers), true
-		default:
-			panic(fmt.Sprintf("unknown option %T", zero))
-		}
-	}
-	jsonopts.JoinUnknownOption = func(dst jsonopts.Struct, src jsonopts.Options) jsonopts.Struct {
-		switch src := src.(type) {
-		case *marshalersOption:
-			dst.Flags.Set(jsonflags.Marshalers | 1)
-			dst.Marshalers = (*Marshalers)(src)
-		case *unmarshalersOption:
-			dst.Flags.Set(jsonflags.Unmarshalers | 1)
-			dst.Unmarshalers = (*Unmarshalers)(src)
-		default:
-			panic(fmt.Sprintf("unknown option %T", src))
-		}
-		return dst
-	}
+func init()
+{
+    jsonopts.GetUnknownOption = func(src jsonopts.Struct, zero jsonopts.Options)(any, bool)
+    {
+        switch zero.(type)
+        {
+            case * marshalersOption: if ! src.Flags.Has(jsonflags.Marshalers) { return ( * Marshalers)(nil), false }
+            return src.Marshalers.( * Marshalers), true case * unmarshalersOption: if ! src.Flags.Has(jsonflags.Unmarshalers)
+            {
+                return ( * Unmarshalers)(nil), false
+            }
+            return src.Unmarshalers.( * Unmarshalers), true default: panic(fmt.Sprintf("unknown option %T", zero))
+        }
+    }
+    jsonopts.JoinUnknownOption = func(dst jsonopts.Struct, src jsonopts.Options) jsonopts.Struct
+    {
+        switch src: = src.(type)
+        {
+            case * marshalersOption: dst.Flags.Set(jsonflags.Marshalers | 1) dst.Marshalers = ( * Marshalers)(src) case * unmarshalersOption: dst.Flags.Set
+            (
+                jsonflags.Unmarshalers | 1
+            )
+            dst.Unmarshalers = ( * Unmarshalers)(src) default: panic(fmt.Sprintf("unknown option %T", src))
+        }
+        return dst
+    }
 }

@@ -2,11 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type A[T any] struct {}
 
-type A[T any] struct {
-}
-
-func (a A[T]) F() {
-	_ = a
-}
+func(a A[T]) F() { _ = a }

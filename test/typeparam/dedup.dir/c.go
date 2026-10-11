@@ -2,13 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package c
-
-import "./a"
-
-func C() {
-	var x int64
-	println(a.F(&x, &x))
-	var y int32
-	println(a.F(&y, &y))
-}
+package c import"./a" func C() { var x int64 println(a.F( & x, & x)) var y int32 println(a.F( & y, & y)) }

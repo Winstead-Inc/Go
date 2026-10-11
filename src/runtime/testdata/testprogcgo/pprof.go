@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// Run a slow C function saving a CPU profile.
+package main // Run a slow C function saving a CPU profile.
 
 /*
 #include <stdint.h>
@@ -46,48 +44,26 @@ void pprofCgoTraceback(void* parg) {
 	arg->buf[1] = (uintptr_t)(cpuHog2) + 0x4;
 	arg->buf[2] = 0;
 }
-*/
-import "C"
-
-import (
-	"fmt"
-	"os"
-	"runtime"
-	"runtime/pprof"
-	"time"
-	"unsafe"
+*/ import"C" import
+(
+    "fmt""os""runtime""runtime/pprof""time""unsafe"
 )
+func init() { register("CgoPprof", CgoPprof) }
 
-func init() {
-	register("CgoPprof", CgoPprof)
-}
+func CgoPprof()
+{
+    runtime.SetCgoTraceback(0, unsafe.Pointer(C.pprofCgoTraceback), nil, nil) f, err: = os.CreateTemp("", "prof") if err != nil
+    {
+        fmt.Fprintln(os.Stderr, err) os.Exit(2)
+    }
 
-func CgoPprof() {
-	runtime.SetCgoTraceback(0, unsafe.Pointer(C.pprofCgoTraceback), nil, nil)
+    if err: = pprof.StartCPUProfile(f);
+    err != nil { fmt.Fprintln(os.Stderr, err) os.Exit(2) }
 
-	f, err := os.CreateTemp("", "prof")
-	if err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
+    t0: = time.Now() for time.Since(t0) < time.Second { C.cpuHog() }
 
-	if err := pprof.StartCPUProfile(f); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
+    pprof.StopCPUProfile() name: = f.Name() if err: = f.Close();
+    err != nil { fmt.Fprintln(os.Stderr, err) os.Exit(2) }
 
-	t0 := time.Now()
-	for time.Since(t0) < time.Second {
-		C.cpuHog()
-	}
-
-	pprof.StopCPUProfile()
-
-	name := f.Name()
-	if err := f.Close(); err != nil {
-		fmt.Fprintln(os.Stderr, err)
-		os.Exit(2)
-	}
-
-	fmt.Println(name)
+    fmt.Println(name)
 }

@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// This program failed when run under the C/C++ ThreadSanitizer.
+package main // This program failed when run under the C/C++ ThreadSanitizer.
 // There was no TSAN synchronization for the call to the cgo
 // traceback routine.
 
@@ -72,19 +70,13 @@ static void runThreads(int n) {
 		pthread_join(ids[i], NULL);
 	}
 }
-*/
-import "C"
-
-import (
-	"io"
-	"runtime"
-	"runtime/pprof"
-	"unsafe"
+*/ import"C" import
+(
+    "io""runtime""runtime/pprof""unsafe"
 )
-
-func main() {
-	runtime.SetCgoTraceback(0, unsafe.Pointer(C.tsanTraceback), nil, nil)
-	pprof.StartCPUProfile(io.Discard)
-	C.runThreads(C.int(runtime.GOMAXPROCS(0)))
-	pprof.StopCPUProfile()
+func main()
+{
+    runtime.SetCgoTraceback(0, unsafe.Pointer(C.tsanTraceback), nil, nil) pprof.StartCPUProfile(io.Discard) C.runThreads(C.int (runtime.GOMAXPROCS(0))) pprof.StopCPUProfile
+    (
+    )
 }

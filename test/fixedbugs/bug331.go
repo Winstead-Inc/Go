@@ -1,29 +1,15 @@
 // run
-
 // Copyright 2011 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"io" func f()(_ string, x float64, err error) { return }
 
-import "io"
+func g()(_ string, x float64, err error) { return "hello", 3.14, io.EOF }
 
-func f() (_ string, x float64, err error) {
-	return
-}
-
-func g() (_ string, x float64, err error) {
-	return "hello", 3.14, io.EOF
-}
-
-var _ func() (string, float64, error) = f
-var _ func() (string, float64, error) = g
-
-func main() {
-	x, y, z := g()
-	if x != "hello" || y != 3.14 || z != io.EOF {
-		println("wrong", x, len(x), y, z)
-	}
+var _ func()(string, float64, error) = f var _ func()(string, float64, error) = g func main()
+{
+    x, y, z: = g() if x != "hello" || y != 3.14 || z != io.EOF { println("wrong", x, len(x), y, z) }
 }
 
 /*

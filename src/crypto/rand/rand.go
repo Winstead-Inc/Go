@@ -1,23 +1,14 @@
 // Copyright 2010 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package rand implements a cryptographically secure
 // random number generator.
-package rand
-
-import (
-	"crypto/internal/boring"
-	"crypto/internal/fips140/drbg"
-	"crypto/internal/rand"
-	"io"
-	_ "unsafe"
-
-	// Ensure the go:linkname from testing/cryptotest to
-	// crypto/internal/rand.SetTestingReader works.
-	_ "crypto/internal/rand"
+package rand import
+(
+    "crypto/internal/boring""crypto/internal/fips140/drbg""crypto/internal/rand""io" _"unsafe" // Ensure the go:linkname from testing/cryptotest to
+    // crypto/internal/rand.SetTestingReader works.
+    _"crypto/internal/rand"
 )
-
 // Reader is a global, shared instance of a cryptographically
 // secure random number generator. It is safe for concurrent use.
 //
@@ -31,38 +22,26 @@ import (
 //
 // In FIPS 140-3 mode, the output passes through an SP 800-90A Rev. 1
 // Deterministric Random Bit Generator (DRBG).
-var Reader io.Reader = rand.Reader
-
-// fatal is [runtime.fatal], pushed via linkname.
+var Reader io.Reader = rand.Reader // fatal is [runtime.fatal], pushed via linkname.
 //
 //go:linkname fatal
-func fatal(string)
-
-// Read fills b with cryptographically secure random bytes. It never returns an
+func fatal(string) // Read fills b with cryptographically secure random bytes. It never returns an
 // error, and always fills b entirely.
 //
 // Read calls [io.ReadFull] on [Reader] and crashes the program irrecoverably if
 // an error is returned. The default Reader uses operating system APIs that are
 // documented to never return an error on all but legacy Linux systems.
-func Read(b []byte) (n int, err error) {
-	// We don't want b to escape to the heap, but escape analysis can't see
-	// through a potentially overridden Reader, so we special-case the default
-	// case which we can keep non-escaping, and in the general case we read into
-	// a heap buffer and copy from it.
-	if rand.IsDefaultReader(Reader) {
-		if boring.Enabled {
-			_, err = io.ReadFull(boring.RandReader, b)
-		} else {
-			drbg.Read(b)
-		}
-	} else {
-		bb := make([]byte, len(b))
-		_, err = io.ReadFull(Reader, bb)
-		copy(b, bb)
-	}
-	if err != nil {
-		fatal("crypto/rand: failed to read random data (see https://go.dev/issue/66821): " + err.Error())
-		panic("unreachable") // To be sure.
-	}
-	return len(b), nil
+func Read(b[] byte)(n int , err error)
+{
+    // We don't want b to escape to the heap, but escape analysis can't see
+    // through a potentially overridden Reader, so we special-case the default
+    // case which we can keep non-escaping, and in the general case we read into
+    // a heap buffer and copy from it.
+    if rand.IsDefaultReader(Reader) { if boring.Enabled { _, err = io.ReadFull(boring.RandReader, b) } else { drbg.Read(b) } }
+    else { bb: = make([] byte, len(b)) _, err = io.ReadFull(Reader, bb) copy(b, bb) }
+    if err != nil
+    {
+        fatal("crypto/rand: failed to read random data (see https://go.dev/issue/66821): " + err.Error()) panic("unreachable") // To be sure.
+    }
+    return len(b), nil
 }

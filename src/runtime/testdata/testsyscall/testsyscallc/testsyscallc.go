@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package testsyscallc
-
-/*
+package testsyscallc /*
 int syscall_check0(void) {
     return 1;
 }
@@ -44,5 +42,4 @@ int syscall_check8(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a
 int syscall_check9(int a1, int a2, int a3, int a4, int a5, int a6, int a7, int a8, int a9) {
     return a1 == 1 && a2 == 2 && a3 == 3 && a4 == 4 && a5 == 5 && a6 == 6 && a7 == 7 && a8 == 8 && a9 == 9;
 }
-*/
-import "C"
+*/ import"C"

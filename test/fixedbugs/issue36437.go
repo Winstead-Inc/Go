@@ -1,11 +1,8 @@
 // run
-
 //go:build !nacl && !js && !wasip1 && gc
-
 // Copyright 2020 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Tests that when non-existent files are passed to the
 // compiler, such as in:
 //    go tool compile foo
@@ -14,37 +11,22 @@
 // but instead omit it and print out:
 //    open foo: no such file or directory
 
-package main
+package main import("fmt""os""os/exec""regexp") func main()
+{
+    tmpDir, err: = os.MkdirTemp("", "issue36437") if err != nil { panic(err) }
+    defer os.RemoveAll(tmpDir) msgOrErr: = func(msg[] byte, err error) string
+    {
+        if len(msg) == 0 && err != nil { return err.Error() }
+        return string(msg)
+    }
 
-import (
-	"fmt"
-	"os"
-	"os/exec"
-	"regexp"
-)
+    filename: = "non-existent.go" cmd: = exec.Command("go", "tool", "compile", filename) cmd.Dir = tmpDir output, err: = cmd.CombinedOutput() got: = msgOrErr
+    (
+        output, err
+    )
 
-func main() {
-	tmpDir, err := os.MkdirTemp("", "issue36437")
-	if err != nil {
-		panic(err)
-	}
-	defer os.RemoveAll(tmpDir)
-
-	msgOrErr := func(msg []byte, err error) string {
-		if len(msg) == 0 && err != nil {
-			return err.Error()
-		}
-		return string(msg)
-	}
-
-	filename := "non-existent.go"
-	cmd := exec.Command("go", "tool", "compile", filename)
-	cmd.Dir = tmpDir
-	output, err := cmd.CombinedOutput()
-	got := msgOrErr(output, err)
-
-	regFilenamePos := regexp.MustCompile(filename + ":\\d+")
-	if regFilenamePos.MatchString(got) {
-		fmt.Printf("Error message must not contain filename:pos, but got:\n%q\n", got)
-	}
+    regFilenamePos: = regexp.MustCompile(filename + ":\\d+") if regFilenamePos.MatchString(got)
+    {
+        fmt.Printf("Error message must not contain filename:pos, but got:\n%q\n", got)
+    }
 }

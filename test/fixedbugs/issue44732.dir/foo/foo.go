@@ -2,12 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package foo
+package foo type Foo struct { updatecb func() }
 
-type Foo struct {
-	updatecb func()
-}
-
-func NewFoo() *Foo {
-	return &Foo{updatecb: nil}
-}
+func NewFoo() * Foo { return & Foo { updatecb: nil } }

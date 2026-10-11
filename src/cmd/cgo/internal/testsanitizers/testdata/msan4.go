@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// The memory profiler can call copy from a slice on the system stack,
+package main // The memory profiler can call copy from a slice on the system stack,
 // which msan used to think meant a reference to uninitialized memory.
 
 /*
@@ -22,29 +20,19 @@ void poison() {
 	Nop(&a[0]);
 }
 
-*/
-import "C"
-
-import (
-	"runtime"
+*/ import"C" import
+(
+    "runtime"
 )
+func main() { runtime.MemProfileRate = 1 start(100) }
 
-func main() {
-	runtime.MemProfileRate = 1
-	start(100)
+func start(i int)
+{
+    if i == 0 { return }
+    C.poison() // Tie up a thread.
+    // We won't actually wait for this sleep to complete.
+    go func() { C.sleep(1) }
+() start(i - 1)
 }
-
-func start(i int) {
-	if i == 0 {
-		return
-	}
-	C.poison()
-	// Tie up a thread.
-	// We won't actually wait for this sleep to complete.
-	go func() { C.sleep(1) }()
-	start(i - 1)
-}
-
 //export Nop
-func Nop(*C.char) {
-}
+func Nop( * C.char) {}

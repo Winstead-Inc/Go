@@ -37,5 +37,4 @@ Note that while the various profiles available when launching
 'go tool trace' work on every browser, the trace viewer itself
 (the 'view trace' page) comes from the Chrome/Chromium project
 and is only actively tested on that browser.
-*/
-package main
+*/ package main

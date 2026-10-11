@@ -2,18 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package syscall
+package syscall import _"unsafe" // for linkname
 
-import _ "unsafe" // for linkname
-
-const (
-	_SYS_setgroups  = SYS_SETGROUPS
-	_SYS_clone3     = 435
-	_SYS_faccessat2 = 439
-	_SYS_fchmodat2  = 452
-)
-
-//sys	Dup2(oldfd int, newfd int) (err error)
+const (_SYS_setgroups = SYS_SETGROUPS _SYS_clone3 = 435 _SYS_faccessat2 = 439 _SYS_fchmodat2 = 452) //sys	Dup2(oldfd int, newfd int) (err error)
 //sys	Fchown(fd int, uid int, gid int) (err error)
 //sys	Fstat(fd int, stat *Stat_t) (err error)
 //sys	Fstatfs(fd int, buf *Statfs_t) (err error)
@@ -59,69 +50,41 @@ const (
 //sys	mmap(addr uintptr, length uintptr, prot int, flags int, fd int, offset int64) (xaddr uintptr, err error)
 //sys	EpollWait(epfd int, events []EpollEvent, msec int) (n int, err error)
 
-func Stat(path string, stat *Stat_t) (err error) {
-	return fstatat(_AT_FDCWD, path, stat, 0)
-}
+func Stat(path string, stat * Stat_t)(err error) { return fstatat(_AT_FDCWD, path, stat, 0) }
 
-func Lchown(path string, uid int, gid int) (err error) {
-	return Fchownat(_AT_FDCWD, path, uid, gid, _AT_SYMLINK_NOFOLLOW)
-}
+func Lchown(path string, uid int , gid int)(err error) { return Fchownat(_AT_FDCWD, path, uid, gid, _AT_SYMLINK_NOFOLLOW) }
 
-func Lstat(path string, stat *Stat_t) (err error) {
-	return fstatat(_AT_FDCWD, path, stat, _AT_SYMLINK_NOFOLLOW)
-}
-
+func Lstat(path string, stat * Stat_t)(err error) { return fstatat(_AT_FDCWD, path, stat, _AT_SYMLINK_NOFOLLOW) }
 //sys	futimesat(dirfd int, path string, times *[2]Timeval) (err error)
-
 // Accessed via assembly in x/sys/unix.
 //
 //go:noescape
 //go:linkname gettimeofday
-func gettimeofday(tv *Timeval) (err Errno)
-
-func Gettimeofday(tv *Timeval) (err error) {
-	errno := gettimeofday(tv)
-	if errno != 0 {
-		return errno
-	}
-	return nil
+func gettimeofday(tv * Timeval)(err Errno) func Gettimeofday(tv * Timeval)(err error)
+{
+    errno: = gettimeofday(tv) if errno != 0 { return errno }
+    return nil
 }
 
-func Time(t *Time_t) (tt Time_t, err error) {
-	var tv Timeval
-	errno := gettimeofday(&tv)
-	if errno != 0 {
-		return 0, errno
-	}
-	if t != nil {
-		*t = Time_t(tv.Sec)
-	}
-	return Time_t(tv.Sec), nil
+func Time(t * Time_t)(tt Time_t, err error)
+{
+    var tv Timeval errno: = gettimeofday( & tv) if errno != 0 { return 0, errno }
+    if t != nil { * t = Time_t(tv.Sec) }
+    return Time_t(tv.Sec), nil
 }
-
 //sys	Utime(path string, buf *Utimbuf) (err error)
 //sys	utimes(path string, times *[2]Timeval) (err error)
 
-func setTimespec(sec, nsec int64) Timespec {
-	return Timespec{Sec: sec, Nsec: nsec}
-}
+func setTimespec(sec, nsec int64) Timespec { return Timespec { Sec: sec, Nsec: nsec } }
 
-func setTimeval(sec, usec int64) Timeval {
-	return Timeval{Sec: sec, Usec: usec}
-}
+func setTimeval(sec, usec int64) Timeval { return Timeval { Sec: sec, Usec: usec } }
 
-func (r *PtraceRegs) PC() uint64 { return r.Rip }
+func(r * PtraceRegs) PC() uint64 { return r.Rip }
 
-func (r *PtraceRegs) SetPC(pc uint64) { r.Rip = pc }
+func(r * PtraceRegs) SetPC(pc uint64) { r.Rip = pc }
 
-func (iov *Iovec) SetLen(length int) {
-	iov.Len = uint64(length)
-}
+func(iov * Iovec) SetLen(length int) { iov.Len = uint64(length) }
 
-func (msghdr *Msghdr) SetControllen(length int) {
-	msghdr.Controllen = uint64(length)
-}
+func(msghdr * Msghdr) SetControllen(length int) { msghdr.Controllen = uint64(length) }
 
-func (cmsg *Cmsghdr) SetLen(length int) {
-	cmsg.Len = uint64(length)
-}
+func(cmsg * Cmsghdr) SetLen(length int) { cmsg.Len = uint64(length) }

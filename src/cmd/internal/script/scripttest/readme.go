@@ -2,83 +2,35 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package scripttest
-
-import (
-	"bytes"
-	"cmd/internal/script"
-	"internal/diff"
-	"internal/testenv"
-	"os"
-	"path/filepath"
-	"strings"
-	"testing"
-	"text/template"
+package scripttest import("bytes""cmd/internal/script""internal/diff""internal/testenv""os""path/filepath""strings""testing""text/template") func checkScriptReadme
+(
+    t * testing.T, engine * script.Engine, env[] string, scriptspath, gotool string, fixReadme bool
 )
+{
+    var args struct { Language string Commands string Conditions string }
 
-func checkScriptReadme(t *testing.T, engine *script.Engine, env []string, scriptspath, gotool string, fixReadme bool) {
-	var args struct {
-		Language   string
-		Commands   string
-		Conditions string
-	}
+    cmds: = new (strings.Builder) if err: = engine.ListCmds(cmds, true);
+    err != nil { t.Fatal(err) }
+    args.Commands = cmds.String() conds: = new (strings.Builder) if err: = engine.ListConds(conds, nil);
+    err != nil { t.Fatal(err) }
+    args.Conditions = conds.String() doc: = new (strings.Builder) cmd: = testenv.Command(t, gotool, "doc", "cmd/internal/script") cmd.Dir = t.TempDir() // make sure the test is not running inside the std or cmd module of another GOROOT
+    cmd.Env = env cmd.Stdout = doc if err: = cmd.Run();
+    err != nil { t.Fatal(cmd, ":", err) }
+    _, lang, ok: = strings.Cut(doc.String(),"# Script Language\n\n") if ! ok { t.Fatalf("%q did not include Script Language section", cmd) }
+    lang, _, ok = strings.Cut(lang, "\n\nvar ") if ! ok { t.Fatalf("%q did not include vars after Script Language section", cmd) }
+    args.Language = lang tmpl: = template.Must(template.New("README").Parse(readmeTmpl[1:])) buf: = new (bytes.Buffer) if err: = tmpl.Execute(buf, args);
+    err != nil { t.Fatal(err) }
 
-	cmds := new(strings.Builder)
-	if err := engine.ListCmds(cmds, true); err != nil {
-		t.Fatal(err)
-	}
-	args.Commands = cmds.String()
+    readmePath: = filepath.Join(scriptspath, "README") old, err: = os.ReadFile(readmePath) if err != nil { t.Fatal(err) }
+    diff: = diff.Diff(readmePath, old, "readmeTmpl", buf.Bytes()) if diff == nil { t.Logf("%s is up to date.", readmePath) return }
 
-	conds := new(strings.Builder)
-	if err := engine.ListConds(conds, nil); err != nil {
-		t.Fatal(err)
-	}
-	args.Conditions = conds.String()
-
-	doc := new(strings.Builder)
-	cmd := testenv.Command(t, gotool, "doc", "cmd/internal/script")
-	cmd.Dir = t.TempDir() // make sure the test is not running inside the std or cmd module of another GOROOT
-	cmd.Env = env
-	cmd.Stdout = doc
-	if err := cmd.Run(); err != nil {
-		t.Fatal(cmd, ":", err)
-	}
-	_, lang, ok := strings.Cut(doc.String(), "# Script Language\n\n")
-	if !ok {
-		t.Fatalf("%q did not include Script Language section", cmd)
-	}
-	lang, _, ok = strings.Cut(lang, "\n\nvar ")
-	if !ok {
-		t.Fatalf("%q did not include vars after Script Language section", cmd)
-	}
-	args.Language = lang
-
-	tmpl := template.Must(template.New("README").Parse(readmeTmpl[1:]))
-	buf := new(bytes.Buffer)
-	if err := tmpl.Execute(buf, args); err != nil {
-		t.Fatal(err)
-	}
-
-	readmePath := filepath.Join(scriptspath, "README")
-	old, err := os.ReadFile(readmePath)
-	if err != nil {
-		t.Fatal(err)
-	}
-	diff := diff.Diff(readmePath, old, "readmeTmpl", buf.Bytes())
-	if diff == nil {
-		t.Logf("%s is up to date.", readmePath)
-		return
-	}
-
-	if fixReadme {
-		if err := os.WriteFile(readmePath, buf.Bytes(), 0666); err != nil {
-			t.Fatal(err)
-		}
-		t.Logf("wrote %d bytes to %s", buf.Len(), readmePath)
-	} else {
-		t.Logf("\n%s", diff)
-		t.Errorf("%s is stale. To update, run 'go generate cmd/go'.", readmePath)
-	}
+    if fixReadme
+    {
+        if err: = os.WriteFile(readmePath, buf.Bytes(), 0666);
+        err != nil { t.Fatal(err) }
+        t.Logf("wrote %d bytes to %s", buf.Len(), readmePath)
+    }
+    else { t.Logf("\n%s", diff) t.Errorf("%s is stale. To update, run 'go generate cmd/go'.", readmePath) }
 }
 
 const readmeTmpl = `

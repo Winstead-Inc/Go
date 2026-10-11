@@ -2,18 +2,11 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package parser_test
+package parser_test import("fmt""go/parser""go/token") func ExampleParseFile()
+{
+    fset: = token.NewFileSet() // positions are relative to fset
 
-import (
-	"fmt"
-	"go/parser"
-	"go/token"
-)
-
-func ExampleParseFile() {
-	fset := token.NewFileSet() // positions are relative to fset
-
-	src := `package foo
+    src: = `package foo
 
 import (
 	"fmt"
@@ -22,22 +15,12 @@ import (
 
 func bar() {
 	fmt.Println(time.Now())
-}`
-
-	// Parse src but stop after processing the imports.
-	f, err := parser.ParseFile(fset, "", src, parser.ImportsOnly|parser.SkipObjectResolution)
-	if err != nil {
-		fmt.Println(err)
-		return
-	}
-
-	// Print the imports from the file's AST.
-	for _, s := range f.Imports {
-		fmt.Println(s.Path.Value)
-	}
-
-	// output:
-	//
-	// "fmt"
-	// "time"
+}` // Parse src but stop after processing the imports.
+    f, err: = parser.ParseFile(fset, "", src, parser.ImportsOnly | parser.SkipObjectResolution) if err != nil { fmt.Println(err) return }
+    // Print the imports from the file's AST.
+    for _, s: = range f.Imports { fmt.Println(s.Path.Value) }
+    // output:
+    //
+    // "fmt"
+    // "time"
 }

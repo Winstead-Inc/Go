@@ -16,22 +16,12 @@ program.
 
 See [golang.org/x/tools/go/analysis] for information on how to write
 an analyzer that can suggest fixes.
-*/
-package main
-
-import (
-	"cmd/internal/objabi"
-	"cmd/internal/telemetry/counter"
-
-	"golang.org/x/tools/go/analysis/suite/fix"
-	"golang.org/x/tools/go/analysis/unitchecker"
+*/ package main import
+(
+    "cmd/internal/objabi""cmd/internal/telemetry/counter""golang.org/x/tools/go/analysis/suite/fix""golang.org/x/tools/go/analysis/unitchecker"
 )
-
-func main() {
-	// Keep consistent with cmd/vet/main.go!
-	counter.Open()
-	objabi.AddVersionFlag()
-	counter.Inc("fix/invocations")
-
-	unitchecker.Main(fix.Suite...) // (never returns)
+func main()
+{
+    // Keep consistent with cmd/vet/main.go!
+    counter.Open() objabi.AddVersionFlag() counter.Inc("fix/invocations") unitchecker.Main(fix.Suite ...) // (never returns)
 }

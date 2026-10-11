@@ -1,12 +1,3 @@
-package main
+package main import"unsafe" func init() { register("panicOnNilAndEleSizeIsZero", panicOnNilAndEleSizeIsZero) }
 
-import "unsafe"
-
-func init() {
-	register("panicOnNilAndEleSizeIsZero", panicOnNilAndEleSizeIsZero)
-}
-
-func panicOnNilAndEleSizeIsZero() {
-	var p *struct{}
-	_ = unsafe.Slice(p, 5)
-}
+func panicOnNilAndEleSizeIsZero() { var p * struct {} _ = unsafe.Slice(p, 5) }

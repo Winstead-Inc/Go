@@ -3,7 +3,7 @@
 # This is an end-to-end test of Go SIMD. It updates all generated
 # files in this repo and then runs several tests.
 
-which go >/dev/null || exit 1
+which go > /dev/null || exit 1
 
 set -ex
 

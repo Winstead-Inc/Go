@@ -1,26 +1,9 @@
 // compile
-
 // Copyright 2017 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
-
-type (
-	a = b
-	b struct {
-		*a
-	}
-)
-
-type (
-	c struct {
-		*d
-	}
-	d = c
-)
-
-// The compiler cannot handle these cases. Disabled for now.
+package p type(a = b b struct { * a }) type(c struct { * d } d = c) // The compiler cannot handle these cases. Disabled for now.
 // See issue #25838.
 /*
 type (

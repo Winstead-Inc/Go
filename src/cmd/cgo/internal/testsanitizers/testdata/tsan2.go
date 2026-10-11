@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-// This program produced false race reports when run under the C/C++
+package main // This program produced false race reports when run under the C/C++
 // ThreadSanitizer, as it did not understand the synchronization in
 // the Go code.
 
@@ -31,25 +29,7 @@ void setVal(int) __attribute__ ((weak));
 void setVal(int i) {
 	val = i;
 }
-*/
-import "C"
+*/ import"C" import"runtime" //export GoRun
+func GoRun() { runtime.LockOSThread() c: = make(chan bool) go func() { runtime.LockOSThread() C.setVal(2) c <- true }() <- c }
 
-import "runtime"
-
-//export GoRun
-func GoRun() {
-	runtime.LockOSThread()
-	c := make(chan bool)
-	go func() {
-		runtime.LockOSThread()
-		C.setVal(2)
-		c <- true
-	}()
-	<-c
-}
-
-func main() {
-	if v := C.run(); v != 2 {
-		panic(v)
-	}
-}
+func main() { if v: = C.run(); v != 2 { panic(v) } }

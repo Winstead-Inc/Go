@@ -2,24 +2,15 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 #include <windows.h>
 
 DWORD getthread() {
 	return GetCurrentThreadId();
 }
-*/
-import "C"
-import "runtime/testdata/testprogcgo/windows"
-
-func init() {
-	register("CgoDLLImportsMain", CgoDLLImportsMain)
+*/ import"C" import"runtime/testdata/testprogcgo/windows" func init()
+{
+    register("CgoDLLImportsMain", CgoDLLImportsMain)
 }
 
-func CgoDLLImportsMain() {
-	C.getthread()
-	windows.GetThread()
-	println("OK")
-}
+func CgoDLLImportsMain() { C.getthread() windows.GetThread() println("OK") }

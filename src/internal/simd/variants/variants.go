@@ -2,10 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package variants
-
-// DO NOT EDIT WITHOUT READING THIS FIRST.
-
+package variants // DO NOT EDIT WITHOUT READING THIS FIRST.
 // This file is shared by the simd bridge generator
 // and the compiler's midway tree rewriter.  The sharing
 // is facilitated by an automatic copy from the file
@@ -25,37 +22,23 @@ package variants
 // expected to write anyway if you are tinkering with
 // this code).
 
-type Key struct {
-	Arch string
-	Size int
-}
+type Key struct { Arch string Size int }
 
-type Variant struct {
-	Suffix          string          // the name (suffix) for this variant.
-	Emulated        map[string]bool // Methods that are emulated for this variant.
-	DefaultRequires string          // default requires this function return true, false means variant.
+type Variant struct 
+{
+    Suffix string // the name (suffix) for this variant.
+    Emulated map[string] bool // Methods that are emulated for this variant.
+    DefaultRequires string // default requires this function return true, false means variant.
 }
-
 // Name returns the variant name of type t.
 // If receiver v is nil, returns t.
-func (v *Variant) Name(t string) string {
-	if v == nil {
-		return t
-	}
-	return t + v.Suffix
-}
+func(v * Variant) Name(t string) string { if v == nil { return t } return t + v.Suffix }
 
-var Variants map[Key]*Variant
-
-func init() {
-	Variants = make(map[Key]*Variant)
-	Variants[Key{"arm64", 128}] = &Variant{
-		Suffix: "nclm",
-		Emulated: map[string]bool{
-			"CarrylessMultiplyEven": true,
-			"CarrylessMultiplyOdd":  true,
-		},
-		DefaultRequires: "HasHardwareCarrylessMultiply",
-	}
-
+var Variants map[Key] * Variant func init()
+{
+    Variants = make(map[Key] * Variant) Variants[Key { "arm64", 128 }] = & Variant
+    {
+        Suffix: "nclm", Emulated: map[string] bool { "CarrylessMultiplyEven": true, "CarrylessMultiplyOdd": true, },
+        DefaultRequires: "HasHardwareCarrylessMultiply", 
+    }
 }

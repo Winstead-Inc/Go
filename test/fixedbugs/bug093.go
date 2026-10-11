@@ -1,27 +1,22 @@
 // run
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main type S struct {}
 
-type S struct {
+func(p * S) M() {}
+
+type I interface { M(); }
+
+func main()
+{
+    var p * S = nil;
+    var i I = p;
+    // this should be possible even though p is nil: we still know the type
+    i.M();
+    // should be possible since we know the type, and don't ever use the receiver
 }
-
-func (p *S) M() {
-}
-
-type I interface {
-	M();
-}
-
-func main() {
-	var p *S = nil;
-	var i I = p;  // this should be possible even though p is nil: we still know the type
-	i.M();  // should be possible since we know the type, and don't ever use the receiver
-}
-
 
 /*
 throw: ifaces2i: nil pointer

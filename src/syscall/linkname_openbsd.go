@@ -2,11 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package syscall
-
-import _ "unsafe"
-
-// used by internal/syscall/unix
+package syscall import _"unsafe" // used by internal/syscall/unix
 //go:linkname unlinkat
 //go:linkname openat
 //go:linkname fstatat

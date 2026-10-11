@@ -16,10 +16,10 @@ cd /boring
 # because the FIPS module itself is already built with -fPIC.
 echo '#!/bin/bash
 exec clang-'$ClangV' -DGOBORING -fPIC "$@"
-' >/usr/local/bin/clang
+' > /usr/local/bin/clang
 echo '#!/bin/bash
 exec clang++-'$ClangV' -DGOBORING -fPIC "$@"
-' >/usr/local/bin/clang++
+' > /usr/local/bin/clang++
 chmod +x /usr/local/bin/clang /usr/local/bin/clang++
 
 # The BoringSSL tests use Go, and cgo would look for gcc.
@@ -40,14 +40,15 @@ perl -p -i -e 's/defined.*ELF.*defined.*GNUC.*/$0 \&\& !defined(GOBORING)/' bori
 perl -p -i -e 's/(#define _FILE_OFFSET_BITS 64)/\/\/ $1/' boringssl/crypto/bio/file.c
 
 # Verbatim instructions from BoringCrypto build docs.
-printf "set(CMAKE_C_COMPILER \"clang\")\nset(CMAKE_CXX_COMPILER \"clang++\")\n" >${HOME}/toolchain
+printf "set(CMAKE_C_COMPILER \"clang\")\nset(CMAKE_CXX_COMPILER \"clang++\")\n" > ${HOME}/toolchain
 cd boringssl
 mkdir build && cd build && cmake -GNinja -DCMAKE_TOOLCHAIN_FILE=${HOME}/toolchain -DFIPS=1 -DCMAKE_BUILD_TYPE=Release ..
 # SSLTest.HostMatching fails due to an expired certificate.
 ninja && faketime 2022-06-13 ninja run_tests
 cd ../..
 
-if [ "$(./boringssl/build/tool/bssl isfips)" != 1 ]; then
+if [ "$(./boringssl/build/tool/bssl isfips)" != 1 ];
+then
 	echo "NOT FIPS"
 	exit 2
 fi

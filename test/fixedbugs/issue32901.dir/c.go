@@ -2,16 +2,16 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package c
-
-import "./b"
-
-func F() interface{} {
-	go func(){}() // make it non-inlineable
-	return b.F()
+package c import"./b" func F() interface {}
+{
+    go func() {}
+() // make it non-inlineable
+    return b.F()
 }
 
-func P() interface{} {
-	go func(){}() // make it non-inlineable
-	return b.P()
+func P() interface {}
+{
+    go func() {}
+() // make it non-inlineable
+    return b.P()
 }

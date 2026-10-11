@@ -1,5 +1,1 @@
-package implicit
-
-func I() int {
-	return 42
-}
+package implicit func I() int { return 42 }

@@ -2,83 +2,43 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ssahtml
-
-import (
-	"bytes"
-	"cmp"
-	"fmt"
-	"html"
-	"io"
-	"os"
-	"os/exec"
-	"path/filepath"
-	"strconv"
-	"strings"
-	"time"
-
-	"cmd/compile/internal/ssa"
-	"cmd/compile/internal/ssa/block"
-	"cmd/internal/src"
+package ssahtml import
+(
+    "bytes""cmp""fmt""html""io""os""os/exec""path/filepath""strconv""strings""time""cmd/compile/internal/ssa""cmd/compile/internal/ssa/block""cmd/internal/src"
 )
 
-type HTMLWriter struct {
-	w              io.WriteCloser
-	Func           *ssa.Func
-	path           string
-	dot            *dotWriter
-	prevHash       []byte
-	pendingPhases  []string
-	pendingTitles  []string
-	debugInfo      []string
-	timeFormatting time.Duration
+type HTMLWriter struct 
+{
+    w io.WriteCloser Func * ssa.Func path string dot * dotWriter prevHash[] byte pendingPhases[] string pendingTitles[] string debugInfo[] string timeFormatting time.Duration
 }
 
-func NewHTMLWriter(path string, f *ssa.Func, cfgMask string, passes []ssa.Pass) *HTMLWriter {
-	path = strings.ReplaceAll(path, "/", string(filepath.Separator))
-	out, err := os.OpenFile(path, os.O_WRONLY|os.O_CREATE|os.O_TRUNC, 0644)
-	if err != nil {
-		f.Fatalf("%v", err)
-	}
-	reportPath := path
-	if !filepath.IsAbs(reportPath) {
-		pwd, err := os.Getwd()
-		if err != nil {
-			f.Fatalf("%v", err)
-		}
-		reportPath = filepath.Join(pwd, path)
-	}
-	html := HTMLWriter{
-		w:    out,
-		Func: f,
-		path: reportPath,
-		dot:  newDotWriter(cfgMask, passes),
-	}
-	html.start()
-	return &html
+func NewHTMLWriter(path string, f * ssa.Func, cfgMask string, passes[] ssa.Pass) * HTMLWriter
+{
+    path = strings.ReplaceAll(path, "/", string(filepath.Separator)) out, err: = os.OpenFile(path, os.O_WRONLY | os.O_CREATE | os.O_TRUNC, 0644) if err != nil
+    {
+        f.Fatalf("%v", err)
+    }
+    reportPath: = path if ! filepath.IsAbs(reportPath)
+    {
+        pwd, err: = os.Getwd() if err != nil { f.Fatalf("%v", err) }
+        reportPath = filepath.Join(pwd, path)
+    }
+    html: = HTMLWriter { w: out, Func: f, path: reportPath, dot: newDotWriter(cfgMask, passes), }
+    html.start() return & html
 }
 
-func (w *HTMLWriter) Enabled() bool {
-	return w != nil
-}
-
+func(w * HTMLWriter) Enabled() bool { return w != nil }
 // Fatalf reports an error and exits.
-func (w *HTMLWriter) Fatalf(msg string, args ...any) {
-	fe := w.Func.Frontend()
-	fe.Fatalf(src.NoXPos, msg, args...)
-}
-
+func(w * HTMLWriter) Fatalf(msg string, args ... any) { fe: = w.Func.Frontend() fe.Fatalf(src.NoXPos, msg, args ...) }
 // Logf calls the (w *HTMLWriter).Func's Logf method passing along a msg and args.
-func (w *HTMLWriter) Logf(msg string, args ...any) {
-	w.Func.Logf(msg, args...)
-}
+func(w * HTMLWriter) Logf(msg string, args ... any) { w.Func.Logf(msg, args ...) }
 
-func (w *HTMLWriter) start() {
-	if w == nil {
-		return
-	}
-	w.WriteString("<html>")
-	w.WriteString(`<head>
+func(w * HTMLWriter) start()
+{
+    if w == nil { return }
+    w.WriteString("<html>") w.WriteString
+    (
+        `<head>
 <meta http-equiv="Content-Type" content="text/html;charset=UTF-8">
 <style>
 
@@ -785,12 +745,11 @@ function toggleDarkMode() {
 
 </script>
 
-</head>`)
-	w.WriteString("<body>")
-	w.WriteString("<h1>")
-	w.WriteString(html.EscapeString(w.Func.NameABI()))
-	w.WriteString("</h1>")
-	w.WriteString(`
+</head>`
+    )
+    w.WriteString("<body>") w.WriteString("<h1>") w.WriteString(html.EscapeString(w.Func.NameABI())) w.WriteString("</h1>") w.WriteString
+    (
+        `
 <a href="#" onclick="toggle_visibility('help');return false;" id="helplink">help</a>
 <div id="help">
 
@@ -817,481 +776,309 @@ Edge with a dot means that this edge follows the order in which blocks were laid
 </div>
 <label for="dark-mode-button" style="margin-left: 15px; cursor: pointer;">darkmode</label>
 <input type="checkbox" onclick="toggleDarkMode();" id="dark-mode-button" style="cursor: pointer" />
-`)
-	w.WriteString("<table>")
-	w.WriteString("<tr>")
+`
+    )
+    w.WriteString("<table>") w.WriteString("<tr>")
 }
 
-func (w *HTMLWriter) Close() {
-	if w == nil {
-		return
-	}
-	io.WriteString(w.w, "</tr>")
-	io.WriteString(w.w, "</table>")
-	io.WriteString(w.w, "</body>")
-	io.WriteString(w.w, "</html>")
-	w.w.Close()
-	fmt.Printf("dumped SSA for %s to %v\n", w.Func.NameABI(), w.path)
+func(w * HTMLWriter) Close()
+{
+    if w == nil { return }
+    io.WriteString(w.w, "</tr>") io.WriteString(w.w, "</table>") io.WriteString(w.w, "</body>") io.WriteString(w.w, "</html>") w.w.Close() fmt.Printf
+    (
+        "dumped SSA for %s to %v\n", w.Func.NameABI(), w.path
+    )
 }
-
 // WritePhase writes f in a column headed by title.
 // phase is used for collapsing columns and should be unique across the table.
-func (w *HTMLWriter) WritePhase(phase, title string) {
-	if w == nil {
-		return // avoid generating HTML just to discard it
-	}
-	hash := ssa.HashFunc(w.Func)
-	w.pendingPhases = append(w.pendingPhases, phase)
-	w.pendingTitles = append(w.pendingTitles, title)
-	if !bytes.Equal(hash, w.prevHash) || w.debugInfo != nil {
-		w.FlushPhases()
-	}
-	w.prevHash = hash
+func(w * HTMLWriter) WritePhase(phase, title string)
+{
+    if w == nil
+    {
+        return // avoid generating HTML just to discard it
+    }
+    hash: = ssa.HashFunc(w.Func) w.pendingPhases = append(w.pendingPhases, phase) w.pendingTitles = append(w.pendingTitles, title) if ! bytes.Equal
+    (
+        hash, w.prevHash
+    )
+    || w.debugInfo != nil { w.FlushPhases() }
+    w.prevHash = hash
 }
-
 // FatalCleanup should be called to do cleanup if the compilation is exiting early due to
 // a fatal error.
-func (w *HTMLWriter) FatalCleanup() {
-	const stats = "crashed"
-	w.WritePhase(w.Func.Pass.Name, fmt.Sprintf("%s <span class=\"stats\">%s</span>", w.Func.Pass.Name, stats))
-	w.FlushPhases()
+func(w * HTMLWriter) FatalCleanup()
+{
+    const stats = "crashed" w.WritePhase(w.Func.Pass.Name, fmt.Sprintf("%s <span class=\"stats\">%s</span>", w.Func.Pass.Name, stats)) w.FlushPhases()
 }
-
 // FlushPhases collects any pending phases and titles, writes them to the html, and resets the pending slices.
-func (w *HTMLWriter) FlushPhases() {
-	if w == nil {
-		return
-	}
-	phaseLen := len(w.pendingPhases)
-	if phaseLen == 0 {
-		return
-	}
-	phases := strings.Join(w.pendingPhases, "  +  ")
-	w.WriteMultiTitleColumn(
-		phases,
-		w.pendingTitles,
-		fmt.Sprintf("hash-%x", w.prevHash),
-		HTML(w.Func, w.pendingPhases[phaseLen-1], w.dot, w.debugInfo),
-	)
-	w.pendingPhases = w.pendingPhases[:0]
-	w.pendingTitles = w.pendingTitles[:0]
-	w.debugInfo = nil
-	w.timeFormatting = 0
+func(w * HTMLWriter) FlushPhases()
+{
+    if w == nil { return }
+    phaseLen: = len(w.pendingPhases) if phaseLen == 0 { return }
+    phases: = strings.Join(w.pendingPhases, "  +  ") w.WriteMultiTitleColumn
+    (
+        phases, w.pendingTitles, fmt.Sprintf("hash-%x", w.prevHash), HTML(w.Func, w.pendingPhases[phaseLen - 1], w.dot, w.debugInfo),
+    )
+    w.pendingPhases = w.pendingPhases[: 0] w.pendingTitles = w.pendingTitles[: 0] w.debugInfo = nil w.timeFormatting = 0
 }
-
 // FuncLines contains source code for a function to be displayed
 // in sources column.
-type FuncLines struct {
-	Filename    string
-	StartLineno uint
-	Lines       []string
-}
-
+type FuncLines struct { Filename string StartLineno uint Lines[] string }
 // ByTopoCmp sorts topologically: target function is on top,
 // followed by inlined functions sorted by filename and line numbers.
-func ByTopoCmp(a, b *FuncLines) int {
-	if r := strings.Compare(a.Filename, b.Filename); r != 0 {
-		return r
-	}
-	return cmp.Compare(a.StartLineno, b.StartLineno)
+func ByTopoCmp(a, b * FuncLines) int
+{
+    if r: = strings.Compare(a.Filename, b.Filename);
+    r != 0 { return r }
+    return cmp.Compare(a.StartLineno, b.StartLineno)
 }
-
 // WriteSources writes lines as source code in a column headed by title.
 // phase is used for collapsing columns and should be unique across the table.
-func (w *HTMLWriter) WriteSources(phase string, all []*FuncLines) {
-	if w == nil {
-		return // avoid generating HTML just to discard it
-	}
-	var buf strings.Builder
-	fmt.Fprint(&buf, "<div class=\"lines\" style=\"width: 8%\">")
-	filename := ""
-	for _, fl := range all {
-		fmt.Fprint(&buf, "<div>&nbsp;</div>")
-		if filename != fl.Filename {
-			fmt.Fprint(&buf, "<div>&nbsp;</div>")
-			filename = fl.Filename
-		}
-		for i := range fl.Lines {
-			ln := int(fl.StartLineno) + i
-			fmt.Fprintf(&buf, "<div class=\"l%v line-number\">%v</div>", ln, ln)
-		}
-	}
-	fmt.Fprint(&buf, "</div><div style=\"width: 92%\"><pre>")
-	filename = ""
-	for _, fl := range all {
-		fmt.Fprint(&buf, "<div>&nbsp;</div>")
-		if filename != fl.Filename {
-			fmt.Fprintf(&buf, "<div><strong>%v</strong></div>", fl.Filename)
-			filename = fl.Filename
-		}
-		for i, line := range fl.Lines {
-			ln := int(fl.StartLineno) + i
-			var escaped string
-			if strings.TrimSpace(line) == "" {
-				escaped = "&nbsp;"
-			} else {
-				escaped = html.EscapeString(line)
-			}
-			fmt.Fprintf(&buf, "<div class=\"l%v line-number\">%v</div>", ln, escaped)
-		}
-	}
-	fmt.Fprint(&buf, "</pre></div>")
-	w.WriteColumn(phase, phase, "allow-x-scroll", buf.String())
+func(w * HTMLWriter) WriteSources(phase string, all[] * FuncLines)
+{
+    if w == nil
+    {
+        return // avoid generating HTML just to discard it
+    }
+    var buf strings.Builder fmt.Fprint( & buf, "<div class=\"lines\" style=\"width: 8%\">") filename: = "" for _, fl: = range all
+    {
+        fmt.Fprint( & buf, "<div>&nbsp;</div>") if filename != fl.Filename { fmt.Fprint( & buf, "<div>&nbsp;</div>") filename = fl.Filename }
+        for i: = range fl.Lines { ln: = int (fl.StartLineno) + i fmt.Fprintf( & buf, "<div class=\"l%v line-number\">%v</div>", ln, ln) }
+    }
+    fmt.Fprint( & buf, "</div><div style=\"width: 92%\"><pre>") filename = "" for _, fl: = range all
+    {
+        fmt.Fprint( & buf, "<div>&nbsp;</div>") if filename != fl.Filename
+        {
+            fmt.Fprintf( & buf, "<div><strong>%v</strong></div>", fl.Filename) filename = fl.Filename
+        }
+        for i, line: = range fl.Lines
+        {
+            ln: = int(fl.StartLineno) + i var escaped string if strings.TrimSpace(line) == "" { escaped = "&nbsp;" }
+            else { escaped = html.EscapeString(line) }
+            fmt.Fprintf( & buf, "<div class=\"l%v line-number\">%v</div>", ln, escaped)
+        }
+    }
+    fmt.Fprint( & buf, "</pre></div>") w.WriteColumn(phase, phase, "allow-x-scroll", buf.String())
 }
 
-func (w *HTMLWriter) WriteAST(phase string, buf *bytes.Buffer) {
-	if w == nil {
-		return // avoid generating HTML just to discard it
-	}
-	lines := strings.Split(buf.String(), "\n")
-	var out strings.Builder
-
-	fmt.Fprint(&out, "<div>")
-	for _, l := range lines {
-		l = strings.TrimSpace(l)
-		var escaped string
-		var lineNo string
-		if l == "" {
-			escaped = "&nbsp;"
-		} else {
-			if strings.HasPrefix(l, "buildssa") {
-				escaped = fmt.Sprintf("<b>%v</b>", l)
-			} else {
-				// Parse the line number from the format file:line:col.
-				// See the implementation in ir/fmt.go:dumpNodeHeader.
-				sl := strings.Split(l, ":")
-				if len(sl) >= 3 {
-					if _, err := strconv.Atoi(sl[len(sl)-2]); err == nil {
-						lineNo = sl[len(sl)-2]
-					}
-				}
-				escaped = html.EscapeString(l)
-			}
-		}
-		if lineNo != "" {
-			fmt.Fprintf(&out, "<div class=\"l%v line-number ast\">%v</div>", lineNo, escaped)
-		} else {
-			fmt.Fprintf(&out, "<div class=\"ast\">%v</div>", escaped)
-		}
-	}
-	fmt.Fprint(&out, "</div>")
-	w.WriteColumn(phase, phase, "allow-x-scroll", out.String())
+func(w * HTMLWriter) WriteAST(phase string, buf * bytes.Buffer)
+{
+    if w == nil
+    {
+        return // avoid generating HTML just to discard it
+    }
+    lines: = strings.Split(buf.String(),"\n") var out strings.Builder fmt.Fprint( & out, "<div>") for _, l: = range lines
+    {
+        l = strings.TrimSpace(l) var escaped string var lineNo string if l == "" { escaped = "&nbsp;" }
+        else
+        {
+            if strings.HasPrefix(l, "buildssa") { escaped = fmt.Sprintf("<b>%v</b>", l) }
+            else
+            {
+                // Parse the line number from the format file:line:col.
+                // See the implementation in ir/fmt.go:dumpNodeHeader.
+                sl: = strings.Split(l, ":") if len(sl) >= 3
+                {
+                    if _, err: = strconv.Atoi(sl[len(sl) - 2]);
+                    err == nil { lineNo = sl[len(sl) - 2] }
+                }
+                escaped = html.EscapeString(l)
+            }
+        }
+        if lineNo != "" { fmt.Fprintf( & out, "<div class=\"l%v line-number ast\">%v</div>", lineNo, escaped) }
+        else { fmt.Fprintf( & out, "<div class=\"ast\">%v</div>", escaped) }
+    }
+    fmt.Fprint( & out, "</div>") w.WriteColumn(phase, phase, "allow-x-scroll", out.String())
 }
-
 // WriteColumn writes raw HTML in a column headed by title.
 // It is intended for pre- and post-compilation log output.
-func (w *HTMLWriter) WriteColumn(phase, title, class, html string) {
-	w.WriteMultiTitleColumn(phase, []string{title}, class, html)
+func(w * HTMLWriter) WriteColumn(phase, title, class , html string) { w.WriteMultiTitleColumn(phase, [] string { title }, class , html) }
+
+func(w * HTMLWriter) WriteMultiTitleColumn(phase string, titles[] string, class , html string)
+{
+    if w == nil { return }
+    id: = strings.ReplaceAll(phase, " ", "-") // collapsed column
+    w.Printf("<td id=\"%v-col\" class=\"collapsed\"><div>%v</div></td>", id, phase) if class == "" { w.Printf("<td id=\"%v-exp\">", id) }
+    else { w.Printf("<td id=\"%v-exp\" class=\"%v\">", id, class) }
+    for _, title: = range titles { w.WriteString("<h2>" + title + "</h2>") }
+    w.WriteString(html) w.WriteString("</td>\n")
 }
 
-func (w *HTMLWriter) WriteMultiTitleColumn(phase string, titles []string, class, html string) {
-	if w == nil {
-		return
-	}
-	id := strings.ReplaceAll(phase, " ", "-")
-	// collapsed column
-	w.Printf("<td id=\"%v-col\" class=\"collapsed\"><div>%v</div></td>", id, phase)
+func(w * HTMLWriter) Printf(msg string, v ... any) { if _, err: = fmt.Fprintf(w.w, msg, v ...); err != nil { w.Fatalf("%v", err) } }
 
-	if class == "" {
-		w.Printf("<td id=\"%v-exp\">", id)
-	} else {
-		w.Printf("<td id=\"%v-exp\" class=\"%v\">", id, class)
-	}
-	for _, title := range titles {
-		w.WriteString("<h2>" + title + "</h2>")
-	}
-	w.WriteString(html)
-	w.WriteString("</td>\n")
+func(w * HTMLWriter) WriteString(s string) { if _, err: = io.WriteString(w.w, s); err != nil { w.Fatalf("%v", err) } }
+
+func(w * HTMLWriter) DebugInfo(format func( * ssa.Value) string)
+{
+    if ! w.Enabled() { return }
+    begin: = time.Now() f: = w.Func w.debugInfo = make([] string, f.NumValues()) for _, b: = range f.Blocks
+    {
+        for _, v: = range b.Values { w.debugInfo[v.ID] = format(v) }
+    }
+    w.timeFormatting = time.Since(begin)
 }
 
-func (w *HTMLWriter) Printf(msg string, v ...any) {
-	if _, err := fmt.Fprintf(w.w, msg, v...); err != nil {
-		w.Fatalf("%v", err)
-	}
+func(w * HTMLWriter) TimeFormatting() time.Duration { if w == nil { return 0 } return w.timeFormatting }
+
+func HTML(f * ssa.Func, phase string, dot * dotWriter, debugStr[] string) string
+{
+    buf: = new (strings.Builder) if dot != nil { dot.writeFuncSVG(buf, phase, f) }
+    fmt.Fprint(buf, "<code>") p: = htmlFuncPrinter { w: buf, debugStr: debugStr }
+    ssa.FprintFunc(p, f) // fprintFunc(&buf, f) // TODO: HTML, not text, <br> for line breaks, etc.
+    fmt.Fprint(buf, "</code>") return buf.String()
 }
 
-func (w *HTMLWriter) WriteString(s string) {
-	if _, err := io.WriteString(w.w, s); err != nil {
-		w.Fatalf("%v", err)
-	}
+func(d * dotWriter) writeFuncSVG(w io.Writer, phase string, f * ssa.Func)
+{
+    if d.broken { return }
+    if _, ok: = d.phases[phase];
+    ! ok { return }
+    cmd: = exec.Command(d.path, "-Tsvg") pipe, err: = cmd.StdinPipe() if err != nil { d.broken = true fmt.Println(err) return }
+    buf: = new (bytes.Buffer) cmd.Stdout = buf bufErr: = new (strings.Builder) cmd.Stderr = bufErr err = cmd.Start() if err != nil
+    {
+        d.broken = true fmt.Println(err) return 
+    }
+    fmt.Fprint(pipe, `digraph "" { margin=0; ranksep=.2; `) id: = strings.ReplaceAll(phase, " ", "-") fmt.Fprintf(pipe, `id="g_graph_%s";`, id) fmt.Fprintf
+    (
+        pipe, `node [style=filled,fillcolor=white,fontsize=16,fontname="Menlo,Times,serif",margin="0.01,0.03"];`
+    )
+    fmt.Fprintf(pipe, `edge [fontsize=16,fontname="Menlo,Times,serif"];`) for i, b: = range f.Blocks
+    {
+        if b.Kind == block.BlockInvalid { continue }
+        layout: = "" if f.Laidout { layout = fmt.Sprintf("#%d", i) }
+        fmt.Fprintf(pipe, `%v [label="%v%s\n%v",id="graph_node_%v_%v",tooltip="%v"];`, b, b, layout, b.Kind.String(), id, b, b.LongString())
+    }
+    indexOf: = make([] int , f.NumBlocks()) for i, b: = range f.Blocks { indexOf[b.ID] = i }
+    layoutDrawn: = make([] bool , f.NumBlocks()) ponums: = make([] int32, f.NumBlocks()) _ = ssa.PostorderWithNumbering(f, ponums) isBackEdge: = func
+    (
+        from, to ssa.ID
+    )
+    bool { return ponums[from] <= ponums[to] }
+
+    for _, b: = range f.Blocks
+    {
+        for i, s: = range b.Succs
+        {
+            style: = "solid" color: = "black" arrow: = "vee" if b.UnlikelyIndex() == i { style = "dashed" }
+            if f.Laidout && indexOf[s.B.ID] == indexOf[b.ID] + 1
+            {
+                // Red color means ordered edge. It overrides other colors.
+                arrow = "dotvee" layoutDrawn[s.B.ID] = true
+            }
+            else if isBackEdge(b.ID, s.B.ID) { color = "#2893ff" }
+            fmt.Fprintf(pipe, `%v -> %v [label=" %d ",style="%s",color="%s",arrowhead="%s"];`, b, s.B, i, style, color, arrow)
+        }
+    }
+    if f.Laidout
+    {
+        fmt.Fprintln(pipe, `edge[constraint=false,color=gray,style=solid,arrowhead=dot];`) colors: = [ ...] string
+        {
+            "#eea24f", "#f38385", "#f4d164", "#ca89fc", "gray"
+        }
+        ci: = 0 for i: = 1;
+        i < len(f.Blocks);
+        i++
+        {
+            if layoutDrawn[f.Blocks[i].ID] { continue }
+            fmt.Fprintf(pipe, `%s -> %s [color="%s"];`, f.Blocks[i - 1], f.Blocks[i], colors[ci]) ci = (ci + 1) % len(colors)
+        }
+    }
+    fmt.Fprint(pipe, "}") pipe.Close() err = cmd.Wait() if err != nil { d.broken = true fmt.Printf("dot: %v\n%v\n", err, bufErr.String()) return }
+
+    svgID: = "svg_graph_" + id fmt.Fprintf
+    (
+        w, `<div class="zoom"><button onclick="return graphReduce('%s');">-</button> <button onclick="return graphEnlarge('%s');">+</button></div>`, svgID, svgID
+    )
+    // For now, an awful hack: edit the html as it passes through
+    // our fingers, finding '<svg ' and injecting needed attributes after it.
+    err = d.copyUntil(w, buf, `<svg `) if err != nil { fmt.Printf("injecting attributes: %v\n", err) return }
+    fmt.Fprintf(w, ` id="%s" onload="makeDraggable(evt)" `, svgID) io.Copy(w, buf)
 }
 
-func (w *HTMLWriter) DebugInfo(format func(*ssa.Value) string) {
-	if !w.Enabled() {
-		return
-	}
-	begin := time.Now()
-	f := w.Func
-	w.debugInfo = make([]string, f.NumValues())
-	for _, b := range f.Blocks {
-		for _, v := range b.Values {
-			w.debugInfo[v.ID] = format(v)
-		}
-	}
-	w.timeFormatting = time.Since(begin)
+func(d * dotWriter) copyUntil(w io.Writer, buf * bytes.Buffer, sep string) error
+{
+    i: = bytes.Index(buf.Bytes(),[] byte(sep)) if i == - 1 { return fmt.Errorf("couldn't find dot sep %q", sep) }
+    _, err: = io.CopyN(w, buf, int64(i + len(sep))) return err
 }
 
-func (w *HTMLWriter) TimeFormatting() time.Duration {
-	if w == nil {
-		return 0
-	}
-	return w.timeFormatting
+type htmlFuncPrinter struct { w io.Writer debugStr[] string }
+
+func(p htmlFuncPrinter) Header(f * ssa.Func) {}
+
+func(p htmlFuncPrinter) StartBlock(b * ssa.Block, reachable bool)
+{
+    var dead string if ! reachable { dead = "dead-block" }
+    fmt.Fprintf(p.w, "<ul class=\"%s ssa-print-func %s\">", b, dead) fmt.Fprintf(p.w, "<li class=\"ssa-start-block\">%s:", b.HTML()) if len(b.Preds) > 0
+    {
+        io.WriteString(p.w, " &#8592;") // left arrow
+        for _, e: = range b.Preds { pred: = e.B fmt.Fprintf(p.w, " %s", pred.HTML()) }
+    }
+    if len(b.Values) > 0 { io.WriteString(p.w, `<button onclick="hideBlock(this)">-</button>`) }
+    io.WriteString(p.w, "</li>") if len(b.Values) > 0
+    {
+        // start list of values
+        io.WriteString(p.w, "<li class=\"ssa-value-list\">") io.WriteString(p.w, "<ul>")
+    }
 }
 
-func HTML(f *ssa.Func, phase string, dot *dotWriter, debugStr []string) string {
-	buf := new(strings.Builder)
-	if dot != nil {
-		dot.writeFuncSVG(buf, phase, f)
-	}
-	fmt.Fprint(buf, "<code>")
-	p := htmlFuncPrinter{w: buf, debugStr: debugStr}
-	ssa.FprintFunc(p, f)
-
-	// fprintFunc(&buf, f) // TODO: HTML, not text, <br> for line breaks, etc.
-	fmt.Fprint(buf, "</code>")
-	return buf.String()
+func(p htmlFuncPrinter) EndBlock(b * ssa.Block, reachable bool)
+{
+    if len(b.Values) > 0
+    {
+        // end list of values
+        io.WriteString(p.w, "</ul>") io.WriteString(p.w, "</li>")
+    }
+    io.WriteString(p.w, "<li class=\"ssa-end-block\">") fmt.Fprint(p.w, b.LongHTML()) io.WriteString(p.w, "</li>") io.WriteString(p.w, "</ul>")
 }
 
-func (d *dotWriter) writeFuncSVG(w io.Writer, phase string, f *ssa.Func) {
-	if d.broken {
-		return
-	}
-	if _, ok := d.phases[phase]; !ok {
-		return
-	}
-	cmd := exec.Command(d.path, "-Tsvg")
-	pipe, err := cmd.StdinPipe()
-	if err != nil {
-		d.broken = true
-		fmt.Println(err)
-		return
-	}
-	buf := new(bytes.Buffer)
-	cmd.Stdout = buf
-	bufErr := new(strings.Builder)
-	cmd.Stderr = bufErr
-	err = cmd.Start()
-	if err != nil {
-		d.broken = true
-		fmt.Println(err)
-		return
-	}
-	fmt.Fprint(pipe, `digraph "" { margin=0; ranksep=.2; `)
-	id := strings.ReplaceAll(phase, " ", "-")
-	fmt.Fprintf(pipe, `id="g_graph_%s";`, id)
-	fmt.Fprintf(pipe, `node [style=filled,fillcolor=white,fontsize=16,fontname="Menlo,Times,serif",margin="0.01,0.03"];`)
-	fmt.Fprintf(pipe, `edge [fontsize=16,fontname="Menlo,Times,serif"];`)
-	for i, b := range f.Blocks {
-		if b.Kind == block.BlockInvalid {
-			continue
-		}
-		layout := ""
-		if f.Laidout {
-			layout = fmt.Sprintf(" #%d", i)
-		}
-		fmt.Fprintf(pipe, `%v [label="%v%s\n%v",id="graph_node_%v_%v",tooltip="%v"];`, b, b, layout, b.Kind.String(), id, b, b.LongString())
-	}
-	indexOf := make([]int, f.NumBlocks())
-	for i, b := range f.Blocks {
-		indexOf[b.ID] = i
-	}
-	layoutDrawn := make([]bool, f.NumBlocks())
-
-	ponums := make([]int32, f.NumBlocks())
-	_ = ssa.PostorderWithNumbering(f, ponums)
-	isBackEdge := func(from, to ssa.ID) bool {
-		return ponums[from] <= ponums[to]
-	}
-
-	for _, b := range f.Blocks {
-		for i, s := range b.Succs {
-			style := "solid"
-			color := "black"
-			arrow := "vee"
-			if b.UnlikelyIndex() == i {
-				style = "dashed"
-			}
-			if f.Laidout && indexOf[s.B.ID] == indexOf[b.ID]+1 {
-				// Red color means ordered edge. It overrides other colors.
-				arrow = "dotvee"
-				layoutDrawn[s.B.ID] = true
-			} else if isBackEdge(b.ID, s.B.ID) {
-				color = "#2893ff"
-			}
-			fmt.Fprintf(pipe, `%v -> %v [label=" %d ",style="%s",color="%s",arrowhead="%s"];`, b, s.B, i, style, color, arrow)
-		}
-	}
-	if f.Laidout {
-		fmt.Fprintln(pipe, `edge[constraint=false,color=gray,style=solid,arrowhead=dot];`)
-		colors := [...]string{"#eea24f", "#f38385", "#f4d164", "#ca89fc", "gray"}
-		ci := 0
-		for i := 1; i < len(f.Blocks); i++ {
-			if layoutDrawn[f.Blocks[i].ID] {
-				continue
-			}
-			fmt.Fprintf(pipe, `%s -> %s [color="%s"];`, f.Blocks[i-1], f.Blocks[i], colors[ci])
-			ci = (ci + 1) % len(colors)
-		}
-	}
-	fmt.Fprint(pipe, "}")
-	pipe.Close()
-	err = cmd.Wait()
-	if err != nil {
-		d.broken = true
-		fmt.Printf("dot: %v\n%v\n", err, bufErr.String())
-		return
-	}
-
-	svgID := "svg_graph_" + id
-	fmt.Fprintf(w, `<div class="zoom"><button onclick="return graphReduce('%s');">-</button> <button onclick="return graphEnlarge('%s');">+</button></div>`, svgID, svgID)
-	// For now, an awful hack: edit the html as it passes through
-	// our fingers, finding '<svg ' and injecting needed attributes after it.
-	err = d.copyUntil(w, buf, `<svg `)
-	if err != nil {
-		fmt.Printf("injecting attributes: %v\n", err)
-		return
-	}
-	fmt.Fprintf(w, ` id="%s" onload="makeDraggable(evt)" `, svgID)
-	io.Copy(w, buf)
+func(p htmlFuncPrinter) Value(v * ssa.Value, live bool)
+{
+    var dead string if ! live { dead = "dead-value" }
+    debugStr: = "" if p.debugStr != nil { debugStr = p.debugStr[v.ID] }
+    fmt.Fprintf(p.w, "<li class=\"ssa-long-value %s\">", dead) fmt.Fprint(p.w, v.LongHTML(debugStr)) io.WriteString(p.w, "</li>")
 }
 
-func (d *dotWriter) copyUntil(w io.Writer, buf *bytes.Buffer, sep string) error {
-	i := bytes.Index(buf.Bytes(), []byte(sep))
-	if i == -1 {
-		return fmt.Errorf("couldn't find dot sep %q", sep)
-	}
-	_, err := io.CopyN(w, buf, int64(i+len(sep)))
-	return err
+func(p htmlFuncPrinter) StartDepCycle() { fmt.Fprintln(p.w, "<span class=\"depcycle\">") }
+
+func(p htmlFuncPrinter) EndDepCycle() { fmt.Fprintln(p.w, "</span>") }
+
+func(p htmlFuncPrinter) Named(n ssa.LocalSlot, vals[] * ssa.Value)
+{
+    fmt.Fprintf(p.w, "<li>name %s: ", n) for _, val: = range vals { fmt.Fprintf(p.w, "%s ", val.HTML()) }
+    fmt.Fprintf(p.w, "</li>")
 }
 
-type htmlFuncPrinter struct {
-	w        io.Writer
-	debugStr []string
+type dotWriter struct 
+{
+    path string broken bool phases map[string] bool // keys specify phases with CFGs
 }
-
-func (p htmlFuncPrinter) Header(f *ssa.Func) {}
-
-func (p htmlFuncPrinter) StartBlock(b *ssa.Block, reachable bool) {
-	var dead string
-	if !reachable {
-		dead = "dead-block"
-	}
-	fmt.Fprintf(p.w, "<ul class=\"%s ssa-print-func %s\">", b, dead)
-	fmt.Fprintf(p.w, "<li class=\"ssa-start-block\">%s:", b.HTML())
-	if len(b.Preds) > 0 {
-		io.WriteString(p.w, " &#8592;") // left arrow
-		for _, e := range b.Preds {
-			pred := e.B
-			fmt.Fprintf(p.w, " %s", pred.HTML())
-		}
-	}
-	if len(b.Values) > 0 {
-		io.WriteString(p.w, `<button onclick="hideBlock(this)">-</button>`)
-	}
-	io.WriteString(p.w, "</li>")
-	if len(b.Values) > 0 { // start list of values
-		io.WriteString(p.w, "<li class=\"ssa-value-list\">")
-		io.WriteString(p.w, "<ul>")
-	}
-}
-
-func (p htmlFuncPrinter) EndBlock(b *ssa.Block, reachable bool) {
-	if len(b.Values) > 0 { // end list of values
-		io.WriteString(p.w, "</ul>")
-		io.WriteString(p.w, "</li>")
-	}
-	io.WriteString(p.w, "<li class=\"ssa-end-block\">")
-	fmt.Fprint(p.w, b.LongHTML())
-	io.WriteString(p.w, "</li>")
-	io.WriteString(p.w, "</ul>")
-}
-
-func (p htmlFuncPrinter) Value(v *ssa.Value, live bool) {
-	var dead string
-	if !live {
-		dead = "dead-value"
-	}
-	debugStr := ""
-	if p.debugStr != nil {
-		debugStr = p.debugStr[v.ID]
-	}
-	fmt.Fprintf(p.w, "<li class=\"ssa-long-value %s\">", dead)
-	fmt.Fprint(p.w, v.LongHTML(debugStr))
-	io.WriteString(p.w, "</li>")
-}
-
-func (p htmlFuncPrinter) StartDepCycle() {
-	fmt.Fprintln(p.w, "<span class=\"depcycle\">")
-}
-
-func (p htmlFuncPrinter) EndDepCycle() {
-	fmt.Fprintln(p.w, "</span>")
-}
-
-func (p htmlFuncPrinter) Named(n ssa.LocalSlot, vals []*ssa.Value) {
-	fmt.Fprintf(p.w, "<li>name %s: ", n)
-	for _, val := range vals {
-		fmt.Fprintf(p.w, "%s ", val.HTML())
-	}
-	fmt.Fprintf(p.w, "</li>")
-}
-
-type dotWriter struct {
-	path   string
-	broken bool
-	phases map[string]bool // keys specify phases with CFGs
-}
-
 // newDotWriter returns non-nil value when mask is valid.
 // dotWriter will generate SVGs only for the phases specified in the mask.
 // mask can contain following patterns and combinations of them:
 // *   - all of them;
 // x-y - x through y, inclusive;
 // x,y - x and y, but not the passes between.
-func newDotWriter(mask string, passes []ssa.Pass) *dotWriter {
-	if mask == "" {
-		return nil
-	}
-	// User can specify phase name with _ instead of spaces.
-	mask = strings.ReplaceAll(mask, "_", " ")
-	ph := make(map[string]bool)
-	ranges := strings.Split(mask, ",")
-	for _, r := range ranges {
-		spl := strings.Split(r, "-")
-		if len(spl) > 2 {
-			fmt.Printf("range is not valid: %v\n", mask)
-			return nil
-		}
-		var first, last int
-		if mask == "*" {
-			first = 0
-			last = len(passes) - 1
-		} else {
-			first = passIdxByName(passes, spl[0])
-			last = passIdxByName(passes, spl[len(spl)-1])
-		}
-		if first < 0 || last < 0 || first > last {
-			fmt.Printf("range is not valid: %v\n", r)
-			return nil
-		}
-		for p := first; p <= last; p++ {
-			ph[passes[p].Name] = true
-		}
-	}
+func newDotWriter(mask string, passes[] ssa.Pass) * dotWriter
+{
+    if mask == "" { return nil }
+    // User can specify phase name with _ instead of spaces.
+    mask = strings.ReplaceAll(mask, "_", " ") ph: = make(map[string] bool) ranges: = strings.Split(mask, ",") for _, r: = range ranges
+    {
+        spl: = strings.Split(r, "-") if len(spl) > 2 { fmt.Printf("range is not valid: %v\n", mask) return nil }
+        var first, last int if mask == "*" { first = 0 last = len(passes) - 1 }
+        else { first = passIdxByName(passes, spl[0]) last = passIdxByName(passes, spl[len(spl) - 1]) }
+        if first < 0 || last < 0 || first > last { fmt.Printf("range is not valid: %v\n", r) return nil }
+        for p: = first;
+        p <= last;
+        p++ { ph[passes[p].Name] = true }
+    }
 
-	path, err := exec.LookPath("dot")
-	if err != nil {
-		fmt.Println(err)
-		return nil
-	}
-	return &dotWriter{path: path, phases: ph}
+    path, err: = exec.LookPath("dot") if err != nil { fmt.Println(err) return nil }
+    return & dotWriter { path: path, phases: ph }
 }
 
-func passIdxByName(passes []ssa.Pass, name string) int {
-	for i, p := range passes {
-		if p.Name == name {
-			return i
-		}
-	}
-	return -1
+func passIdxByName(passes[] ssa.Pass, name string) int
+{
+    for i, p: = range passes { if p.Name == name { return i } }
+    return - 1
 }

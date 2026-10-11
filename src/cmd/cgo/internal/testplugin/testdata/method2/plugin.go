@@ -2,10 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main import"testplugin/method2/p" func main() {}
 
-import "testplugin/method2/p"
-
-func main() {}
-
-func F(t p.T) interface{} { return t }
+func F(t p.T) interface {}
+{ return t }

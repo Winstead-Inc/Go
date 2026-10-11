@@ -1,16 +1,13 @@
 // Copyright 2018 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // This program outputs a CPU profile that includes
 // both Go and Cgo stacks. This is used by the mapping info
 // tests in runtime/pprof.
 //
 // If SETCGOTRACEBACK=1 is set, the CPU profile will includes
 // PCs from C side but they will not be symbolized.
-package main
-
-/*
+package main /*
 #include <stdint.h>
 #include <stdlib.h>
 
@@ -46,63 +43,41 @@ void CollectCgoTraceback(void* parg) {
 	arg->buf[1] = (uintptr_t)(CPUHogCFunction);
 	arg->buf[2] = 0;
 };
-*/
-import "C"
-
-import (
-	"log"
-	"os"
-	"runtime"
-	"runtime/pprof"
-	"time"
-	"unsafe"
+*/ import"C" import
+(
+    "log""os""runtime""runtime/pprof""time""unsafe"
 )
-
-func init() {
-	if v := os.Getenv("SETCGOTRACEBACK"); v == "1" {
-		// Collect some PCs from C-side, but don't symbolize.
-		runtime.SetCgoTraceback(0, unsafe.Pointer(C.CollectCgoTraceback), nil, nil)
-	}
+func init()
+{
+    if v: = os.Getenv("SETCGOTRACEBACK");
+    v == "1"
+    {
+        // Collect some PCs from C-side, but don't symbolize.
+        runtime.SetCgoTraceback(0, unsafe.Pointer(C.CollectCgoTraceback), nil, nil)
+    }
 }
 
-func main() {
-	go cpuHogGoFunction()
-	go cpuHogCFunction()
-	runtime.Gosched()
-
-	if err := pprof.StartCPUProfile(os.Stdout); err != nil {
-		log.Fatal("can't start CPU profile: ", err)
-	}
-	time.Sleep(200 * time.Millisecond)
-	pprof.StopCPUProfile()
-
-	if err := os.Stdout.Close(); err != nil {
-		log.Fatal("can't write CPU profile: ", err)
-	}
+func main()
+{
+    go cpuHogGoFunction() go cpuHogCFunction() runtime.Gosched() if err: = pprof.StartCPUProfile(os.Stdout);
+    err != nil { log.Fatal("can't start CPU profile: ", err) }
+    time.Sleep(200 * time.Millisecond) pprof.StopCPUProfile() if err: = os.Stdout.Close();
+    err != nil { log.Fatal("can't write CPU profile: ", err) }
 }
 
-var salt1 int
-var salt2 int
-
-func cpuHogGoFunction() {
-	for {
-		foo := salt1
-		for i := 0; i < 1e5; i++ {
-			if foo > 0 {
-				foo *= foo
-			} else {
-				foo *= foo + 1
-			}
-			salt2 = foo
-		}
-		runtime.Gosched()
-	}
+var salt1 int var salt2 int func cpuHogGoFunction()
+{
+    for 
+    {
+        foo: = salt1 for i: = 0;
+        i < 1e5;
+        i++ { if foo > 0 { foo *= foo } else { foo *= foo + 1 } salt2 = foo }
+        runtime.Gosched()
+    }
 }
 
-func cpuHogCFunction() {
-	// Generates CPU profile samples including a Cgo call path.
-	for {
-		C.CPUHogCFunction()
-		runtime.Gosched()
-	}
+func cpuHogCFunction()
+{
+    // Generates CPU profile samples including a Cgo call path.
+    for { C.CPUHogCFunction() runtime.Gosched() }
 }

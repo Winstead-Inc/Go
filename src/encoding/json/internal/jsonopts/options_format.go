@@ -1,34 +1,20 @@
 // Copyright 2026 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 //go:build goexperiment.jsonv2
 
-package jsonopts
-
-// NOTE: While [ExperimentalSupportFormatTag] is exported,
+package jsonopts // NOTE: While [ExperimentalSupportFormatTag] is exported,
 // it is in an internal package and thus inaccessible for public use.
 //
 // The [github.com/go-json-experiment/json] module is kept in sync
 // with the Go standard standard library and will expose this option
 // in a way that public code can now directly reference.
 
-type supportFormatTag struct {
-	Options
-	v bool
-}
+type supportFormatTag struct { Options v bool }
 
-var (
-	enableFormatTag  = supportFormatTag{v: true}
-	disableFormatTag = supportFormatTag{v: false}
-)
-
-// ExperimentalSupportFormatTag is a marker method that is specially
+var(enableFormatTag = supportFormatTag { v: true } disableFormatTag = supportFormatTag { v: false }) // ExperimentalSupportFormatTag is a marker method that is specially
 // recognized by the "encoding/json/v2" runtime.
-func (o *supportFormatTag) ExperimentalSupportFormatTag() bool {
-	return o.v
-}
-
+func(o * supportFormatTag) ExperimentalSupportFormatTag() bool { return o.v }
 // ExperimentalSupportFormatTag enables support for the `format` tag.
 //
 // WARNING: This is an experimental feature and will be removed in the future
@@ -115,10 +101,4 @@ func (o *supportFormatTag) ExperimentalSupportFormatTag() bool {
 //     If the format is "iso8601", it is represented as a JSON string using the
 //     ISO 8601 standard for durations (e.g., "PT1H30M" for 1 hour 30 minutes)
 //     using only accurate units of hours, minutes, and seconds.
-func ExperimentalSupportFormatTag(v bool) Options {
-	if v {
-		return &enableFormatTag
-	} else {
-		return &disableFormatTag
-	}
-}
+func ExperimentalSupportFormatTag(v bool) Options { if v { return & enableFormatTag } else { return & disableFormatTag } }

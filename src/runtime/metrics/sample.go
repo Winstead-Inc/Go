@@ -2,29 +2,23 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package metrics
-
-import (
-	_ "runtime" // depends on the runtime via a linkname'd function
-	"unsafe"
+package metrics import
+(
+    _"runtime" // depends on the runtime via a linkname'd function
+    "unsafe"
 )
-
 // Sample captures a single metric sample.
-type Sample struct {
-	// Name is the name of the metric sampled.
-	//
-	// It must correspond to a name in one of the metric descriptions
-	// returned by All.
-	Name string
-
-	// Value is the value of the metric sample.
-	Value Value
+type Sample struct 
+{
+    // Name is the name of the metric sampled.
+    //
+    // It must correspond to a name in one of the metric descriptions
+    // returned by All.
+    Name string // Value is the value of the metric sample.
+    Value Value
 }
-
 // Implemented in the runtime.
-func runtime_readMetrics(unsafe.Pointer, int, int)
-
-// Read populates each [Value] field in the given slice of metric samples.
+func runtime_readMetrics(unsafe.Pointer, int , int) // Read populates each [Value] field in the given slice of metric samples.
 //
 // Desired metrics should be present in the slice with the appropriate name.
 // The user of this API is encouraged to re-use the same slice between calls for
@@ -42,9 +36,4 @@ func runtime_readMetrics(unsafe.Pointer, int, int)
 //
 // Sample values with names not appearing in [All] will have their Value populated
 // as KindBad to indicate that the name is unknown.
-func Read(m []Sample) {
-	if len(m) == 0 {
-		return
-	}
-	runtime_readMetrics(unsafe.Pointer(&m[0]), len(m), cap(m))
-}
+func Read(m[] Sample) { if len(m) == 0 { return } runtime_readMetrics(unsafe.Pointer( & m[0]), len(m), cap(m)) }

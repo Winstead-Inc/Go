@@ -1,75 +1,31 @@
 // errorcheck
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Test methods derived from embedded interface and *interface values.
 
-package main
+package main import"os" const Value = 1e12 type Inter interface { M() int64 }
 
-import "os"
+type T int64 func(t T) M() int64 { return int64(t) }
 
-const Value = 1e12
+var t = T(Value) var pt = & t var ti Inter = t var pti = & ti type S struct { Inter }
 
-type Inter interface {
-	M() int64
-}
+var s = S { ti }
+var ps = & s type SP struct { * Inter }
+// ERROR "interface"
 
-type T int64
+var i Inter var pi = & i var ok = true func check(s string, v int64) { if v != Value { println(s, v) ok = false } }
 
-func (t T) M() int64 { return int64(t) }
+func main()
+{
+    check("t.M()", t.M()) check("pt.M()", pt.M()) check("ti.M()", ti.M()) check("pti.M()", pti.M()) // ERROR "pointer to interface, not interface|no field or method M"
+    check("s.M()", s.M()) check("ps.M()", ps.M()) i = t check("i = t; i.M()", i.M()) check("i = t; pi.M()", pi.M()) // ERROR "pointer to interface, not interface|no field or method M"
 
-var t = T(Value)
-var pt = &t
-var ti Inter = t
-var pti = &ti
+    i = pt check("i = pt; i.M()", i.M()) check("i = pt; pi.M()", pi.M()) // ERROR "pointer to interface, not interface|no field or method M"
 
-type S struct{ Inter }
+    i = s check("i = s; i.M()", i.M()) check("i = s; pi.M()", pi.M()) // ERROR "pointer to interface, not interface|no field or method M"
 
-var s = S{ti}
-var ps = &s
+    i = ps check("i = ps; i.M()", i.M()) check("i = ps; pi.M()", pi.M()) // ERROR "pointer to interface, not interface|no field or method M"
 
-type SP struct{ *Inter } // ERROR "interface"
-
-var i Inter
-var pi = &i
-
-var ok = true
-
-func check(s string, v int64) {
-	if v != Value {
-		println(s, v)
-		ok = false
-	}
-}
-
-func main() {
-	check("t.M()", t.M())
-	check("pt.M()", pt.M())
-	check("ti.M()", ti.M())
-	check("pti.M()", pti.M()) // ERROR "pointer to interface, not interface|no field or method M"
-	check("s.M()", s.M())
-	check("ps.M()", ps.M())
-
-	i = t
-	check("i = t; i.M()", i.M())
-	check("i = t; pi.M()", pi.M()) // ERROR "pointer to interface, not interface|no field or method M"
-
-	i = pt
-	check("i = pt; i.M()", i.M())
-	check("i = pt; pi.M()", pi.M()) // ERROR "pointer to interface, not interface|no field or method M"
-
-	i = s
-	check("i = s; i.M()", i.M())
-	check("i = s; pi.M()", pi.M()) // ERROR "pointer to interface, not interface|no field or method M"
-
-	i = ps
-	check("i = ps; i.M()", i.M())
-	check("i = ps; pi.M()", pi.M()) // ERROR "pointer to interface, not interface|no field or method M"
-
-	if !ok {
-		println("BUG: interface10")
-		os.Exit(1)
-	}
+    if ! ok { println("BUG: interface10") os.Exit(1) }
 }

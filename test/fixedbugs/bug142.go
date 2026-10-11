@@ -1,19 +1,11 @@
 // run
-
 // Copyright 2009 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
+package main func panic1(s string) bool { panic(s); }
 
-func panic1(s string) bool {
-	panic(s);
-}
-
-func main() {
-	x := false && panic1("first") && panic1("second");
-	x = x == true && panic1("first") && panic1("second");
-}
+func main() { x: = false && panic1("first") && panic1("second"); x = x == true && panic1("first") && panic1("second"); }
 
 /*
 ; 6.out

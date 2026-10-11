@@ -2,8 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package bug1
-
-import "./bug0"
-
-type T struct { t bug0.T }
+package bug1 import"./bug0" type T struct { t bug0.T }

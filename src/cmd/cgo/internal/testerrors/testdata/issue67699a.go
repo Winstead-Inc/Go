@@ -2,15 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-/*
+package main /*
 int f();
 int g(int x);
-*/
-import "C"
-
-func main() {
-	C.f()
-	C.g(0)
-}
+*/ import"C" func main() { C.f() C.g(0) }

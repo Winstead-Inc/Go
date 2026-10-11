@@ -31,7 +31,8 @@
 
 set -e
 
-if [ ! -f ../bin/go ]; then
+if [ ! -f ../bin/go ];
+then
 	echo 'run.bash must be run from $GOROOT/src after installing cmd/go' 1>&2
 	exit 1
 fi
@@ -39,7 +40,7 @@ fi
 export GOENV=off
 eval $(../bin/go tool dist env)
 
-unset CDPATH	# in case user has it set
+unset CDPATH # in case user has it set
 
 export GOHOSTOS
 export CC
@@ -52,8 +53,7 @@ ulimit -c 0
 [ "$(ulimit -H -d)" = "unlimited" ] || ulimit -S -d $(ulimit -H -d)
 
 # Thread count limit on NetBSD 7.
-if ulimit -T &> /dev/null; then
-	[ "$(ulimit -H -T)" = "unlimited" ] || ulimit -S -T $(ulimit -H -T)
+if ulimit -T & > /dev/null; then [ "$(ulimit -H -T)" = "unlimited" ] || ulimit -S -T $(ulimit -H -T)
 fi
 
 export GOPATH=/nonexist-gopath

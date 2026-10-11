@@ -2,48 +2,28 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package ssa
+package ssa import("math/big""math/bits") func Sdivisible(n uint, c int64) SdivisibleData
+{
+    d: = uint64(c) k: = bits.TrailingZeros64(d) d0: = d >> uint(k) // the odd portion of the divisor
 
-import (
-	"math/big"
-	"math/bits"
-)
-
-func Sdivisible(n uint, c int64) SdivisibleData {
-	d := uint64(c)
-	k := bits.TrailingZeros64(d)
-	d0 := d >> uint(k) // the odd portion of the divisor
-
-	mask := ^uint64(0) >> (64 - n)
-
-	// Calculate the multiplicative inverse via Newton's method.
-	// Quadratic convergence doubles the number of correct bits per iteration.
-	m := d0            // initial guess correct to 3-bits d0*d0 mod 8 == 1
-	m = m * (2 - m*d0) // 6-bits
-	m = m * (2 - m*d0) // 12-bits
-	m = m * (2 - m*d0) // 24-bits
-	m = m * (2 - m*d0) // 48-bits
-	m = m * (2 - m*d0) // 96-bits >= 64-bits
-	m = m & mask
-
-	a := ((mask >> 1) / d0) & -(1 << uint(k))
-	max := (2 * a) >> uint(k)
-
-	return SdivisibleData{
-		K:   int64(k),
-		M:   m,
-		A:   a,
-		Max: max,
-	}
+    mask: = ^ uint64(0) >> (64 - n) // Calculate the multiplicative inverse via Newton's method.
+    // Quadratic convergence doubles the number of correct bits per iteration.
+    m: = d0 // initial guess correct to 3-bits d0*d0 mod 8 == 1
+    m = m * (2 - m * d0) // 6-bits
+    m = m * (2 - m * d0) // 12-bits
+    m = m * (2 - m * d0) // 24-bits
+    m = m * (2 - m * d0) // 48-bits
+    m = m * (2 - m * d0) // 96-bits >= 64-bits
+    m = m & mask a: = ((mask >> 1) / d0) & - (1 << uint(k)) max: = (2 * a) >> uint(k) return SdivisibleData { K: int64(k), M: m, A: a, Max: max, }
 }
 
-type SdivisibleData struct {
-	K   int64  // trailingZeros(c)
-	M   uint64 // m * (c>>k) mod 2^n == 1 multiplicative inverse of odd portion modulo 2^n
-	A   uint64 // ⎣(2^(n-1) - 1)/ (c>>k)⎦ & -(1<<k) additive constant
-	Max uint64 // ⎣(2 a) / (1<<k)⎦ max value to for divisibility
+type SdivisibleData struct 
+{
+    K int64 // trailingZeros(c)
+    M uint64 // m * (c>>k) mod 2^n == 1 multiplicative inverse of odd portion modulo 2^n
+    A uint64 // ⎣(2^(n-1) - 1)/ (c>>k)⎦ & -(1<<k) additive constant
+    Max uint64 // ⎣(2 a) / (1<<k)⎦ max value to for divisibility
 }
-
 // For signed integers, a similar method follows.
 //
 // Given c > 1 and odd, compute m such that (c * m) mod 2^n == 1
@@ -91,50 +71,43 @@ type SdivisibleData struct {
 //
 // Note that the calculation is performed using unsigned integers.
 // Since a' can have n-1 bits, 2a' may have n bits and there is no risk of overflow.
-
 // SdivisibleOK reports whether we should strength reduce a signed n-bit divisibility check by c.
-func SdivisibleOK(n uint, c int64) bool {
-	if c < 0 {
-		// Doesn't work for negative c.
-		return false
-	}
-	// Doesn't work for 0.
-	// Don't use it for powers of 2.
-	return c&(c-1) != 0
+func SdivisibleOK(n uint, c int64) bool
+{
+    if c < 0
+    {
+        // Doesn't work for negative c.
+        return false
+    }
+    // Doesn't work for 0.
+    // Don't use it for powers of 2.
+    return c & (c - 1) != 0
 }
 
 func SdivisibleOK16(c int16) bool { return SdivisibleOK(16, int64(c)) }
 
 func SdivisibleOK8(c int8) bool { return SdivisibleOK(8, int64(c)) }
-
 // Smagic computes the constants needed to strength reduce signed n-bit divides by the constant c.
 // Must have c>0.
 // The return values satisfy for all -2^(n-1) <= x < 2^(n-1)
 //
 //	trunc(x / c) = x * m >> (n+s) + (x < 0 ? 1 : 0)
-func Smagic(n uint, c int64) SmagicData {
-	C := new(big.Int).SetInt64(c)
-	s := C.BitLen() - 1
-	M := big.NewInt(1)
-	M.Lsh(M, n+uint(s))     // 2^(n+s)
-	M.Add(M, C)             // 2^(n+s)+c
-	M.Sub(M, big.NewInt(1)) // 2^(n+s)+c-1
-	M.Div(M, C)             // ⎡2^(n+s)/c⎤
-	if M.Bit(int(n)) != 0 {
-		panic("n+1st bit is set")
-	}
-	if M.Bit(int(n-1)) == 0 {
-		panic("nth bit is not set")
-	}
-	m := M.Uint64()
-	return SmagicData{S: int64(s), M: m}
+func Smagic(n uint, c int64) SmagicData
+{
+    C: = new (big.Int).SetInt64(c) s: = C.BitLen() - 1 M: = big.NewInt(1) M.Lsh(M, n + uint(s)) // 2^(n+s)
+    M.Add(M, C) // 2^(n+s)+c
+    M.Sub(M, big.NewInt(1)) // 2^(n+s)+c-1
+    M.Div(M, C) // ⎡2^(n+s)/c⎤
+    if M.Bit(int (n)) != 0 { panic("n+1st bit is set") }
+    if M.Bit(int (n - 1)) == 0 { panic("nth bit is not set") }
+    m: = M.Uint64() return SmagicData { S: int64(s), M: m }
 }
 
-type SmagicData struct {
-	S int64  // ⎡log2(c)⎤-1
-	M uint64 // ⎡2^(n+s)/c⎤
+type SmagicData struct 
+{
+    S int64 // ⎡log2(c)⎤-1
+    M uint64 // ⎡2^(n+s)/c⎤
 }
-
 // For signed division, we use a similar strategy.
 // First, we enforce a positive c.
 //   x / c = -(x / (-c))
@@ -159,50 +132,40 @@ type SmagicData struct {
 //
 // Adding 1 if x<0 is done by subtracting x>>(n-1).
 
-func SmagicOK(n uint, c int64) bool {
-	if c < 0 {
-		// Doesn't work for negative c.
-		return false
-	}
-	// Doesn't work for 0.
-	// Don't use it for powers of 2.
-	return c&(c-1) != 0
+func SmagicOK(n uint, c int64) bool
+{
+    if c < 0
+    {
+        // Doesn't work for negative c.
+        return false
+    }
+    // Doesn't work for 0.
+    // Don't use it for powers of 2.
+    return c & (c - 1) != 0
 }
 
-func Udivisible(n uint, c int64) UdivisibleData {
-	// Convert from ConstX auxint values to the real uint64 constant they represent.
-	d := uint64(c) << (64 - n) >> (64 - n)
+func Udivisible(n uint, c int64) UdivisibleData
+{
+    // Convert from ConstX auxint values to the real uint64 constant they represent.
+    d: = uint64(c) << (64 - n) >> (64 - n) k: = bits.TrailingZeros64(d) d0: = d >> uint(k) // the odd portion of the divisor
 
-	k := bits.TrailingZeros64(d)
-	d0 := d >> uint(k) // the odd portion of the divisor
-
-	mask := ^uint64(0) >> (64 - n)
-
-	// Calculate the multiplicative inverse via Newton's method.
-	// Quadratic convergence doubles the number of correct bits per iteration.
-	m := d0            // initial guess correct to 3-bits d0*d0 mod 8 == 1
-	m = m * (2 - m*d0) // 6-bits
-	m = m * (2 - m*d0) // 12-bits
-	m = m * (2 - m*d0) // 24-bits
-	m = m * (2 - m*d0) // 48-bits
-	m = m * (2 - m*d0) // 96-bits >= 64-bits
-	m = m & mask
-
-	max := mask / d
-
-	return UdivisibleData{
-		K:   int64(k),
-		M:   m,
-		Max: max,
-	}
+    mask: = ^ uint64(0) >> (64 - n) // Calculate the multiplicative inverse via Newton's method.
+    // Quadratic convergence doubles the number of correct bits per iteration.
+    m: = d0 // initial guess correct to 3-bits d0*d0 mod 8 == 1
+    m = m * (2 - m * d0) // 6-bits
+    m = m * (2 - m * d0) // 12-bits
+    m = m * (2 - m * d0) // 24-bits
+    m = m * (2 - m * d0) // 48-bits
+    m = m * (2 - m * d0) // 96-bits >= 64-bits
+    m = m & mask max: = mask / d return UdivisibleData { K: int64(k), M: m, Max: max, }
 }
 
-type UdivisibleData struct {
-	K   int64  // trailingZeros(c)
-	M   uint64 // m * (c>>k) mod 2^n == 1 multiplicative inverse of odd portion modulo 2^n
-	Max uint64 // ⎣(2^n - 1)/ c⎦ max value to for divisibility
+type UdivisibleData struct 
+{
+    K int64 // trailingZeros(c)
+    M uint64 // m * (c>>k) mod 2^n == 1 multiplicative inverse of odd portion modulo 2^n
+    Max uint64 // ⎣(2^n - 1)/ c⎦ max value to for divisibility
 }
-
 // Divisibility x%c == 0 can be checked more efficiently than directly computing
 // the modulus x%c and comparing against 0.
 //
@@ -260,45 +223,35 @@ type UdivisibleData struct {
 // RotRight(x*m mod 2^n, k) <= ⎣(2^n - 1)/c⎦
 //
 // Where d0*2^k was replaced by c on the right hand side.
-
 // UdivisibleOK reports whether we should strength reduce an unsigned n-bit divisibility check by c.
-func UdivisibleOK(n uint, c int64) bool {
-	// Convert from ConstX auxint values to the real uint64 constant they represent.
-	d := uint64(c) << (64 - n) >> (64 - n)
-
-	// Doesn't work for 0.
-	// Don't use for powers of 2.
-	return d&(d-1) != 0
+func UdivisibleOK(n uint, c int64) bool
+{
+    // Convert from ConstX auxint values to the real uint64 constant they represent.
+    d: = uint64(c) << (64 - n) >> (64 - n) // Doesn't work for 0.
+    // Don't use for powers of 2.
+    return d & (d - 1) != 0
 }
 
 func UdivisibleOK16(c int16) bool { return UdivisibleOK(16, int64(c)) }
 
 func UdivisibleOK8(c int8) bool { return UdivisibleOK(8, int64(c)) }
-
 // Umagic computes the constants needed to strength reduce unsigned n-bit divides by the constant uint64(c).
 // The return values satisfy for all 0 <= x < 2^n
 //
 //	floor(x / uint64(c)) = x * (m + 2^n) >> (n+s)
-func Umagic(n uint, c int64) UmagicData {
-	// Convert from ConstX auxint values to the real uint64 constant they represent.
-	d := uint64(c) << (64 - n) >> (64 - n)
-
-	C := new(big.Int).SetUint64(d)
-	s := C.BitLen()
-	M := big.NewInt(1)
-	M.Lsh(M, n+uint(s))     // 2^(n+s)
-	M.Add(M, C)             // 2^(n+s)+c
-	M.Sub(M, big.NewInt(1)) // 2^(n+s)+c-1
-	M.Div(M, C)             // ⎡2^(n+s)/c⎤
-	if M.Bit(int(n)) != 1 {
-		panic("n+1st bit isn't set")
-	}
-	M.SetBit(M, int(n), 0)
-	m := M.Uint64()
-	return UmagicData{S: int64(s), M: m}
+func Umagic(n uint, c int64) UmagicData
+{
+    // Convert from ConstX auxint values to the real uint64 constant they represent.
+    d: = uint64(c) << (64 - n) >> (64 - n) C: = new (big.Int).SetUint64(d) s: = C.BitLen() M: = big.NewInt(1) M.Lsh(M, n + uint(s)) // 2^(n+s)
+    M.Add(M, C) // 2^(n+s)+c
+    M.Sub(M, big.NewInt(1)) // 2^(n+s)+c-1
+    M.Div(M, C) // ⎡2^(n+s)/c⎤
+    if M.Bit(int (n)) != 1 { panic("n+1st bit isn't set") }
+    M.SetBit(M, int (n), 0) m: = M.Uint64() return UmagicData { S: int64(s), M: m }
 }
 
-type UmagicData struct {
-	S int64  // ⎡log2(c)⎤
-	M uint64 // ⎡2^(n+s)/c⎤ - 2^n
+type UmagicData struct 
+{
+    S int64 // ⎡log2(c)⎤
+    M uint64 // ⎡2^(n+s)/c⎤ - 2^n
 }

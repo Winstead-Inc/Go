@@ -1,18 +1,10 @@
 // Copyright 2021 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package workcmd implements the “go work” command.
-package workcmd
-
-import (
-	"cmd/go/internal/base"
-)
-
-var CmdWork = &base.Command{
-	UsageLine: "go work",
-	Short:     "workspace maintenance",
-	Long: `Work provides access to operations on workspaces.
+package workcmd import("cmd/go/internal/base") var CmdWork = & base.Command
+{
+    UsageLine: "go work", Short: "workspace maintenance", Long: `Work provides access to operations on workspaces.
 
 Note that support for workspaces is built into many other commands, not
 just 'go work'.
@@ -69,13 +61,8 @@ modules.
 To determine whether the go command is operating in workspace mode, use
 the "go env GOWORK" command. This will specify the workspace file being
 used.
-`,
-
-	Commands: []*base.Command{
-		cmdEdit,
-		cmdInit,
-		cmdSync,
-		cmdUse,
-		cmdVendor,
-	},
+`, Commands: 
+    [
+    ]
+    * base.Command { cmdEdit, cmdInit, cmdSync, cmdUse, cmdVendor, },
 }

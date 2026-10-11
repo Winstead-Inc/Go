@@ -2,14 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package doc
-
-import (
-	"go/doc/comment"
-	"io"
-)
-
-// ToHTML converts comment text to formatted HTML.
+package doc import("go/doc/comment""io") // ToHTML converts comment text to formatted HTML.
 //
 // Deprecated: ToHTML cannot identify documentation links
 // in the doc comment, because they depend on knowing what
@@ -29,14 +22,10 @@ import (
 //	parser := p.Parser()
 //	parser.Words = words
 //	w.Write(p.Printer().HTML(parser.Parse(d)))
-func ToHTML(w io.Writer, text string, words map[string]string) {
-	p := new(Package).Parser()
-	p.Words = words
-	d := p.Parse(text)
-	pr := new(comment.Printer)
-	w.Write(pr.HTML(d))
+func ToHTML(w io.Writer, text string, words map[string] string)
+{
+    p: = new (Package).Parser() p.Words = words d: = p.Parse(text) pr: = new (comment.Printer) w.Write(pr.HTML(d))
 }
-
 // ToText converts comment text to formatted text.
 //
 // Deprecated: ToText cannot identify documentation links
@@ -60,12 +49,8 @@ func ToHTML(w io.Writer, text string, words map[string]string) {
 //
 // See the documentation for [Package.Text] and [comment.Printer.Text]
 // for more details.
-func ToText(w io.Writer, text string, prefix, codePrefix string, width int) {
-	d := new(Package).Parser().Parse(text)
-	pr := &comment.Printer{
-		TextPrefix:     prefix,
-		TextCodePrefix: codePrefix,
-		TextWidth:      width,
-	}
-	w.Write(pr.Text(d))
+func ToText(w io.Writer, text string, prefix, codePrefix string, width int)
+{
+    d: = new (Package).Parser().Parse(text) pr: = & comment.Printer { TextPrefix: prefix, TextCodePrefix: codePrefix, TextWidth: width, }
+    w.Write(pr.Text(d))
 }

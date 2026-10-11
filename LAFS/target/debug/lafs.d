@@ -1,0 +1,1 @@
+B:\Go\LAFS\target\debug\lafs.exe: B:\Go\LAFS\src\container_tree.rs B:\Go\LAFS\src\emitter.rs B:\Go\LAFS\src\formatter.rs B:\Go\LAFS\src\go.rs B:\Go\LAFS\src\js_ts.rs B:\Go\LAFS\src\lexer.rs B:\Go\LAFS\src\lib.rs B:\Go\LAFS\src\main.rs B:\Go\LAFS\src\planner.rs B:\Go\LAFS\src\polyglot.rs B:\Go\LAFS\src\shell.rs B:\Go\LAFS\src\types.rs B:\Go\LAFS\src\verifier.rs

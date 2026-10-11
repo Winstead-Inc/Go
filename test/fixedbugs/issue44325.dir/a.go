@@ -2,12 +2,7 @@
 // source code is governed by a BSD-style license that can be found in
 // the LICENSE file.
 
-package a
-
-func FM() func() {
-	return func() {
-		_ = func() int {
-			return 0
-		}
-	}
+package a func FM() func()
+{
+    return func() { _ = func() int { return 0 } }
 }

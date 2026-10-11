@@ -1,5 +1,1 @@
-package child
-
-import "encoding/binary"
-
-var V = binary.MaxVarintLen16
+package child import"encoding/binary" var V = binary.MaxVarintLen16

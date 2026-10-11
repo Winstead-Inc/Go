@@ -2,22 +2,18 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type T struct {}
 
-type T struct{}
+func(T) m() string { return "m" }
 
-func (T) m() string {
-	return "m"
+func( * T) mp() string { return "mp" }
+
+func F() func(T) string
+{
+    return T.m // method expression
 }
 
-func (*T) mp() string {
-	return "mp"
-}
-
-func F() func(T) string {
-	return T.m // method expression
-}
-
-func Fp() func(*T) string {
-	return (*T).mp // method expression
+func Fp() func( * T) string
+{
+    return ( * T).mp // method expression
 }

@@ -2,14 +2,8 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package c
+package c import"./b" type Resolver struct {}
 
-import "./b"
+type todoResolver struct { * Resolver }
 
-type Resolver struct{}
-
-type todoResolver struct{ *Resolver }
-
-func (r *todoResolver) F() {
-	b.NewLoaders().Loader.Load()
-}
+func(r * todoResolver) F() { b.NewLoaders().Loader.Load() }

@@ -2,12 +2,9 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a func Start() interface { Stop() }
+{ return new (Stopper) }
 
-func Start() interface{ Stop() } {
-	return new(Stopper)
-}
+type Stopper struct {}
 
-type Stopper struct{}
-
-func (s *Stopper) Stop() {}
+func(s * Stopper) Stop() {}

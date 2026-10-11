@@ -65,7 +65,7 @@
   in: *2any128
   out: *1any128
 - go: ConcatAddPairs
-  asm: "VHADDP[SD]" # floats
+  asm: "VHADDP[SD]"# floats
   in: *2any128
   out: *1any128
 - go: ConcatSubPairs
@@ -100,7 +100,7 @@
   in: *2any256
   out: *1any256
 - go: ConcatAddPairsGrouped
-  asm: "VHADDP[SD]" # floats
+  asm: "VHADDP[SD]"# floats
   in: *2any256
   out: *1any256
 - go: ConcatSubPairsGrouped

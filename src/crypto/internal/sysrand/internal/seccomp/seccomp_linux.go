@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package seccomp
-
-/*
+package seccomp /*
 #include <sys/prctl.h>
 #include <sys/syscall.h>
 #include <errno.h>
@@ -68,16 +66,12 @@ int disable_getrandom() {
     }
     return 0;
 }
-*/
-import "C"
-import "fmt"
-
-// DisableGetrandom makes future calls to getrandom(2) fail with ENOSYS. It
+*/ import"C" import"fmt" // DisableGetrandom makes future calls to getrandom(2) fail with ENOSYS. It
 // applies only to the current thread and to any programs executed from it.
 // Callers should use [runtime.LockOSThread] in a dedicated goroutine.
-func DisableGetrandom() error {
-	if errno := C.disable_getrandom(); errno != 0 {
-		return fmt.Errorf("failed to disable getrandom: %v", errno)
-	}
-	return nil
+func DisableGetrandom() error
+{
+    if errno: = C.disable_getrandom();
+    errno != 0 { return fmt.Errorf("failed to disable getrandom: %v", errno) }
+    return nil
 }

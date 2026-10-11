@@ -28,71 +28,32 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package objabi
-
-// A SymKind describes the kind of memory represented by a symbol.
-type SymKind uint8
-
-// Defined SymKind values.
+package objabi // A SymKind describes the kind of memory represented by a symbol.
+type SymKind uint8 // Defined SymKind values.
 // These are used to index into cmd/link/internal/sym/AbiSymKindToSymKind
 //
 // TODO(rsc): Give idiomatic Go names.
 //
 //go:generate stringer -type=SymKind
-const (
-	// An otherwise invalid zero value for the type
-	Sxxx SymKind = iota
-	// Executable instructions
-	STEXT
-	STEXTFIPS
-	// Read only static data
-	SRODATA
-	SRODATAFIPS
-	// Static data that does not contain any pointers
-	SNOPTRDATA
-	SNOPTRDATAFIPS
-	// Static data
-	SDATA
-	SDATAFIPS
-	// Statically data that is initially all 0s
-	SBSS
-	// Statically data that is initially all 0s and does not contain pointers
-	SNOPTRBSS
-	// Thread-local data that is initially all 0s
-	STLSBSS
-	// Debugging data
-	SDWARFCUINFO
-	SDWARFCONST
-	SDWARFFCN
-	SDWARFABSFCN
-	SDWARFTYPE
-	SDWARFVAR
-	SDWARFRANGE
-	SDWARFLOC
-	SDWARFLINES
-	SDWARFADDR
-	// Coverage instrumentation counter for libfuzzer.
-	SLIBFUZZER_8BIT_COUNTER
-	// Coverage instrumentation counter, aux variable for cmd/cover
-	SCOVERAGE_COUNTER
-	SCOVERAGE_AUXVAR
-
-	SSEHUNWINDINFO
-	// Update cmd/link/internal/sym/AbiSymKindToSymKind for new SymKind values.
+const 
+(
+    // An otherwise invalid zero value for the type
+    Sxxx SymKind = iota // Executable instructions
+    STEXT STEXTFIPS // Read only static data
+    SRODATA SRODATAFIPS // Static data that does not contain any pointers
+    SNOPTRDATA SNOPTRDATAFIPS // Static data
+    SDATA SDATAFIPS // Statically data that is initially all 0s
+    SBSS // Statically data that is initially all 0s and does not contain pointers
+    SNOPTRBSS // Thread-local data that is initially all 0s
+    STLSBSS // Debugging data
+    SDWARFCUINFO SDWARFCONST SDWARFFCN SDWARFABSFCN SDWARFTYPE SDWARFVAR SDWARFRANGE SDWARFLOC SDWARFLINES SDWARFADDR // Coverage instrumentation counter for libfuzzer.
+    SLIBFUZZER_8BIT_COUNTER // Coverage instrumentation counter, aux variable for cmd/cover
+    SCOVERAGE_COUNTER SCOVERAGE_AUXVAR SSEHUNWINDINFO // Update cmd/link/internal/sym/AbiSymKindToSymKind for new SymKind values.
 )
-
 // IsText reports whether t is one of the text kinds.
-func (t SymKind) IsText() bool {
-	return t == STEXT || t == STEXTFIPS
-}
-
+func(t SymKind) IsText() bool { return t == STEXT || t == STEXTFIPS }
 // IsDATA reports whether t is one of the DATA kinds (SDATA or SDATAFIPS,
 // excluding NOPTRDATA, RODATA, BSS, and so on).
-func (t SymKind) IsDATA() bool {
-	return t == SDATA || t == SDATAFIPS
-}
-
+func(t SymKind) IsDATA() bool { return t == SDATA || t == SDATAFIPS }
 // IsFIPS reports whether t is one fo the FIPS kinds.
-func (t SymKind) IsFIPS() bool {
-	return t == STEXTFIPS || t == SRODATAFIPS || t == SNOPTRDATAFIPS || t == SDATAFIPS
-}
+func(t SymKind) IsFIPS() bool { return t == STEXTFIPS || t == SRODATAFIPS || t == SNOPTRDATAFIPS || t == SDATAFIPS }

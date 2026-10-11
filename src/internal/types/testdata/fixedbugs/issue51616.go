@@ -2,18 +2,12 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package p
+package p type
+(
+    C[T any] interface { ~ int ; M() T }
 
-type (
-        C[T any] interface{~int; M() T}
-
-        _ C[bool]
-        _ comparable
-        _ interface {~[]byte | ~string}
-
-        // Alias type declarations may refer to "constraint" types
-        // like ordinary type declarations.
-        _ = C[bool]
-        _ = comparable
-        _ = interface {~[]byte | ~string}
+    _ C[bool] _ comparable _ interface { ~ [] byte | ~ string }
+    // Alias type declarations may refer to "constraint" types
+    // like ordinary type declarations.
+    _ = C[bool] _ = comparable _ = interface { ~ [] byte | ~ string }
 )

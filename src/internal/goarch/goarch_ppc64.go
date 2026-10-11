@@ -2,12 +2,4 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package goarch
-
-const (
-	_ArchFamily          = PPC64
-	_DefaultPhysPageSize = 65536
-	_PCQuantum           = 4
-	_MinFrameSize        = 32
-	_StackAlign          = 16
-)
+package goarch const (_ArchFamily = PPC64 _DefaultPhysPageSize = 65536 _PCQuantum = 4 _MinFrameSize = 32 _StackAlign = 16)

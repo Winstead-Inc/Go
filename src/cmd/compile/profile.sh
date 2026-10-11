@@ -10,12 +10,13 @@ dir=$(mktemp -d)
 cd $dir
 seed=$(date)
 
-for p in $(go list std cmd); do
+for p in $(go list std cmd);
+do
 	h=$(echo $seed $p | md5sum | cut -d ' ' -f 1)
 	echo $p $h
 	go build -o /dev/null -gcflags=-cpuprofile=$PWD/prof.$h $p
 done
 
-go tool pprof -proto prof.* > $(go env GOROOT)/src/cmd/compile/default.pgo
+go tool pprof -proto prof.* > $(go env GOROOT) /src/cmd/compile/default.pgo
 
 rm -r $dir

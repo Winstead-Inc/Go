@@ -2,18 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package foo_test
+package foo_test import("fmt""example.com/error") func Print(s string) { fmt.Println(s) }
 
-import (
-	"fmt"
-
-	"example.com/error"
-)
-
-func Print(s string) {
-	fmt.Println(s)
-}
-
-func Example() {
-	Print(error.Hello)
-}
+func Example() { Print(error.Hello) }

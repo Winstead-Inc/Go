@@ -28,11 +28,5 @@
 // OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
 // THE SOFTWARE.
 
-package objabi
-
-// Auto.name
-const (
-	A_AUTO = 1 + iota
-	A_PARAM
-	A_DELETED_AUTO
-)
+package objabi // Auto.name
+const (A_AUTO = 1 + iota A_PARAM A_DELETED_AUTO)

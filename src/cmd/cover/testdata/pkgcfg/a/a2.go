@@ -1,8 +1,1 @@
-package a
-
-func A2() {
-	{
-	}
-	{
-	}
-}
+package a func A2() { {} {} }

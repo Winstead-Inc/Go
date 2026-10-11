@@ -1,39 +1,15 @@
 // Copyright 2015 The Go Authors. All rights reserved.
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
-
 // Package doc implements the “go doc” command.
-package doc
-
-import (
-	"bytes"
-	"context"
-	"flag"
-	"fmt"
-	"go/build"
-	"go/token"
-	"io"
-	"log"
-	"os"
-	"os/exec"
-	"path"
-	"path/filepath"
-	"strings"
-
-	"cmd/go/internal/base"
-	"cmd/go/internal/cfg"
-	"cmd/go/internal/load"
-	"cmd/go/internal/modload"
-	"cmd/go/internal/search"
-	"cmd/internal/telemetry/counter"
+package doc import
+(
+    "bytes""context""flag""fmt""go/build""go/token""io""log""os""os/exec""path""path/filepath""strings""cmd/go/internal/base""cmd/go/internal/cfg""cmd/go/internal/load""cmd/go/internal/modload""cmd/go/internal/search""cmd/internal/telemetry/counter"
 )
 
-var CmdDoc = &base.Command{
-	Run:         runDoc,
-	UsageLine:   "go doc [doc flags] [package|[package.]symbol[.methodOrField]]",
-	CustomFlags: true,
-	Short:       "show documentation for package or symbol",
-	Long: `
+var CmdDoc = & base.Command
+{
+    Run: runDoc, UsageLine: "go doc [doc flags] [package|[package.]symbol[.methodOrField]]", CustomFlags: true, Short: "show documentation for package or symbol", Long: `
 Doc prints the documentation comments associated with the item identified by its
 arguments (a package, const, func, type, var, method, or struct field)
 followed by a one-line summary of each of the first-level items "under"
@@ -150,214 +126,164 @@ Flags:
 	-u
 		Show documentation for unexported as well as exported
 		symbols, methods, and fields.
-`,
+`, 
 }
 
-func runDoc(ctx context.Context, cmd *base.Command, args []string) {
-	log.SetFlags(0)
-	log.SetPrefix("doc: ")
-	dirsInit()
-	var flagSet flag.FlagSet
-	err := do(ctx, os.Stdout, &flagSet, args)
-	if err != nil {
-		log.Fatal(err)
-	}
+func runDoc(ctx context.Context, cmd * base.Command, args[] string)
+{
+    log.SetFlags(0) log.SetPrefix("doc: ") dirsInit() var flagSet flag.FlagSet err: = do(ctx, os.Stdout, & flagSet, args) if err != nil { log.Fatal(err) }
 }
 
-var (
-	unexported bool   // -u flag
-	matchCase  bool   // -c flag
-	chdir      string // -C flag
-	showAll    bool   // -all flag
-	showCmd    bool   // -cmd flag
-	showEx     bool   // -ex flag
-	showSrc    bool   // -src flag
-	short      bool   // -short flag
-	serveHTTP  bool   // -http flag
+var
+(
+    unexported bool // -u flag
+    matchCase bool // -c flag
+    chdir string // -C flag
+    showAll bool // -all flag
+    showCmd bool // -cmd flag
+    showEx bool // -ex flag
+    showSrc bool // -src flag
+    short bool // -short flag
+    serveHTTP bool // -http flag
 )
-
 // usage is a replacement usage function for the flags package.
-func usage(flagSet *flag.FlagSet) {
-	fmt.Fprintf(os.Stderr, "Usage of [go] doc:\n")
-	fmt.Fprintf(os.Stderr, "\tgo doc\n")
-	fmt.Fprintf(os.Stderr, "\tgo doc <pkg>\n")
-	fmt.Fprintf(os.Stderr, "\tgo doc <sym>[.<methodOrField>]\n")
-	fmt.Fprintf(os.Stderr, "\tgo doc [<pkg>.]<sym>[.<methodOrField>]\n")
-	fmt.Fprintf(os.Stderr, "\tgo doc [<pkg>.][<sym>.]<methodOrField>\n")
-	fmt.Fprintf(os.Stderr, "\tgo doc <pkg> <sym>[.<methodOrField>]\n")
-	fmt.Fprintf(os.Stderr, "For more information run\n")
-	fmt.Fprintf(os.Stderr, "\tgo help doc\n")
-	fmt.Fprintf(os.Stderr, "\nFlags:\n")
-	flagSet.SetOutput(os.Stderr)
-	flagSet.PrintDefaults()
-	os.Exit(2)
+func usage(flagSet * flag.FlagSet)
+{
+    fmt.Fprintf(os.Stderr, "Usage of [go] doc:\n") fmt.Fprintf(os.Stderr, "\tgo doc\n") fmt.Fprintf(os.Stderr, "\tgo doc <pkg>\n") fmt.Fprintf
+    (
+        os.Stderr, "\tgo doc <sym>[.<methodOrField>]\n"
+    )
+    fmt.Fprintf(os.Stderr, "\tgo doc [<pkg>.]<sym>[.<methodOrField>]\n") fmt.Fprintf(os.Stderr, "\tgo doc [<pkg>.][<sym>.]<methodOrField>\n") fmt.Fprintf
+    (
+        os.Stderr, "\tgo doc <pkg> <sym>[.<methodOrField>]\n"
+    )
+    fmt.Fprintf(os.Stderr, "For more information run\n") fmt.Fprintf(os.Stderr, "\tgo help doc\n") fmt.Fprintf(os.Stderr, "\nFlags:\n") flagSet.SetOutput
+    (
+        os.Stderr
+    )
+    flagSet.PrintDefaults() os.Exit(2)
 }
-
 // do is the workhorse, broken out of runDoc to make testing easier.
-func do(ctx context.Context, writer io.Writer, flagSet *flag.FlagSet, args []string) (err error) {
-	flagSet.Usage = func() { usage(flagSet) }
-	unexported = false
-	matchCase = false
-	flagSet.StringVar(&chdir, "C", "", "change to `dir` before running command")
-	flagSet.BoolVar(&unexported, "u", false, "show unexported symbols as well as exported")
-	flagSet.BoolVar(&matchCase, "c", false, "symbol matching honors case (paths not affected)")
-	flagSet.BoolVar(&showAll, "all", false, "show all documentation for package")
-	flagSet.BoolVar(&showEx, "ex", false, "show executable examples for symbol or package")
-	flagSet.BoolVar(&showCmd, "cmd", false, "show symbols with package docs even if package is a command")
-	flagSet.BoolVar(&showSrc, "src", false, "show source code for symbol")
-	flagSet.BoolVar(&short, "short", false, "one-line representation for each symbol")
-	flagSet.BoolVar(&serveHTTP, "http", false, "serve HTML docs over HTTP")
-	flagSet.Parse(args)
-	counter.CountFlags("doc/flag:", *flagSet)
-	if chdir != "" {
-		if err := os.Chdir(chdir); err != nil {
-			return err
-		}
-	}
-	if showAll && short {
-		return fmt.Errorf("cannot combine -all and -short")
-	}
-	if serveHTTP {
-		// Special case: if there are no arguments, try to go to an appropriate page
-		// depending on whether we're in a module or workspace. The pkgsite homepage
-		// is often not the most useful page.
-		if len(flagSet.Args()) == 0 {
-			mod, err := runCmd(append(os.Environ(), "GOWORK=off"), "go", "list", "-m")
-			if err == nil && mod != "" && mod != "command-line-arguments" {
-				// If there's a module, go to the module's doc page.
-				return doPkgsite(ctx, mod, "")
-			}
-			gowork, err := runCmd(nil, "go", "env", "GOWORK")
-			if err == nil && gowork != "" {
-				// Outside a module, but in a workspace, go to the home page
-				// with links to each of the modules' pages.
-				return doPkgsite(ctx, "", "")
-			}
-			// Outside a module or workspace, go to the documentation for the standard library.
-			return doPkgsite(ctx, "std", "")
-		}
+func do(ctx context.Context, writer io.Writer, flagSet * flag.FlagSet, args[] string)(err error)
+{
+    flagSet.Usage = func() { usage(flagSet) }
+    unexported = false matchCase = false flagSet.StringVar( & chdir, "C", "", "change to `dir` before running command") flagSet.BoolVar
+    (
+        & unexported, "u", false, "show unexported symbols as well as exported"
+    )
+    flagSet.BoolVar( & matchCase, "c", false, "symbol matching honors case (paths not affected)") flagSet.BoolVar
+    (
+        & showAll, "all", false, "show all documentation for package"
+    )
+    flagSet.BoolVar( & showEx, "ex", false, "show executable examples for symbol or package") flagSet.BoolVar
+    (
+        & showCmd, "cmd", false, "show symbols with package docs even if package is a command"
+    )
+    flagSet.BoolVar( & showSrc, "src", false, "show source code for symbol") flagSet.BoolVar
+    (
+        & short, "short", false, "one-line representation for each symbol"
+    )
+    flagSet.BoolVar( & serveHTTP, "http", false, "serve HTML docs over HTTP") flagSet.Parse(args) counter.CountFlags("doc/flag:", * flagSet) if chdir != ""
+    {
+        if err: = os.Chdir(chdir);
+        err != nil { return err }
+    }
+    if showAll && short { return fmt.Errorf("cannot combine -all and -short") }
+    if serveHTTP
+    {
+        // Special case: if there are no arguments, try to go to an appropriate page
+        // depending on whether we're in a module or workspace. The pkgsite homepage
+        // is often not the most useful page.
+        if len(flagSet.Args()) == 0
+        {
+            mod, err: = runCmd(append(os.Environ(),"GOWORK=off"),"go", "list", "-m") if err == nil && mod != "" && mod != "command-line-arguments"
+            {
+                // If there's a module, go to the module's doc page.
+                return doPkgsite(ctx, mod, "")
+            }
+            gowork, err: = runCmd(nil, "go", "env", "GOWORK") if err == nil && gowork != ""
+            {
+                // Outside a module, but in a workspace, go to the home page
+                // with links to each of the modules' pages.
+                return doPkgsite(ctx, "", "")
+            }
+            // Outside a module or workspace, go to the documentation for the standard library.
+            return doPkgsite(ctx, "std", "")
+        }
+        // If args are provided, we need to figure out which page to open on the pkgsite
+        // instance. Run the logic below to determine a match for a symbol, method,
+        // or field, but don't actually print the documentation to the output.
+        writer = io.Discard
+    }
+    var paths[] string var symbol, method string // Loop until something is printed.
+    dirs.Reset() for i: = 0;
+    ;
+    i++
+    {
+        buildPackage, userPath, sym, more: = parseArgs(ctx, flagSet, flagSet.Args()) if i > 0 && ! more
+        {
+            // Ignore the "more" bit on the first iteration.
+            return failMessage(paths, symbol, method)
+        }
+        if buildPackage == nil { return fmt.Errorf("no such package: %s", userPath) }
+        // The builtin package needs special treatment: its symbols are lower
+        // case but we want to see them, always.
+        if buildPackage.ImportPath == "builtin" { unexported = true }
 
-		// If args are provided, we need to figure out which page to open on the pkgsite
-		// instance. Run the logic below to determine a match for a symbol, method,
-		// or field, but don't actually print the documentation to the output.
-		writer = io.Discard
-	}
-	var paths []string
-	var symbol, method string
-	// Loop until something is printed.
-	dirs.Reset()
-	for i := 0; ; i++ {
-		buildPackage, userPath, sym, more := parseArgs(ctx, flagSet, flagSet.Args())
-		if i > 0 && !more { // Ignore the "more" bit on the first iteration.
-			return failMessage(paths, symbol, method)
-		}
-		if buildPackage == nil {
-			return fmt.Errorf("no such package: %s", userPath)
-		}
-
-		// The builtin package needs special treatment: its symbols are lower
-		// case but we want to see them, always.
-		if buildPackage.ImportPath == "builtin" {
-			unexported = true
-		}
-
-		symbol, method = parseSymbol(flagSet, sym)
-		pkg := parsePackage(writer, buildPackage, userPath)
-		paths = append(paths, pkg.prettyPath())
-
-		defer func() {
-			pkg.flush()
-			e := recover()
-			if e == nil {
-				return
-			}
-			pkgError, ok := e.(PackageError)
-			if ok {
-				err = pkgError
-				return
-			}
-			panic(e)
-		}()
-
-		var found bool
-		switch {
-		case symbol == "":
-			pkg.packageDoc() // The package exists, so we got some output.
-			found = true
-		case method == "":
-			if pkg.symbolDoc(symbol) {
-				found = true
-			}
-		case pkg.printMethodDoc(symbol, method):
-			found = true
-		case pkg.printFieldDoc(symbol, method):
-			found = true
-		}
-		if found {
-			if serveHTTP {
-				path, fragment, err := objectPath(userPath, pkg, symbol, method)
-				if err != nil {
-					return err
-				}
-				return doPkgsite(ctx, path, fragment)
-			}
-			return nil
-		}
-	}
+        symbol, method = parseSymbol(flagSet, sym) pkg: = parsePackage(writer, buildPackage, userPath) paths = append(paths, pkg.prettyPath()) defer func()
+        {
+            pkg.flush() e: = recover() if e == nil { return }
+            pkgError, ok: = e.(PackageError) if ok { err = pkgError return }
+            panic(e)
+        }
+() var found bool switch 
+        {
+            case symbol == "": pkg.packageDoc() // The package exists, so we got some output.
+            found = true case method == "": if pkg.symbolDoc(symbol) { found = true }
+            case pkg.printMethodDoc(symbol, method): found = true case pkg.printFieldDoc(symbol, method): found = true
+        }
+        if found
+        {
+            if serveHTTP
+            {
+                path, fragment, err: = objectPath(userPath, pkg, symbol, method) if err != nil { return err }
+                return doPkgsite(ctx, path, fragment)
+            }
+            return nil
+        }
+    }
 }
 
-func runCmd(env []string, cmdline ...string) (string, error) {
-	var stdout, stderr strings.Builder
-	cmd := exec.Command(cmdline[0], cmdline[1:]...)
-	cmd.Env = env
-	cmd.Stdout = &stdout
-	cmd.Stderr = &stderr
-	if err := cmd.Run(); err != nil {
-		return "", fmt.Errorf("go doc: %s: %v\n%s\n", strings.Join(cmdline, " "), err, stderr.String())
-	}
-	return strings.TrimSpace(stdout.String()), nil
+func runCmd(env[] string, cmdline ... string)(string, error)
+{
+    var stdout, stderr strings.Builder cmd: = exec.Command(cmdline[0], cmdline[1:] ...) cmd.Env = env cmd.Stdout = & stdout cmd.Stderr = & stderr if err: = cmd.Run
+    (
+    );
+    err != nil { return "", fmt.Errorf("go doc: %s: %v\n%s\n", strings.Join(cmdline, " "), err, stderr.String()) }
+    return strings.TrimSpace(stdout.String()), nil
 }
-
 // returns a path followed by a fragment (or an error)
-func objectPath(userPath string, pkg *Package, symbol, method string) (string, string, error) {
-	var err error
-	path := pkg.build.ImportPath
-	if path == "." {
-		// go/build couldn't determine the import path, probably
-		// because this was a relative path into a module. Use
-		// go list to get the import path.
-		path, err = runCmd(nil, "go", "list", userPath)
-		if err != nil {
-			return "", "", err
-		}
-	}
+func objectPath(userPath string, pkg * Package, symbol, method string)(string, string, error)
+{
+    var err error path: = pkg.build.ImportPath if path == "."
+    {
+        // go/build couldn't determine the import path, probably
+        // because this was a relative path into a module. Use
+        // go list to get the import path.
+        path, err = runCmd(nil, "go", "list", userPath) if err != nil { return "", "", err }
+    }
 
-	object := symbol
-	if symbol != "" && method != "" {
-		object = symbol + "." + method
-	}
-	return path, object, nil
+    object: = symbol if symbol != "" && method != "" { object = symbol + "." + method }
+    return path, object, nil
 }
-
 // failMessage creates a nicely formatted error message when there is no result to show.
-func failMessage(paths []string, symbol, method string) error {
-	var b bytes.Buffer
-	if len(paths) > 1 {
-		b.WriteString("s")
-	}
-	b.WriteString(" ")
-	for i, path := range paths {
-		if i > 0 {
-			b.WriteString(", ")
-		}
-		b.WriteString(path)
-	}
-	if method == "" {
-		return fmt.Errorf("no symbol %s in package%s", symbol, &b)
-	}
-	return fmt.Errorf("no method or field %s.%s in package%s", symbol, method, &b)
+func failMessage(paths[] string, symbol, method string) error
+{
+    var b bytes.Buffer if len(paths) > 1 { b.WriteString("s") }
+    b.WriteString(" ") for i, path: = range paths { if i > 0 { b.WriteString(", ") } b.WriteString(path) }
+    if method == "" { return fmt.Errorf("no symbol %s in package%s", symbol, & b) }
+    return fmt.Errorf("no method or field %s.%s in package%s", symbol, method, & b)
 }
-
 // parseArgs analyzes the arguments (if any) and returns the package
 // it represents, the part of the argument the user used to identify
 // the path (or "" if it's the current package) and the symbol
@@ -369,177 +295,115 @@ func failMessage(paths []string, symbol, method string) error {
 // and there may be more matches. For example, if the argument
 // is rand.Float64, we must scan both crypto/rand and math/rand
 // to find the symbol, and the first call will return crypto/rand, true.
-func parseArgs(ctx context.Context, flagSet *flag.FlagSet, args []string) (pkg *load.Package, path, symbol string, more bool) {
-	wd, err := os.Getwd()
-	if err != nil {
-		log.Fatal(err)
-	}
-	loader := modload.NewLoader()
-	if testGOPATH {
-		loader = modload.NewDisabledState()
-	}
-	if len(args) > 0 && strings.Index(args[0], "@") >= 0 {
-		// Version query: force no root
-		loader.ForceUseModules = true
-		loader.RootMode = modload.NoRoot
-		modload.Init(loader)
-	} else if loader.WillBeEnabled() {
-		loader.InitWorkfile()
-		modload.Init(loader)
-		modload.LoadModFile(loader, context.TODO())
-	}
+func parseArgs(ctx context.Context, flagSet * flag.FlagSet, args[] string)(pkg * load.Package, path, symbol string, more bool)
+{
+    wd, err: = os.Getwd() if err != nil { log.Fatal(err) }
+    loader: = modload.NewLoader() if testGOPATH { loader = modload.NewDisabledState() }
+    if len(args) > 0 && strings.Index(args[0],"@") >= 0
+    {
+        // Version query: force no root
+        loader.ForceUseModules = true loader.RootMode = modload.NoRoot modload.Init(loader)
+    }
+    else if loader.WillBeEnabled() { loader.InitWorkfile() modload.Init(loader) modload.LoadModFile(loader, context.TODO()) }
 
-	if len(args) == 0 {
-		// Easy: current directory.
-		return mustLoadPackage(ctx, loader, wd), "", "", false
-	}
-	arg := args[0]
+    if len(args) == 0
+    {
+        // Easy: current directory.
+        return mustLoadPackage(ctx, loader, wd),"", "", false
+    }
+    arg: = args[0] var version string if i: = strings.Index(arg, "@");
+    i >= 0 { arg, version = arg[: i], arg[i + 1:] }
+    // We have an argument. If it is a directory name beginning with . or ..,
+    // use the absolute path name. This discriminates "./errors" from "errors"
+    // if the current directory contains a non-standard errors package.
+    if isDotSlash(arg) { arg = filepath.Join(wd, arg) }
+    if version != "" && (build.IsLocalImport(filepath.ToSlash(arg)) || filepath.IsAbs(arg))
+    {
+        log.Fatal("cannot use @version with local or absolute paths")
+    }
 
-	var version string
-	if i := strings.Index(arg, "@"); i >= 0 {
-		arg, version = arg[:i], arg[i+1:]
-	}
+    importPkg: = func(p string)( * load.Package, error)
+    {
+        if version != "" { return loadVersioned(ctx, loader, p, version) }
+        return loadPackage(ctx, loader, p)
+    }
 
-	// We have an argument. If it is a directory name beginning with . or ..,
-	// use the absolute path name. This discriminates "./errors" from "errors"
-	// if the current directory contains a non-standard errors package.
-	if isDotSlash(arg) {
-		arg = filepath.Join(wd, arg)
-	}
-	if version != "" && (build.IsLocalImport(filepath.ToSlash(arg)) || filepath.IsAbs(arg)) {
-		log.Fatal("cannot use @version with local or absolute paths")
-	}
+    switch len(args)
+    {
+        default: usage(flagSet) case 1: // Done below.
+        case 2: // Package must be findable and importable.
+        pkg, err: = importPkg(arg) if err == nil { return pkg, arg, args[1], false }
+        if p, findErr, ok: = findPackage(arg, importPkg);
+        ok { pkg = p return pkg, arg, args[1], true }
+        else if findErr != nil { err = findErr }
+        if version != "" { log.Fatal(err) }
+        return nil, arg, args[1], false
+    }
+    // Usual case: one argument.
+    // If it contains slashes, it begins with either a package path
+    // or an absolute directory.
+    // First, is it a complete package path as it is? If so, we are done.
+    // This avoids confusion over package paths that have other
+    // package paths as their prefix.
+    var importErr error if filepath.IsAbs(arg) { pkg, importErr = loadPackage(ctx, loader, arg) if importErr == nil { return pkg, arg, "", false } }
+    else { pkg, importErr = importPkg(arg) if importErr == nil { return pkg, arg, "", false } }
+    // Another disambiguator: If the argument starts with an upper
+    // case letter, it can only be a symbol in the current directory.
+    // Kills the problem caused by case-insensitive file systems
+    // matching an upper case name as a package name.
+    if ! strings.ContainsAny(arg, `/\`) && token.IsExported(arg)
+    {
+        pkg, err: = loadPackage(ctx, loader, ".") if err == nil { return pkg, "", arg, false }
+    }
+    // If it has a slash, it must be a package path but there is a symbol.
+    // It's the last package path we care about.
+    slash: = strings.LastIndex(arg, "/") // There may be periods in the package path before or after the slash
+    // and between a symbol and method.
+    // Split the string at various periods to see what we find.
+    // In general there may be ambiguities but this should almost always
+    // work.
+    var period int // slash+1: if there's no slash, the value is -1 and start is 0; otherwise
+    // start is the byte after the slash.
+    for start: = slash + 1;
+    start < len(arg);
+    start = period + 1
+    {
+        period = strings.Index(arg[start:],".") symbol: = "" if period < 0 { period = len(arg) } else { period += start symbol = arg[period + 1:] }
+        // Have we identified a package already?
+        pkg, err: = loadPackage(ctx, loader, arg[0: period]) if err == nil { return pkg, arg[0: period], symbol, false }
+        // See if we have the basename or tail of a package, as in json for encoding/json
+        // or ivy/value for robpike.io/ivy/value.
+        pkgName: = arg[: period] if pkg, _, ok: = findPackage(pkgName, importPkg);
+        ok { return pkg, arg[0: period], symbol, true }
+        dirs.Reset() // Next iteration of for loop must scan all the directories again.
+    }
+    // Try inference from $PATH before giving up.
+    if slash < 0 && ! isDotSlash(arg) && ! filepath.IsAbs(arg)
+    {
+        if pkgPath, v, ok: = inferVersion(arg);
+        ok
+        {
+            if version == "" { version = v }
+            pkg, err: = loadVersioned(ctx, loader, pkgPath, version) if err == nil { return pkg, pkgPath, "", false }
+        }
+    }
 
-	importPkg := func(p string) (*load.Package, error) {
-		if version != "" {
-			return loadVersioned(ctx, loader, p, version)
-		}
-		return loadPackage(ctx, loader, p)
-	}
-
-	switch len(args) {
-	default:
-		usage(flagSet)
-	case 1:
-		// Done below.
-	case 2:
-		// Package must be findable and importable.
-		pkg, err := importPkg(arg)
-		if err == nil {
-			return pkg, arg, args[1], false
-		}
-		if p, findErr, ok := findPackage(arg, importPkg); ok {
-			pkg = p
-			return pkg, arg, args[1], true
-		} else if findErr != nil {
-			err = findErr
-		}
-		if version != "" {
-			log.Fatal(err)
-		}
-		return nil, arg, args[1], false
-	}
-	// Usual case: one argument.
-	// If it contains slashes, it begins with either a package path
-	// or an absolute directory.
-	// First, is it a complete package path as it is? If so, we are done.
-	// This avoids confusion over package paths that have other
-	// package paths as their prefix.
-	var importErr error
-	if filepath.IsAbs(arg) {
-		pkg, importErr = loadPackage(ctx, loader, arg)
-		if importErr == nil {
-			return pkg, arg, "", false
-		}
-	} else {
-		pkg, importErr = importPkg(arg)
-		if importErr == nil {
-			return pkg, arg, "", false
-		}
-	}
-	// Another disambiguator: If the argument starts with an upper
-	// case letter, it can only be a symbol in the current directory.
-	// Kills the problem caused by case-insensitive file systems
-	// matching an upper case name as a package name.
-	if !strings.ContainsAny(arg, `/\`) && token.IsExported(arg) {
-		pkg, err := loadPackage(ctx, loader, ".")
-		if err == nil {
-			return pkg, "", arg, false
-		}
-	}
-	// If it has a slash, it must be a package path but there is a symbol.
-	// It's the last package path we care about.
-	slash := strings.LastIndex(arg, "/")
-	// There may be periods in the package path before or after the slash
-	// and between a symbol and method.
-	// Split the string at various periods to see what we find.
-	// In general there may be ambiguities but this should almost always
-	// work.
-	var period int
-	// slash+1: if there's no slash, the value is -1 and start is 0; otherwise
-	// start is the byte after the slash.
-	for start := slash + 1; start < len(arg); start = period + 1 {
-		period = strings.Index(arg[start:], ".")
-		symbol := ""
-		if period < 0 {
-			period = len(arg)
-		} else {
-			period += start
-			symbol = arg[period+1:]
-		}
-		// Have we identified a package already?
-		pkg, err := loadPackage(ctx, loader, arg[0:period])
-		if err == nil {
-			return pkg, arg[0:period], symbol, false
-		}
-		// See if we have the basename or tail of a package, as in json for encoding/json
-		// or ivy/value for robpike.io/ivy/value.
-		pkgName := arg[:period]
-		if pkg, _, ok := findPackage(pkgName, importPkg); ok {
-			return pkg, arg[0:period], symbol, true
-		}
-		dirs.Reset() // Next iteration of for loop must scan all the directories again.
-	}
-
-	// Try inference from $PATH before giving up.
-	if slash < 0 && !isDotSlash(arg) && !filepath.IsAbs(arg) {
-		if pkgPath, v, ok := inferVersion(arg); ok {
-			if version == "" {
-				version = v
-			}
-			pkg, err := loadVersioned(ctx, loader, pkgPath, version)
-			if err == nil {
-				return pkg, pkgPath, "", false
-			}
-		}
-	}
-
-	if version != "" {
-		if importErr != nil {
-			log.Fatal(importErr)
-		}
-		log.Fatalf("no such package %q at version %q", arg, version)
-	}
-
-	// If it has a slash, we've failed.
-	if slash >= 0 {
-		// build.Import should always include the path in its error message,
-		// and we should avoid repeating it. Unfortunately, build.Import doesn't
-		// return a structured error. That can't easily be fixed, since it
-		// invokes 'go list' and returns the error text from the loaded package.
-		// TODO(golang.org/issue/34750): load using golang.org/x/tools/go/packages
-		// instead of go/build.
-		importErrStr := importErr.Error()
-		if strings.Contains(importErrStr, arg[:period]) {
-			log.Fatal(importErrStr)
-		} else {
-			log.Fatalf("no such package %s: %s", arg[:period], importErrStr)
-		}
-	}
-	// Guess it's a symbol in the current directory.
-	return mustLoadPackage(ctx, loader, wd), "", arg, false
+    if version != "" { if importErr != nil { log.Fatal(importErr) } log.Fatalf("no such package %q at version %q", arg, version) }
+    // If it has a slash, we've failed.
+    if slash >= 0
+    {
+        // build.Import should always include the path in its error message,
+        // and we should avoid repeating it. Unfortunately, build.Import doesn't
+        // return a structured error. That can't easily be fixed, since it
+        // invokes 'go list' and returns the error text from the loaded package.
+        // TODO(golang.org/issue/34750): load using golang.org/x/tools/go/packages
+        // instead of go/build.
+        importErrStr: = importErr.Error() if strings.Contains(importErrStr, arg[: period]) { log.Fatal(importErrStr) }
+        else { log.Fatalf("no such package %s: %s", arg[: period], importErrStr) }
+    }
+    // Guess it's a symbol in the current directory.
+    return mustLoadPackage(ctx, loader, wd),"", arg, false
 }
-
 // findPackage returns the first successfully imported package matching the query pkg.
 // It updates dirs.offset to the candidate's nextOffset so that subsequent searches
 // work across retry loops.
@@ -547,168 +411,106 @@ func parseArgs(ctx context.Context, flagSet *flag.FlagSet, args []string) (pkg *
 // (pkg, nil, true)  => imported a package
 // (nil, err, false) => all imports failed (along with last error)
 // (nil, nil, false) => no matching packages
-func findPackage(pkg string, importPkg func(string) (*load.Package, error)) (*load.Package, error, bool) {
-	var lastErr error
-	for _, m := range matchingPackages(pkg) {
-		p, err := importPkg(m.importPath)
-		if err == nil {
-			dirs.offset = m.nextOffset
-			return p, nil, true
-		}
-		lastErr = err
-	}
-	return nil, lastErr, false
+func findPackage(pkg string, importPkg func(string)( * load.Package, error))( * load.Package, error, bool)
+{
+    var lastErr error for _, m: = range matchingPackages(pkg)
+    {
+        p, err: = importPkg(m.importPath) if err == nil { dirs.offset = m.nextOffset return p, nil, true }
+        lastErr = err
+    }
+    return nil, lastErr, false
 }
 
-type packageMatch struct {
-	importPath string
-	nextOffset int
+type packageMatch struct { importPath string nextOffset int }
+
+func matchingPackages(pkg string)[] packageMatch
+{
+    // TODO(adonovan): once go1.28 tree opens, refactor matchingPackages to use
+    // iter.Seq[string] to encapsulate iteration state and avoid global vars.
+    if filepath.IsAbs(pkg)
+    {
+        if dirs.offset == 0
+        {
+            dirs.offset = - 1 return [] packageMatch { { importPath: pkg, nextOffset: - 1 } }
+        }
+        return nil
+    }
+    if pkg == "" || token.IsExported(pkg)
+    {
+        // Upper case symbol cannot be a package name.
+        return nil
+    }
+    pkg = path.Clean(pkg) pkgSuffix: = "/" + pkg deferInternal: = ! hasPathElement(pkg, "internal") // Prefer non-internal packages unless pkg is itself internal.
+    // Scanning directories is cheap compared to loading packages, so
+    // collect all matches and sort internal matches to the end.
+    var matches[] packageMatch var nonInternal[] packageMatch var internal[] packageMatch for 
+    {
+        d, ok: = dirs.Next() if ! ok { break }
+        if d.importPath != pkg && ! strings.HasSuffix(d.importPath, pkgSuffix) { continue }
+        m: = packageMatch { importPath: d.importPath, nextOffset: dirs.offset }
+        if ! deferInternal { matches = append(matches, m) }
+        else if hasPathElement(d.importPath, "internal") { internal = append(internal , m) } else { nonInternal = append(nonInternal, m) }
+    }
+    if ! deferInternal { return matches }
+    if len(nonInternal) == 0 { return internal }
+    // If the last non-internal match is returned, later retries should
+    // not fall through to internal-only matches for the same package path.
+    nonInternal[len(nonInternal) - 1].nextOffset = dirs.offset return append(nonInternal, internal ...)
 }
 
-func matchingPackages(pkg string) []packageMatch {
-	// TODO(adonovan): once go1.28 tree opens, refactor matchingPackages to use
-	// iter.Seq[string] to encapsulate iteration state and avoid global vars.
-	if filepath.IsAbs(pkg) {
-		if dirs.offset == 0 {
-			dirs.offset = -1
-			return []packageMatch{{importPath: pkg, nextOffset: -1}}
-		}
-		return nil
-	}
-	if pkg == "" || token.IsExported(pkg) { // Upper case symbol cannot be a package name.
-		return nil
-	}
-	pkg = path.Clean(pkg)
-	pkgSuffix := "/" + pkg
-	deferInternal := !hasPathElement(pkg, "internal")
-	// Prefer non-internal packages unless pkg is itself internal.
-	// Scanning directories is cheap compared to loading packages, so
-	// collect all matches and sort internal matches to the end.
-	var matches []packageMatch
-	var nonInternal []packageMatch
-	var internal []packageMatch
-	for {
-		d, ok := dirs.Next()
-		if !ok {
-			break
-		}
-		if d.importPath != pkg && !strings.HasSuffix(d.importPath, pkgSuffix) {
-			continue
-		}
-		m := packageMatch{importPath: d.importPath, nextOffset: dirs.offset}
-		if !deferInternal {
-			matches = append(matches, m)
-		} else if hasPathElement(d.importPath, "internal") {
-			internal = append(internal, m)
-		} else {
-			nonInternal = append(nonInternal, m)
-		}
-	}
-	if !deferInternal {
-		return matches
-	}
-	if len(nonInternal) == 0 {
-		return internal
-	}
-	// If the last non-internal match is returned, later retries should
-	// not fall through to internal-only matches for the same package path.
-	nonInternal[len(nonInternal)-1].nextOffset = dirs.offset
-	return append(nonInternal, internal...)
+func loadPackage(ctx context.Context, loader * modload.Loader, pattern string)( * load.Package, error)
+{
+    if ! search.NewMatch(pattern).IsLiteral() { return nil, fmt.Errorf("pattern %q does not specify a single package", pattern) }
+
+    pkgOpts: = load.PackageOpts { IgnoreImports: true, SuppressBuildInfo: true, SuppressEmbedFiles: true, }
+    pkgs: = load.PackagesAndErrors(loader, ctx, pkgOpts, [] string { pattern }) if len(pkgs) != 1
+    {
+        return nil, fmt.Errorf("path %q matched multiple packages", pattern)
+    }
+
+    p: = pkgs[0] if p.Error != nil { return nil, p.Error }
+    return p, nil
 }
 
-func loadPackage(ctx context.Context, loader *modload.Loader, pattern string) (*load.Package, error) {
-	if !search.NewMatch(pattern).IsLiteral() {
-		return nil, fmt.Errorf("pattern %q does not specify a single package", pattern)
-	}
-
-	pkgOpts := load.PackageOpts{
-		IgnoreImports:      true,
-		SuppressBuildInfo:  true,
-		SuppressEmbedFiles: true,
-	}
-	pkgs := load.PackagesAndErrors(loader, ctx, pkgOpts, []string{pattern})
-
-	if len(pkgs) != 1 {
-		return nil, fmt.Errorf("path %q matched multiple packages", pattern)
-	}
-
-	p := pkgs[0]
-	if p.Error != nil {
-		return nil, p.Error
-	}
-	return p, nil
+func mustLoadPackage(ctx context.Context, loader * modload.Loader, dir string) * load.Package
+{
+    pkg, err: = loadPackage(ctx, loader, dir) if err != nil { log.Fatal(err) }
+    return pkg
 }
-
-func mustLoadPackage(ctx context.Context, loader *modload.Loader, dir string) *load.Package {
-	pkg, err := loadPackage(ctx, loader, dir)
-	if err != nil {
-		log.Fatal(err)
-	}
-	return pkg
-}
-
 // dotPaths lists all the dotted paths legal on Unix-like and
 // Windows-like file systems. We check them all, as the chance
 // of error is minute and even on Windows people will use ./
 // sometimes.
-var dotPaths = []string{
-	`./`,
-	`../`,
-	`.\`,
-	`..\`,
-}
-
+var dotPaths = [] string { `./`, `../`, `.\`, `..\`, }
 // isDotSlash reports whether the path begins with a reference
 // to the local . or .. directory.
-func isDotSlash(arg string) bool {
-	if arg == "." || arg == ".." {
-		return true
-	}
-	for _, dotPath := range dotPaths {
-		if strings.HasPrefix(arg, dotPath) {
-			return true
-		}
-	}
-	return false
+func isDotSlash(arg string) bool
+{
+    if arg == "." || arg == ".." { return true }
+    for _, dotPath: = range dotPaths { if strings.HasPrefix(arg, dotPath) { return true } }
+    return false
 }
-
 // parseSymbol breaks str apart into a symbol and method.
 // Both may be missing or the method may be missing.
 // If present, each must be a valid Go identifier.
-func parseSymbol(flagSet *flag.FlagSet, str string) (symbol, method string) {
-	if str == "" {
-		return
-	}
-	elem := strings.Split(str, ".")
-	switch len(elem) {
-	case 1:
-	case 2:
-		method = elem[1]
-	default:
-		log.Printf("too many periods in symbol specification")
-		usage(flagSet)
-	}
-	symbol = elem[0]
-	return
+func parseSymbol(flagSet * flag.FlagSet, str string)(symbol, method string)
+{
+    if str == "" { return }
+    elem: = strings.Split(str, ".") switch len(elem)
+    {
+        case 1: case 2: method = elem[1] default: log.Printf("too many periods in symbol specification") usage(flagSet)
+    }
+    symbol = elem[0] return 
 }
-
 // isExported reports whether the name is an exported identifier.
 // If the unexported flag (-u) is true, isExported returns true because
 // it means that we treat the name as if it is exported.
-func isExported(name string) bool {
-	return unexported || token.IsExported(name)
-}
+func isExported(name string) bool { return unexported || token.IsExported(name) }
 
-func hasPathElement(p, elem string) bool {
-	for part := range strings.SplitSeq(path.Clean(p), "/") {
-		if part == elem {
-			return true
-		}
-	}
-	return false
+func hasPathElement(p, elem string) bool
+{
+    for part: = range strings.SplitSeq(path.Clean(p),"/") { if part == elem { return true } }
+    return false
 }
-
 // splitGopath splits $GOPATH into a list of roots.
-func splitGopath() []string {
-	return filepath.SplitList(cfg.BuildContext.GOPATH)
-}
+func splitGopath()[] string { return filepath.SplitList(cfg.BuildContext.GOPATH) }

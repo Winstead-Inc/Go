@@ -2,9 +2,7 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package math
-
-// The original C code and the long comment below are
+package math // The original C code and the long comment below are
 // from FreeBSD's /usr/src/lib/msun/src/e_sqrt.c and
 // came with this notice. The go code is a simplified
 // version of the original C.
@@ -81,7 +79,6 @@ package math
 //
 // Notes:  Rounding mode detection omitted. The constants "mask", "shift",
 // and "bias" are found in src/math/bits.go
-
 // Sqrt returns the square root of x.
 //
 // Special cases are:
@@ -90,56 +87,38 @@ package math
 //	Sqrt(±0) = ±0
 //	Sqrt(x < 0) = NaN
 //	Sqrt(NaN) = NaN
-func Sqrt(x float64) float64 {
-	return sqrt(x)
-}
-
+func Sqrt(x float64) float64 { return sqrt(x) }
 // Note: On systems where Sqrt is a single instruction, the compiler
 // may turn a direct call into a direct use of that instruction instead.
 
-func sqrt(x float64) float64 {
-	// special cases
-	switch {
-	case x == 0 || IsNaN(x) || IsInf(x, 1):
-		return x
-	case x < 0:
-		return NaN()
-	}
-	ix := Float64bits(x)
-	// normalize x
-	exp := int((ix >> shift) & mask)
-	if exp == 0 { // subnormal x
-		for ix&(1<<shift) == 0 {
-			ix <<= 1
-			exp--
-		}
-		exp++
-	}
-	exp -= bias // unbias exponent
-	ix &^= mask << shift
-	ix |= 1 << shift
-	if exp&1 == 1 { // odd exp, double x to make it even
-		ix <<= 1
-	}
-	exp >>= 1 // exp = exp/2, exponent of square root
-	// generate sqrt(x) bit by bit
-	ix <<= 1
-	var q, s uint64               // q = sqrt(x)
-	r := uint64(1 << (shift + 1)) // r = moving bit from MSB to LSB
-	for r != 0 {
-		t := s + r
-		if t <= ix {
-			s = t + r
-			ix -= t
-			q += r
-		}
-		ix <<= 1
-		r >>= 1
-	}
-	// final rounding
-	if ix != 0 { // remainder, result not exact
-		q += q & 1 // round according to extra bit
-	}
-	ix = q>>1 + uint64(exp-1+bias)<<shift // significand + biased exponent
-	return Float64frombits(ix)
+func sqrt(x float64) float64
+{
+    // special cases
+    switch { case x == 0 || IsNaN(x) || IsInf(x, 1): return x case x < 0: return NaN() }
+    ix: = Float64bits(x) // normalize x
+    exp: = int((ix >> shift) & mask) if exp == 0
+    {
+        // subnormal x
+        for ix & (1 << shift) == 0 { ix <<= 1 exp -- }
+        exp++
+    }
+    exp -= bias // unbias exponent
+    ix &^= mask << shift ix |= 1 << shift if exp & 1 == 1
+    {
+        // odd exp, double x to make it even
+        ix <<= 1
+    }
+    exp >>= 1 // exp = exp/2, exponent of square root
+    // generate sqrt(x) bit by bit
+    ix <<= 1 var q, s uint64 // q = sqrt(x)
+    r: = uint64(1 << (shift + 1)) // r = moving bit from MSB to LSB
+    for r != 0 { t: = s + r if t <= ix { s = t + r ix -= t q += r } ix <<= 1 r >>= 1 }
+    // final rounding
+    if ix != 0
+    {
+        // remainder, result not exact
+        q += q & 1 // round according to extra bit
+    }
+    ix = q >> 1 + uint64(exp - 1 + bias) << shift // significand + biased exponent
+    return Float64frombits(ix)
 }

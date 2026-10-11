@@ -2,12 +2,10 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package main
-
-import "testplugin/issue53989/p"
-
-func Square(x int) { // export Square for plugin
-	p.Square(x)
+package main import"testplugin/issue53989/p" func Square(x int)
+{
+    // export Square for plugin
+    p.Square(x)
 }
 
 func main() {}

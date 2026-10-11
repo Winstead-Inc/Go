@@ -2,13 +2,6 @@
 // Use of this source code is governed by a BSD-style
 // license that can be found in the LICENSE file.
 
-package a
+package a type unexported struct { a int b bool }
 
-type unexported struct {
-        a int
-        b bool
-}
-
-type Struct struct {
-        unexported
-}
+type Struct struct { unexported }
