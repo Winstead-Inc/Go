@@ -78,14 +78,37 @@ type MyFile.cpp | lafs -
 lafs --canvas-width 160 --indent 4 -w MyFile.cs
 ```
 
+### Retrying Failed Files (`lafs format failed`)
+
+Re-runs formatting on all files recorded in `failed.txt` (or custom `-of <FILE>`):
+
+```powershell
+lafs format failed
+```
+
+If all previously failed files succeed, `failed.txt` is automatically cleared.
+
+### Automated Terminal & Error Logs
+
+During execution, LAFS automatically logs all console output and errors with generation timestamps:
+- `lafs {YYYY-MM-DD HH-MM-SS}.log`: All console output produced during the session.
+- `lafs error {YYYY-MM-DD HH-MM-SS}.log`: Captured error diagnostics (generated whenever errors occur).
+
+To disable automatic file logging, supply `--no-log`:
+```powershell
+lafs --no-log -w .
+```
+
 ### CLI Reference
 
 | Flag                           | Description                                                   |
 | -------------------------------- | --------------------------------------------------------------- |
 | `-w`, `--write`                | Overwrite files in-place with formatted output                |
 | `--check`                      | Check if files are formatted (exit code 1 if unformatted)     |
+| `format failed`                | Reformat all files listed in `failed.txt`                     |
 | `-of`, `--output-failed <FILE>`| Log paths (with language) of files that failed or require formatting|
-| `-c`, `--canvas-width <WIDTH>` | Maximum column width before vertical expansion (default: 120) |
+| `--no-log`                     | Disable automatic log file generation                         |
+| `-c`, `--canvas-width <WIDTH>` | Maximum column width before vertical expansion (default: 160) |
 | `-i`, `--indent <SIZE>`        | Indentation size in spaces (default: 4)                       |
 | `-t`, `--tabs`                 | Use tabs instead of spaces for indentation                    |
 | `-l`, `--language <LANG>`      | Force language mode (`c`, `cpp`, `cs`, `go`, `php`, `html`, `css`) |

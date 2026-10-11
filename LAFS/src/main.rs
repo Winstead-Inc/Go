@@ -42,38 +42,126 @@ const DEFAULT_SUPPORTED_EXTENSIONS: & [ & str] = &
     "c", "h", "cpp", "hpp", "cc", "cxx", "hh", "hxx", "inl", "cu", "cs", "rs", "java", "kt", "scala", "js", "mjs", "cjs", "jsx", "ts", "tsx", "mts", "cts", "go", "dart", "php", "py", "swift", "m", "mm", "sh", "bash", "zsh", "ksh", "json", "jsonc", "json5", "toml", "css", "scss", "less", "sql", "graphql", "proto", "html", "htm", 
 ];
 
-fn PrintUsage()
+#[derive(Clone)]
+pub struct Terminal_Logger
 {
-    println!("LAFS Container Formatter (Language-Agnostic Formatting Style)");
-    println!("Usage:");
-    println!("  lafs [OPTIONS] <FILES... | DIRECTORIES...>");
-    println!("  lafs format [OPTIONS] <FILES... | DIRECTORIES...>");
-    println!("  lafs apply [OPTIONS] <FILES... | DIRECTORIES...>");
-    println!("  lafs check [OPTIONS] <FILES... | DIRECTORIES...>");
-    println!("  lafs [OPTIONS] -                   (Read from stdin, output to stdout)");
-    println!();
-    println!("Batch & Directory Options:");
-    println!("  -a, --all                   Format all files in current directory and all subdirectories");
-    println!("  -e, --ext <EXTENSIONS>      Only format files with specific extension(s) (e.g. -e c,h or -e sh)");
-    println!("      --all-types             Format all text files regardless of extension (excludes binary and docs)");
-    println!("  -x, --exclude <PATTERN>     Exclude files or folders (e.g. -x target -x vendor -x \"*.min.js\")");
-    println!("  -y, --yes                   Automatic yes to confirmation prompts");
-    println!("  -j, --threads <COUNT>       Number of parallel worker threads (default: CPU cores)");
-    println!("      --verbose               Show details for unchanged clean files");
-    println!();
-    println!("Formatting Options:");
-    println!("  -w, --write                 Save and overwrite formatted files in-place (default)");
-    println!("      --stdout                Output formatted code to stdout instead of saving files");
-    println!("      --check                 Check if files are formatted (exit code 1 if unformatted)");
-    println!("  -of, --output-failed <FILE> Output failed and unformatted paths to a specific log file");
-    println!("  -c, --canvas-width <WIDTH>  Set maximum canvas width before expansion (default: 160)");
-    println!("  -i, --indent <SIZE>         Set indentation width in spaces (default: 4)");
-    println!("  -t, --tabs                  Use tabs instead of spaces for indentation");
-    println!("  -l, --language <LANG>       Force source language: 'c', 'cpp', 'csharp', 'js', 'ts', 'sh'");
-    println!("      --max-statements <NUM>  Max statements in a monolith block (default: 4)");
-    println!("      --stdin-filepath <PATH> Virtual filepath when formatting stdin");
-    println!("  -h, --help                  Show this help message");
-    println!("  -v, --version               Show version information");
+    Out_Buffer: Arc < Mutex < String >>,
+    Err_Buffer: Arc < Mutex < String >>,
+    Timestamp_Str: String,
+    Disable_Log_Files: Arc < Mutex < bool >>,
+}
+
+impl Terminal_Logger
+{
+    pub fn New(Disable_Logs: bool)-> Self
+    {
+        let Timestamp_Str = chrono::Local::now().format("%Y-%m-%d %H-%M-%S").to_string();
+        Terminal_Logger
+        {
+            Out_Buffer: Arc::new(Mutex::new(String::new())),
+            Err_Buffer: Arc::new(Mutex::new(String::new())),
+            Timestamp_Str,
+            Disable_Log_Files: Arc::new(Mutex::new(Disable_Logs)),
+        }
+    }
+
+    pub fn Set_Disable_Logs(& self, Disable: bool)
+    {
+        * self.Disable_Log_Files.lock().unwrap() = Disable;
+    }
+
+    pub fn Println(& self, Msg: & str)
+    {
+        println!("{}", Msg);
+        let mut Buf = self.Out_Buffer.lock().unwrap();
+        Buf.push_str(Msg);
+        Buf.push('\n');
+    }
+
+    pub fn Print(& self, Msg: & str)
+    {
+        print!("{}", Msg);
+        io::stdout().flush().ok();
+        let mut Buf = self.Out_Buffer.lock().unwrap();
+        Buf.push_str(Msg);
+    }
+
+    pub fn Eprintln(& self, Msg: & str)
+    {
+        eprintln!("{}", Msg);
+        {
+            let mut ErrBuf = self.Err_Buffer.lock().unwrap();
+            ErrBuf.push_str(Msg);
+            ErrBuf.push('\n');
+        }
+        {
+            let mut OutBuf = self.Out_Buffer.lock().unwrap();
+            OutBuf.push_str(Msg);
+            OutBuf.push('\n');
+        }
+    }
+
+    pub fn Flush_To_Files(& self)
+    {
+        if * self.Disable_Log_Files.lock().unwrap() { return ; }
+
+        let OutText = self.Out_Buffer.lock().unwrap().clone();
+        let ErrText = self.Err_Buffer.lock().unwrap().clone();
+
+        if ! OutText.is_empty()
+        {
+            let OutFileName = format ! ("lafs {}.log", self.Timestamp_Str);
+            if let Err(E) = fs::write( & OutFileName, & OutText)
+            {
+                eprintln!("Failed to write terminal output log '{}': {}", OutFileName, E);
+            }
+        }
+
+        if ! ErrText.is_empty()
+        {
+            let ErrFileName = format ! ("lafs error {}.log", self.Timestamp_Str);
+            if let Err(E) = fs::write( & ErrFileName, & ErrText)
+            {
+                eprintln!("Failed to write error log '{}': {}", ErrFileName, E);
+            }
+        }
+    }
+}
+
+fn PrintUsage(Logger: & Terminal_Logger)
+{
+    Logger.Println("LAFS Container Formatter (Language-Agnostic Formatting Style)");
+    Logger.Println("Usage:");
+    Logger.Println("  lafs [OPTIONS] <FILES... | DIRECTORIES...>");
+    Logger.Println("  lafs format [OPTIONS] <FILES... | DIRECTORIES...>");
+    Logger.Println("  lafs format failed [OPTIONS]       (Reformat all files listed in failed.txt)");
+    Logger.Println("  lafs apply [OPTIONS] <FILES... | DIRECTORIES...>");
+    Logger.Println("  lafs check [OPTIONS] <FILES... | DIRECTORIES...>");
+    Logger.Println("  lafs [OPTIONS] -                   (Read from stdin, output to stdout)");
+    Logger.Println("");
+    Logger.Println("Batch & Directory Options:");
+    Logger.Println("  -a, --all                   Format all files in current directory and all subdirectories");
+    Logger.Println("  -e, --ext <EXTENSIONS>      Only format files with specific extension(s) (e.g. -e c,h or -e sh)");
+    Logger.Println("      --all-types             Format all text files regardless of extension (excludes binary and docs)");
+    Logger.Println("  -x, --exclude <PATTERN>     Exclude files or folders (e.g. -x target -x vendor -x \"*.min.js\")");
+    Logger.Println("  -y, --yes                   Automatic yes to confirmation prompts");
+    Logger.Println("  -j, --threads <COUNT>       Number of parallel worker threads (default: CPU cores)");
+    Logger.Println("      --verbose               Show details for unchanged clean files");
+    Logger.Println("");
+    Logger.Println("Formatting Options:");
+    Logger.Println("  -w, --write                 Save and overwrite formatted files in-place (default)");
+    Logger.Println("      --stdout                Output formatted code to stdout instead of saving files");
+    Logger.Println("      --check                 Check if files are formatted (exit code 1 if unformatted)");
+    Logger.Println("  -of, --output-failed <FILE> Output failed and unformatted paths to a specific log file");
+    Logger.Println("      --no-log                Disable automatic log file generation");
+    Logger.Println("  -c, --canvas-width <WIDTH>  Set maximum canvas width before expansion (default: 160)");
+    Logger.Println("  -i, --indent <SIZE>         Set indentation width in spaces (default: 4)");
+    Logger.Println("  -t, --tabs                  Use tabs instead of spaces for indentation");
+    Logger.Println("  -l, --language <LANG>       Force source language: 'c', 'cpp', 'csharp', 'js', 'ts', 'sh'");
+    Logger.Println("      --max-statements <NUM>  Max statements in a monolith block (default: 4)");
+    Logger.Println("      --stdin-filepath <PATH> Virtual filepath when formatting stdin");
+    Logger.Println("  -h, --help                  Show this help message");
+    Logger.Println("  -v, --version               Show version information");
 }
 
 fn WildcardMatch(Pattern: & str, Text: & str)-> bool
@@ -208,10 +296,9 @@ fn ExpandGlobPattern(Pattern: & str, AllTypes: bool , AllowedExtensions: & [Stri
     }
 }
 
-fn PromptConfirmation(Count: usize, TargetDesc: & str)-> bool
+fn PromptConfirmation(Logger: & Terminal_Logger, Count: usize, TargetDesc: & str)-> bool
 {
-    print!("Found {} files in '{}'. Apply LAFS formatting and save in-place? [y/N]: ", Count, TargetDesc);
-    io::stdout().flush().ok();
+    Logger.Print(& format ! ("Found {} files in '{}'. Apply LAFS formatting and save in-place? [y/N]: ", Count, TargetDesc));
 
     let mut Input = String:: new ();
     if io::stdin().read_line( & mut Input).is_ok() { let Trimmed = Input.trim().to_lowercase(); matches ! (Trimmed.as_str(),"y" | "yes") } else { false }
@@ -219,6 +306,7 @@ fn PromptConfirmation(Count: usize, TargetDesc: & str)-> bool
 
 fn Main()
 {
+    let Logger = Terminal_Logger::New(false);
     let Args: Vec < String > = env::args().collect();
     let mut OutputToStdout = false;
     let mut CheckOnly = false;
@@ -226,6 +314,7 @@ fn Main()
     let mut AllTypes = false;
     let mut AutoYes = false;
     let mut Verbose = false;
+    let mut ReformatFailed = false;
     let mut CustomThreads: Option < usize > = None;
     let mut AllowedExtensions: Vec < String > = Vec:: new ();
     let mut ExcludedPatterns: Vec < String > = Vec:: new ();
@@ -239,16 +328,15 @@ fn Main()
     {
         if io::stdin().is_terminal()
         {
-            print!("No target files specified. Format all files in current directory and subdirectories? [y/N]: ");
-            io::stdout().flush().ok();
+            Logger.Print("No target files specified. Format all files in current directory and subdirectories? [y/N]: ");
             let mut Input = String:: new ();
             if io::stdin().read_line( & mut Input).is_ok()
             {
                 let Trimmed = Input.trim().to_lowercase();
                 if matches!(Trimmed.as_str(),"y" | "yes") { FormatAll = true; AutoYes = true; RawTargets.push(".".to_string()); }
-                else { PrintUsage(); return ; }
+                else { Logger.Set_Disable_Logs(true); PrintUsage( & Logger); return ; }
             }
-            else { PrintUsage(); return ; }
+            else { Logger.Set_Disable_Logs(true); PrintUsage( & Logger); return ; }
         }
         else { ReadFromStdin = true; }
     }
@@ -260,6 +348,8 @@ fn Main()
         match Arg.as_str()
         {
             "format" | "apply" | "run" => {}
+            "failed" | "--failed" => { ReformatFailed = true; }
+            "--no-log" => { Logger.Set_Disable_Logs(true); }
             "all" | "-a" | "--all" => { FormatAll = true; }
             "-e" | "--ext" | "--extension" | "--include-ext" => 
             {
@@ -330,8 +420,8 @@ fn Main()
             }
             "--stdin-filepath" => { I += 1; if I < Args.len() { StdinVirtualPath = Some(Args[I].clone()); } }
             "-" => { ReadFromStdin = true; }
-            "-h" | "--help" => { PrintUsage(); return ; }
-            "-v" | "--version" => { println ! ("lafs 0.1.0 (Language-Agnostic Formatting Style Formatter)"); return ; }
+            "-h" | "--help" => { Logger.Set_Disable_Logs(true); PrintUsage( & Logger); return ; }
+            "-v" | "--version" => { Logger.Set_Disable_Logs(true); Logger.Println("lafs 0.1.0 (Language-Agnostic Formatting Style Formatter)"); return ; }
             _ => 
             {
                 if Arg.starts_with("--ext=") || Arg.starts_with("--extension=") || Arg.starts_with("-e=")
@@ -361,6 +451,51 @@ fn Main()
         }
         I += 1;
     }
+
+    if OutputToStdout || ReadFromStdin { Logger.Set_Disable_Logs(true); }
+
+    if ReformatFailed
+    {
+        AutoYes = true;
+        let FailedLogPath = OutputFailedPath.clone().unwrap_or_else( || "failed.txt".to_string());
+        match fs::read_to_string( & FailedLogPath)
+        {
+            Ok(Content) => 
+            {
+                let mut FoundCount = 0;
+                for Line in Content.lines()
+                {
+                    let Trimmed = Line.trim();
+                    if Trimmed.is_empty() { continue ; }
+                    let FilePath = if let Some(Idx) = Trimmed.rfind(" (")
+                    {
+                        if Trimmed.ends_with(')') { & Trimmed[..Idx] } else { Trimmed }
+                    }
+                    else { Trimmed };
+                    let CleanPath = FilePath.trim();
+                    if ! CleanPath.is_empty()
+                    {
+                        RawTargets.push(CleanPath.to_string());
+                        FoundCount += 1;
+                    }
+                }
+                if FoundCount == 0
+                {
+                    Logger.Println(& format ! ("No failed files listed in '{}'.", FailedLogPath));
+                    Logger.Flush_To_Files();
+                    return ;
+                }
+                OutputFailedPath = Some(FailedLogPath);
+            }
+            Err(_) => 
+            {
+                Logger.Eprintln(& format ! ("Failed files list '{}' not found.", FailedLogPath));
+                Logger.Flush_To_Files();
+                return ;
+            }
+        }
+    }
+
     // If a language was specified and no explicit extensions were provided, restrict to that language's extensions
     if Config.Language != Source_Language::Generic && AllowedExtensions.is_empty()
     {
@@ -379,16 +514,15 @@ fn Main()
             let LangTag = if Config.Language != Source_Language::Generic { format ! ("{{{}}} ", Config.Language.ShortName()) }
             else if ! AllowedExtensions.is_empty() { format ! ("{{{}}} ", AllowedExtensions.join(", ")) } else { String::new () };
 
-            print!("No target files specified. Format all {}files in current directory and subdirectories? [y/N]: ", LangTag);
-            io::stdout().flush().ok();
+            Logger.Print(& format ! ("No target files specified. Format all {}files in current directory and subdirectories? [y/N]: ", LangTag));
             let mut Input = String:: new ();
             if io::stdin().read_line( & mut Input).is_ok()
             {
                 let Trimmed = Input.trim().to_lowercase();
                 if matches!(Trimmed.as_str(),"y" | "yes") { FormatAll = true; AutoYes = true; RawTargets.push(".".to_string()); }
-                else { PrintUsage(); return ; }
+                else { Logger.Set_Disable_Logs(true); PrintUsage( & Logger); return ; }
             }
-            else { PrintUsage(); return ; }
+            else { Logger.Set_Disable_Logs(true); PrintUsage( & Logger); return ; }
         }
         else { ReadFromStdin = true; }
     }
@@ -426,9 +560,12 @@ fn Main()
             if P.is_dir() { CollectFilesRecursively(P, AllTypes, & AllowedExtensions, & ExcludedPatterns, & mut TargetFiles,); }
             else if P.is_file()
             {
-                if IsFileEligible(P, AllTypes, & AllowedExtensions, & ExcludedPatterns) { TargetFiles.push(P.to_string_lossy().to_string()); }
+                if ReformatFailed || IsFileEligible(P, AllTypes, & AllowedExtensions, & ExcludedPatterns)
+                {
+                    TargetFiles.push(P.to_string_lossy().to_string());
+                }
             }
-            else { eprintln ! ("File or directory not found: {}", Target); }
+            else { Logger.Eprintln(& format ! ("File or directory not found: {}", Target)); }
         }
     }
     // Remove any duplicate file paths
@@ -436,7 +573,7 @@ fn Main()
     TargetFiles.dedup();
 
     let TotalFiles = TargetFiles.len();
-    if TotalFiles == 0 { println ! ("No matching files found to format."); return ; }
+    if TotalFiles == 0 { Logger.Println("No matching files found to format."); Logger.Flush_To_Files(); return ; }
     // Prompt user confirmation if formatting directory or multiple files
     let NeedsPrompt = (FormatAll || RawTargets.iter().any( | T | T == "." || Path::new (T).is_dir())) && ! AutoYes && ! CheckOnly && ! OutputToStdout;
 
@@ -446,7 +583,7 @@ fn Main()
         let PromptDesc = if ! AllowedExtensions.is_empty() { format ! ("{} [ext: {}]", TargetDesc, AllowedExtensions.join(", ")) }
         else { TargetDesc.to_string() };
 
-        if ! PromptConfirmation(TotalFiles, & PromptDesc) { println ! ("Operation cancelled by user."); return ; }
+        if ! PromptConfirmation( & Logger, TotalFiles, & PromptDesc) { Logger.Println("Operation cancelled by user."); Logger.Flush_To_Files(); return ; }
     }
 
     let FormattedCount = Arc:: new (AtomicUsize::new (0));
@@ -468,11 +605,11 @@ fn Main()
             {
                 Ok(C) => C, Err(E) => 
                 {
-                    if E.kind() == io::ErrorKind::InvalidData { if Verbose { println ! ("Skipped non-UTF8 / binary file: {}", FilePathStr); } continue ; }
-                    eprintln!("Failed to read file {}: {}", FilePathStr, E);
+                    if E.kind() == io::ErrorKind::InvalidData { if Verbose { Logger.Println(& format ! ("Skipped non-UTF8 / binary file: {}", FilePathStr)); } continue ; }
+                    Logger.Eprintln(& format ! ("Failed to read file {}: {}", FilePathStr, E));
                     ErrorCount.fetch_add(1, Ordering::Relaxed);
-                    FailedPaths.lock().unwrap().push(format!("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
-                    continue;
+                    FailedPaths.lock().unwrap().push(format ! ("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
+                    continue ;
                 }
             };
 
@@ -489,30 +626,30 @@ fn Main()
                     {
                         if ! IsAlreadyFormatted
                         {
-                            println!("Requires formatting: {}", FilePathStr);
+                            Logger.Println(& format ! ("Requires formatting: {}", FilePathStr));
                             ErrorCount.fetch_add(1, Ordering::Relaxed);
-                            FailedPaths.lock().unwrap().push(format!("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
+                            FailedPaths.lock().unwrap().push(format ! ("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
                         }
-                        else if Verbose { println ! ("Clean: {}", FilePathStr); }
+                        else if Verbose { Logger.Println(& format ! ("Clean: {}", FilePathStr)); }
                     }
                     else if OutputToStdout { print ! ("{}", Formatted); }
                     else if ! IsAlreadyFormatted
                     {
                         if let Err(E) = fs::write(FilePath, & Formatted)
                         {
-                            eprintln!("Failed to save file {}: {}", FilePathStr, E);
+                            Logger.Eprintln(& format ! ("Failed to save file {}: {}", FilePathStr, E));
                             ErrorCount.fetch_add(1, Ordering::Relaxed);
-                            FailedPaths.lock().unwrap().push(format!("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
+                            FailedPaths.lock().unwrap().push(format ! ("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
                         }
-                        else { println ! ("Formatted & Saved: {}", FilePathStr); FormattedCount.fetch_add(1, Ordering::Relaxed); }
+                        else { Logger.Println(& format ! ("Formatted & Saved: {}", FilePathStr)); FormattedCount.fetch_add(1, Ordering::Relaxed); }
                     }
-                    else { if Verbose { println ! ("Clean (Unchanged): {}", FilePathStr); } CleanCount.fetch_add(1, Ordering::Relaxed); }
+                    else { if Verbose { Logger.Println(& format ! ("Clean (Unchanged): {}", FilePathStr)); } CleanCount.fetch_add(1, Ordering::Relaxed); }
                 }
                 Err(ErrMessage) => 
                 {
-                    eprintln!("Error formatting {}: {}", FilePathStr, ErrMessage);
+                    Logger.Eprintln(& format ! ("Error formatting {}: {}", FilePathStr, ErrMessage));
                     ErrorCount.fetch_add(1, Ordering::Relaxed);
-                    FailedPaths.lock().unwrap().push(format!("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
+                    FailedPaths.lock().unwrap().push(format ! ("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
                 }
             }
         }
@@ -525,13 +662,22 @@ fn Main()
             {
                 for _ in 0..ThreadCount
                 {
+                    let WorkerLogger = Logger.clone();
+                    let WorkerFailedPaths = FailedPaths.clone();
+                    let WorkerFormattedCount = FormattedCount.clone();
+                    let WorkerCleanCount = CleanCount.clone();
+                    let WorkerErrorCount = ErrorCount.clone();
+                    let WorkerCurrentIndex = CurrentIndex.clone();
+                    let WorkerConfig = Config.clone();
+                    let WorkerTargetFiles = & TargetFiles;
+
                     Scope.spawn
                     (
-                        || loop 
+                        move || loop 
                         {
-                            let Idx = CurrentIndex.fetch_add(1, Ordering::Relaxed);
+                            let Idx = WorkerCurrentIndex.fetch_add(1, Ordering::Relaxed);
                             if Idx >= TotalFiles { break ; }
-                            let FilePathStr = & TargetFiles[Idx];
+                            let FilePathStr = & WorkerTargetFiles[Idx];
                             let FilePath = Path:: new (FilePathStr);
                             let FileContent = match fs::read_to_string(FilePath)
                             {
@@ -539,16 +685,16 @@ fn Main()
                                 {
                                     if E.kind() == io::ErrorKind::InvalidData
                                     {
-                                        if Verbose { println ! ("Skipped non-UTF8 / binary file: {}", FilePathStr); }
-                                        continue;
+                                        if Verbose { WorkerLogger.Println(& format ! ("Skipped non-UTF8 / binary file: {}", FilePathStr)); }
+                                        continue ;
                                     }
-                                    eprintln!("Failed to read file {}: {}", FilePathStr, E);
-                                    ErrorCount.fetch_add(1, Ordering::Relaxed);
-                                    FailedPaths.lock().unwrap().push(format!("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
-                                    continue;
+                                    WorkerLogger.Eprintln(& format ! ("Failed to read file {}: {}", FilePathStr, E));
+                                    WorkerErrorCount.fetch_add(1, Ordering::Relaxed);
+                                    WorkerFailedPaths.lock().unwrap().push(format ! ("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
+                                    continue ;
                                 }
                             };
-                            let mut FileConfig = Config.clone();
+                            let mut FileConfig = WorkerConfig.clone();
                             if FileConfig.Language == Source_Language::Generic { FileConfig.Language = Source_Language::FromExtension(FilePathStr); }
                             match Source_Formatter::Format( & FileContent, & FileConfig)
                             {
@@ -558,23 +704,23 @@ fn Main()
                                     {
                                         if let Err(E) = fs::write(FilePath, & Formatted)
                                         {
-                                            eprintln!("Failed to save file {}: {}", FilePathStr, E);
-                                            ErrorCount.fetch_add(1, Ordering::Relaxed);
-                                            FailedPaths.lock().unwrap().push(format!("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
+                                            WorkerLogger.Eprintln(& format ! ("Failed to save file {}: {}", FilePathStr, E));
+                                            WorkerErrorCount.fetch_add(1, Ordering::Relaxed);
+                                            WorkerFailedPaths.lock().unwrap().push(format ! ("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
                                         }
-                                        else { println ! ("Formatted & Saved: {}", FilePathStr); FormattedCount.fetch_add(1, Ordering::Relaxed); }
+                                        else { WorkerLogger.Println(& format ! ("Formatted & Saved: {}", FilePathStr)); WorkerFormattedCount.fetch_add(1, Ordering::Relaxed); }
                                     }
                                     else
                                     {
-                                        if Verbose { println ! ("Clean (Unchanged): {}", FilePathStr); }
-                                        CleanCount.fetch_add(1, Ordering::Relaxed);
+                                        if Verbose { WorkerLogger.Println(& format ! ("Clean (Unchanged): {}", FilePathStr)); }
+                                        WorkerCleanCount.fetch_add(1, Ordering::Relaxed);
                                     }
                                 }
                                 Err(ErrMessage) => 
                                 {
-                                    eprintln!("Error formatting {}: {}", FilePathStr, ErrMessage);
-                                    ErrorCount.fetch_add(1, Ordering::Relaxed);
-                                    FailedPaths.lock().unwrap().push(format!("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
+                                    WorkerLogger.Eprintln(& format ! ("Error formatting {}: {}", FilePathStr, ErrMessage));
+                                    WorkerErrorCount.fetch_add(1, Ordering::Relaxed);
+                                    WorkerFailedPaths.lock().unwrap().push(format ! ("{} ({})", FilePathStr, Source_Language::FromExtension(FilePathStr).ShortName()));
                                 }
                             }
                         }
@@ -591,7 +737,12 @@ fn Main()
 
     if ! OutputToStdout && ! CheckOnly
     {
-        println!("Summary: {} formatted and saved, {} already clean, {} errors ({:.2?}, {} threads).", FCount, CCount, ECount, Elapsed, ThreadCount);
+        Logger.Println(& format ! ("Summary: {} formatted and saved, {} already clean, {} errors ({:.2?}, {} threads).", FCount, CCount, ECount, Elapsed, ThreadCount));
+    }
+
+    if OutputFailedPath.is_none() && ECount > 0 && ! OutputToStdout && ! CheckOnly
+    {
+        OutputFailedPath = Some("failed.txt".to_string());
     }
 
     if let Some(FailedFile) = OutputFailedPath
@@ -599,8 +750,21 @@ fn Main()
         let mut FailedPathsStr = String:: new ();
         let FailedMutex = FailedPaths.lock().unwrap();
         for Path in FailedMutex.iter() { FailedPathsStr.push_str(Path); FailedPathsStr.push('\n'); }
-        if let Err(E) = fs::write( & FailedFile, FailedPathsStr) { eprintln ! ("Failed to write failed paths to {}: {}", FailedFile, E); }
+        if let Err(E) = fs::write( & FailedFile, & FailedPathsStr)
+        {
+            Logger.Eprintln(& format ! ("Failed to write failed paths to {}: {}", FailedFile, E));
+        }
+        else if ReformatFailed && FailedMutex.is_empty()
+        {
+            Logger.Println("All previously failed files were successfully formatted!");
+        }
+        else if ! FailedMutex.is_empty()
+        {
+            Logger.Println(& format ! ("Failed file paths recorded to '{}'. Use 'lafs format failed' to retry.", FailedFile));
+        }
     }
+
+    Logger.Flush_To_Files();
 
     if CheckOnly && ECount > 0 { std::process::exit(1); }
 }
